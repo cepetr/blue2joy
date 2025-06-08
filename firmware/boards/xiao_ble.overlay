@@ -1,0 +1,166 @@
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+    buttons: buttons {
+        compatible = "gpio-keys";
+        button_1: button_1 {
+            gpios = <&gpio1 12 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+            zephyr,code = <INPUT_KEY_1>;
+        };
+        button_2: button_2 {
+            gpios = <&gpio1 11 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+            zephyr,code = <INPUT_KEY_2>;
+        };
+        debounce-interval-ms = <50>;
+    };
+
+    longpress {
+        input = <&buttons>;
+        compatible = "zephyr,input-longpress";
+        input-codes = <INPUT_KEY_1>;
+        short-codes = <INPUT_KEY_R>;
+        long-codes = <INPUT_KEY_P>;
+        long-delay-ms = <2000>;
+    };
+
+    joy_outputs {
+        compatible = "gpio-leds";
+        status = "okay";
+
+        joy_d0: joy_d0 {
+            gpios = <&gpio1 14 (GPIO_ACTIVE_HIGH)>;
+        };
+
+        joy_d1: joy_d1 {
+            gpios = <&gpio1 15 (GPIO_ACTIVE_HIGH)>;
+        };
+
+        joy_d2: joy_d2 {
+            gpios = <&gpio0 9 (GPIO_ACTIVE_HIGH)>;
+        };
+
+        joy_d3: joy_d3 {
+            gpios = <&gpio0 4 (GPIO_ACTIVE_HIGH)>;
+        };
+
+        joy_trig: joy_trig {
+            gpios = <&gpio1 7 (GPIO_ACTIVE_HIGH)>;
+        };
+
+        joy_p0_chg: joy_p0_chg {
+            gpios = <&gpio0 15 (GPIO_ACTIVE_HIGH)>;
+        };
+
+        joy_p1_chg: joy_p1_chg {
+            gpios = <&gpio0 19 (GPIO_ACTIVE_HIGH)>;
+        };
+    };
+
+    joy_inputs {
+        compatible = "gpio-leds";
+        status = "okay";
+
+        joy_d0_fb: joy_d0_fb {
+            gpios = <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        };
+
+        joy_d1_fb: joy_d1_fb {
+            gpios = <&gpio1 05 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        };
+
+        joy_d2_fb: joy_d2_fb {
+            gpios = <&gpio0 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        };
+
+        joy_d3_fb: joy_d3_fb {
+            gpios = <&gpio0 05 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        };
+
+        joy_p0_fb: joy_p0_fb {
+            gpios = <&gpio0 28 (GPIO_ACTIVE_HIGH)>;
+        };
+    };
+
+    aliases {
+        button-1 = &button_1;
+        button-2 = &button_2;
+        joy-d0 = &joy_d0;
+        joy-d1 = &joy_d1;
+        joy-d2 = &joy_d2;
+        joy-d3 = &joy_d3;
+        joy-trig = &joy_trig;
+        joy-d0-fb = &joy_d0_fb;
+        joy-d1-fb = &joy_d1_fb;
+        joy-d2-fb = &joy_d2_fb;
+        joy-d3-fb = &joy_d3_fb;
+        joy-p0-chg = &joy_p0_chg;
+        joy-p1-chg = &joy_p1_chg;
+        joy-p0-fb = &joy_p0_fb;
+        led-strip = &led_strip;
+    };
+};
+
+&uart0 {
+    status = "disabled";
+};
+
+&uicr {
+	nfct-pins-as-gpios;
+};
+
+&pinctrl {
+	spi0_default: spi0_default {
+		group1 {
+			psels =
+              <NRF_PSEL(SPIM_MOSI, 0, 29)>,
+              <NRF_PSEL_DISCONNECTED(SPIM_MISO)>,
+              <NRF_PSEL(SPIM_SCK, 0, 2)>; /* not working without fake SCK */
+		};
+	};
+
+	spi1_default: spi1_default {
+		group1 {
+			psels =
+                <NRF_PSEL(SPIS_CSN, 1, 13)>,
+				<NRF_PSEL(SPIS_SCK, 1, 5)>,
+				<NRF_PSEL(SPIS_MOSI, 0, 3)>,
+				<NRF_PSEL(SPIS_MISO, 0, 4)>;
+
+            bias-pull-up;
+		};
+	};
+};
+
+&spi0 {
+	status = "okay";
+	pinctrl-0 = <&spi0_default>;
+	pinctrl-names = "default";
+
+	led_strip: ws2812@0 {
+		compatible = "worldsemi,ws2812-spi";
+
+		reg = <0>;
+		chain-length = <1>;
+		color-mapping = <LED_COLOR_ID_GREEN
+					LED_COLOR_ID_RED
+					LED_COLOR_ID_BLUE>;
+		reset-delay = <120>;
+        spi-one-frame = <0x70>;
+        spi-zero-frame = <0x40>;
+        spi-max-frequency = <4000000>;
+	};
+};
+
+&spi1 {
+    compatible = "nordic,nrf-spis";
+
+	status = "okay";
+	pinctrl-0 = <&spi1_default>;
+	pinctrl-names = "default";
+
+	def-char = <0x00>;
+
+    zephyr,deferred-init;
+};

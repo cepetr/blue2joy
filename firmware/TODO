@@ -1,0 +1,36 @@
+- requesty pro subscribe/unsubcsribe eventu pro connection
+  - prip. naplanovat odeslani vseho pri pripojeni
+
+- blokovat odesilani zmeny konfigurace ve stejnem kanalu
+
+- adv list - timeout
+
+- io_port state btjp command
+- factory reset btjp command
+
+- zvazit ruzne skupiny pro logovani (pripadne CONFIG_LOG_FUNC_NAME_PREFIX_xxxx)
+
+- oboje settings.c -- zvazit zda nepresunout do extra modulu a nespoustet eventem
+
+- zvazit odstraneni nastaveni potu/pinu - mozna bude stacit jen nastaveni celeho profilu
+
+----
+
+| state |  button | action | signalling |
+|-------|---------|--------|------------|
+| connected, connecting | long press 2 | disconnect & start scanning | no signalling |
+| scanning | long press 2 | delete bond #1, start pairing #1 | blink |
+| connected | hold 1 + press 2 (x1, x2, x3) | select profile | blink
+| any | long press 1 | start SPI | blink
+
+
+
+----
+
+- Btj.SetMode - use enum for modes
+
+
+
+
+
+

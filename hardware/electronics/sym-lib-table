@@ -1,0 +1,5 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "xiao_nrf52840plus")(type "KiCad")(uri "${KIPRJMOD}/lib/xiao_nrf52840plus.kicad_sym")(options "")(descr ""))
+  (lib (name "torex_xc8110")(type "KiCad")(uri "${KIPRJMOD}/lib/torex_xc8110.kicad_sym")(options "")(descr ""))
+)

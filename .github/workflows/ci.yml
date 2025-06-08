@@ -1,0 +1,104 @@
+name: Blue2Joy build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+############################
+#  Job 1 – Atari software
+############################
+
+jobs:
+  build-atari:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v24
+        with:
+         nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Build Atari software
+        working-directory: atari
+        run: nix-shell --pure --command "./build.sh"
+
+      - name: Upload blue2joy.xex
+        uses: actions/upload-artifact@v4
+        with:
+          name: blue2joy.xex
+          path: atari/build/blue2joy.xex
+          if-no-files-found: error
+
+############################
+#  Job 2 – nRF52 firmware
+############################
+
+  build-firmware:
+    runs-on: ubuntu-latest
+    container: sergeyladanov/nrf-connect-sdk:v3.0.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build nRF52 firmware
+        shell: bash
+        run: |
+          # --- Zephyr environment -----------
+          . /workdir/ncs/zephyr/zephyr-env.sh
+          /workdir/zephyr-sdk-${ZEPHYR_TAG}/setup.sh -t arm-zephyr-eabi
+          /workdir/zephyr-sdk-${ZEPHYR_TAG}/setup.sh -c
+          # ----------------------------------
+
+          # Build the application inside /firmware
+          west build firmware \
+            -b xiao_ble/nrf52840 \
+            --no-sysbuild \
+            --build-dir firmware/build \
+            --pristine
+
+      - name: Rename UF2
+        run: mv firmware/build/zephyr/zephyr.uf2 firmware/build/zephyr/blue2joy.uf2
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: blue2joy.uf2
+          path: firmware/build/zephyr/blue2joy.uf2
+          if-no-files-found: error
+
+############################
+#  Job 3 – Release
+############################
+
+  publish-release:
+    needs: [build-atari, build-firmware]
+    runs-on: ubuntu-latest
+
+    # Skip this job for manual runs; run only when refs/tags/* is present
+    if: startsWith(github.ref, 'refs/tags/')
+
+    permissions:
+      contents: write
+
+    steps:
+      # Download the two artifacts produced earlier
+      - uses: actions/download-artifact@v4
+        with:
+          name: blue2joy.xex
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: blue2joy.uf2
+          path: dist
+
+      # Create or update the Release and upload the artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}          # e.g. v1.2.0
+          files: |
+            dist/blue2joy.xex
+            dist/blue2joy.uf2
+          prerelease: ${{ contains(github.ref_name, '-') }}  # mark v1.2.0-rc1 etc. as pre-release

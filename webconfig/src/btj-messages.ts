@@ -1,0 +1,541 @@
+/*
+ * This file is part of the Blue2Joy project
+ * (https://github.com/cepetr/blue2joy).
+ * Copyright (c) 2025
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+export namespace Btj {
+  export class Error extends globalThis.Error {
+    readonly code: number;
+
+    constructor(code: number, message?: string) {
+      super(message ?? `Device error: code ${code}`);
+      this.name = 'BtjError';
+      this.code = code;
+    }
+  }
+
+  function assertPresent<T>(value: T | undefined, msg = 'No response available'): T {
+    if (value === undefined) throw new globalThis.Error(msg);
+    return value;
+  }
+
+  function assertPayloadLength(view: DataView, expected: number): void {
+    if (view.byteLength !== expected) throw new globalThis.Error(`Invalid payload length`);
+  }
+
+  function hexString(view: DataView, offset: number, length: number): string {
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += view.getUint8(offset + i).toString(16).padStart(2, '0');
+    }
+    return result;
+  }
+
+  export enum MsgId {
+    GET_API_VERSION = 0,
+    GET_SYS_INFO = 1,
+    SET_DEV_CONFIG = 2,
+    SET_PIN_CONFIG = 3,
+    SET_POT_CONFIG = 4,
+    SET_PROFILE = 5,
+    SET_MODE = 6,
+    START_SCANNING = 7,
+    STOP_SCANNING = 8,
+    CONNECT_DEVICE = 9,
+    DELETE_DEVICE = 10,
+    FACTORY_RESET = 11,
+
+    EVT_SYS_STATE_UPDATE = 64,
+    EVT_IO_PORT_UPDATE = 65,
+    EVT_ADV_LIST_UPDATE = 66,
+    EVT_DEV_LIST_UPDATE = 67,
+    EVT_PROFILE_UPDATE = 68,
+  }
+
+  export interface Command {
+    readonly msgId: MsgId;
+    serializeRequest(): ArrayBuffer;
+    parseResponse(view: DataView): void;
+  }
+
+
+  export type ApiVersion = {
+    major: number;
+    minor: number;
+  };
+
+  export class GetApiVersion implements Command {
+    readonly msgId = MsgId.GET_API_VERSION;
+    private _data?: ApiVersion;
+
+    constructor() { }
+
+    serializeRequest(): ArrayBuffer {
+      return new ArrayBuffer(0);
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 2);
+      const major = view.getUint8(0);
+      const minor = view.getUint8(1);
+      this._data = { major, minor };
+    }
+
+    get data(): ApiVersion {
+      return assertPresent(this._data);
+    }
+  }
+
+  export type SysInfo = {
+    hw_id: string;
+    hw_version: number;
+    sw_version: number;
+  }
+
+  export class GetSysInfo implements Command {
+    readonly msgId = MsgId.GET_SYS_INFO;
+    private _data?: SysInfo;
+
+    constructor() { }
+
+    serializeRequest(): ArrayBuffer {
+      return new ArrayBuffer(0);
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 16);
+      const hw_id = hexString(view, 0, 8);
+      const hw_version = view.getUint32(8, true);
+      const sw_version = view.getUint32(12, true);
+      this._data = { hw_id, hw_version, sw_version };
+    }
+
+    get data(): SysInfo {
+      return assertPresent(this._data);
+    }
+  }
+
+  export type SysState = {
+    scanning: boolean;
+    mode: number;
+  };
+
+  export type IoPortState = {
+    pins: number;
+    pots: Array<number>;
+  };
+
+  export class DevAddr {
+    static readonly LENGTH = 7;
+    private _bytes: Uint8Array;
+
+    constructor(bytes: ArrayLike<number>) {
+      if (bytes.length !== DevAddr.LENGTH) {
+        throw new globalThis.Error(`DevAddr must be exactly ${DevAddr.LENGTH} bytes`);
+      }
+      this._bytes = new Uint8Array(bytes);
+      this._bytes.forEach((b, i) => {
+        if (b < 0 || b > 255 || !Number.isInteger(b)) {
+          throw new globalThis.Error(`DevAddr byte must be in 0..255`);
+        }
+        this._bytes[i] = b;
+      });
+    }
+
+    equals(other: DevAddr): boolean {
+      if (this === other) return true;
+      for (let i = 0; i < DevAddr.LENGTH; i++) {
+        if (this._bytes[i] !== other._bytes[i]) return false;
+      }
+      return true;
+    }
+
+    toString(): string {
+      const type_suffix = this._bytes[0] === 0 ? '' : ' (random)';
+
+      return Array.from(this._bytes)
+        .reverse().slice(0, 6)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join(':') + type_suffix;
+    }
+
+    static copyFrom(offset: number, view: DataView): DevAddr {
+      return new DevAddr(new Uint8Array(view.buffer, view.byteOffset + offset, DevAddr.LENGTH));
+    }
+
+    copyTo(offset: number, view: DataView) {
+      for (let i = 0; i < DevAddr.LENGTH; i++) {
+        view.setUint8(offset + i, this._bytes[i]);
+      }
+    }
+  }
+
+  export type AdvData = {
+    addr: DevAddr;
+    rssi: number;
+    name: string;
+  }
+
+  export type DevState = {
+    connState: number;
+    bonded: boolean;
+  };
+
+  export type DevConfig = {
+    profile: number;
+  };
+
+  export class SetDevConfig implements Command {
+    readonly msgId = MsgId.SET_DEV_CONFIG;
+
+    constructor(private _addr: DevAddr, private _data: DevConfig) { }
+    serializeRequest(): ArrayBuffer {
+      const buf = new ArrayBuffer(DevAddr.LENGTH + 1);
+      const view = new DataView(buf);
+      this._addr.copyTo(0, view);
+      view.setUint8(DevAddr.LENGTH, this._data.profile);
+      return buf;
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+
+    get addr(): DevAddr {
+      return this._addr;
+    }
+
+    get data(): DevConfig {
+      return this._data;
+    }
+  }
+
+
+  export type PinConfig = {
+    source: number;
+    invert: boolean;
+    hatSwitch: number;
+    threshold: number;
+    hysteresis: number;
+  }
+
+  export class SetPinConfig implements Command {
+    readonly msgId = MsgId.SET_PIN_CONFIG;
+
+    constructor(private _profile: number, private _id: number, private _data: PinConfig) { }
+    serializeRequest(): ArrayBuffer {
+      const buf = new ArrayBuffer(2 + 6);
+      const view = new DataView(buf);
+      view.setUint8(0, this._profile);
+      view.setUint8(1, this._id);
+      view.setUint16(2, this._data.source);
+      view.setUint8(4, this._data.invert ? 1 : 0);
+      view.setUint8(5, this._data.hatSwitch);
+      view.setUint8(6, this._data.threshold);
+      view.setUint8(7, this._data.hysteresis);
+      return buf;
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+
+    get profile(): number {
+      return this._profile;
+    }
+
+    get id(): number {
+      return this._id;
+    }
+
+    get data(): PinConfig {
+      return this._data;
+    }
+  }
+
+
+  export type PotConfig = {
+    source: number;
+    low: number;
+    high: number;
+    int_speed: number;
+  }
+
+  export class SetPotConfig implements Command {
+    readonly msgId = MsgId.SET_POT_CONFIG;
+
+    constructor(private _profile: number, private _id: number, private _data: PotConfig) { }
+    serializeRequest(): ArrayBuffer {
+      const buf = new ArrayBuffer(2 + 8);
+      const view = new DataView(buf);
+      view.setUint8(0, this._profile);
+      view.setUint8(1, this._id);
+      view.setUint16(2, this._data.source);
+      view.setInt16(4, this._data.low);
+      view.setInt16(6, this._data.high);
+      view.setInt16(8, this._data.int_speed);
+      return buf;
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+
+    get profile(): number {
+      return this._profile;
+    }
+
+    get id(): number {
+      return this._id;
+    }
+
+    get data(): PotConfig {
+      return this._data;
+    }
+  }
+
+
+  export class SetMode implements Command {
+    readonly msgId = MsgId.SET_MODE;
+
+    constructor(private _mode: number, private _restart: boolean) { }
+
+    serializeRequest(): ArrayBuffer {
+      const buf = new ArrayBuffer(2);
+      const view = new DataView(buf);
+      view.setUint8(0, this._mode);
+      view.setUint8(1, this._restart ? 1 : 0);
+      return buf;
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+
+    get mode(): number {
+      return this._mode;
+    }
+
+    get restart(): boolean {
+      return this._restart;
+    }
+  }
+
+  export class StartScanning implements Command {
+    readonly msgId = MsgId.START_SCANNING;
+
+    constructor() { }
+    serializeRequest(): ArrayBuffer {
+      return new ArrayBuffer(0);
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+  }
+
+  export class StopScanning implements Command {
+    readonly msgId = MsgId.STOP_SCANNING;
+
+    constructor() { }
+
+    serializeRequest(): ArrayBuffer {
+      return new ArrayBuffer(0);
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+  }
+
+  export class ConnectDevice implements Command {
+    readonly msgId = MsgId.CONNECT_DEVICE;
+
+    constructor(private _addr: DevAddr) { }
+    serializeRequest(): ArrayBuffer {
+      const buf = new ArrayBuffer(DevAddr.LENGTH);
+      const view = new DataView(buf);
+      this._addr.copyTo(0, view);
+      return buf;
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+
+    get addr(): DevAddr {
+      return this._addr;
+    }
+  }
+
+  export class DeleteDevice implements Command {
+    readonly msgId = MsgId.DELETE_DEVICE;
+
+    constructor(private _addr: DevAddr) { }
+    serializeRequest(): ArrayBuffer {
+      const buf = new ArrayBuffer(DevAddr.LENGTH);
+      const view = new DataView(buf);
+      this._addr.copyTo(0, view);
+      return buf;
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+
+    get addr(): DevAddr {
+      return this._addr;
+    }
+  }
+
+  export class FactoryReset implements Command {
+    readonly msgId = MsgId.FACTORY_RESET;
+
+    constructor() { }
+    serializeRequest(): ArrayBuffer {
+      return new ArrayBuffer(0);
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+  }
+
+  export class SysStateUpdateEvent {
+    readonly msgId = MsgId.EVT_SYS_STATE_UPDATE;
+
+    private _data?: SysState;
+
+    parseMessage(view: DataView) {
+      assertPayloadLength(view, 2);
+      const scanning = view.getUint8(0) != 0;
+      const mode = view.getUint8(1);
+      this._data = { scanning, mode };
+    }
+
+    get data(): SysState {
+      return assertPresent(this._data);
+    }
+  }
+
+  export class AdvListUpdateEvent {
+    readonly msgId = MsgId.EVT_ADV_LIST_UPDATE;
+    private _data?: AdvData;
+    private _deleted?: boolean;
+
+    parseMessage(view: DataView) {
+      assertPayloadLength(view, 1 + DevAddr.LENGTH + 1 + 31);
+      const deleted = view.getUint8(0) ? true : false;
+      const addr = DevAddr.copyFrom(1, view);
+      const rssi = view.getInt8(8);
+      const name = new TextDecoder().decode(new Uint8Array(view.buffer, view.byteOffset + 9, 31)).replace(/\0.*$/, '');
+      this._data = { addr, rssi, name };
+      this._deleted = deleted;
+    }
+
+    get data(): AdvData {
+      return assertPresent(this._data);
+    }
+
+    get deleted(): boolean {
+      return assertPresent(this._deleted);
+    }
+  }
+
+  export class DevListUpdateEvent {
+    readonly msgId = MsgId.EVT_DEV_LIST_UPDATE;
+
+    private _deleted?: boolean;
+    private _addr?: DevAddr;
+    private _state?: DevState;
+    private _config?: DevConfig;
+
+    parseMessage(view: DataView) {
+      assertPayloadLength(view, 1 + DevAddr.LENGTH + 1 + 1 + 1);
+      const deleted = view.getUint8(0) ? true : false;
+      const addr = DevAddr.copyFrom(1, view);
+      const connState = view.getInt8(8);
+      const bonded = view.getUint8(9) ? true : false;
+      const profile = view.getUint8(10);
+      this._deleted = deleted;
+      this._addr = addr;
+      this._state = { connState, bonded };
+      this._config = { profile };
+    }
+
+    get deleted(): boolean {
+      return assertPresent(this._deleted);
+    }
+
+    get addr(): DevAddr {
+      return assertPresent(this._addr);
+    }
+
+    get state(): DevState {
+      return assertPresent(this._state);
+    }
+
+    get config(): DevConfig {
+      return assertPresent(this._config);
+    }
+  }
+
+  export class ProfileUpdateEvent {
+    readonly msgId = MsgId.EVT_PROFILE_UPDATE;
+
+    private _profile?: number;
+
+    private _pins: Map<number, PinConfig> = new Map();
+    private _pots: Map<number, PotConfig> = new Map();
+
+    parseMessage(view: DataView) {
+      assertPayloadLength(view, 2 + 5 * 6 + 2 * 8);
+      this._profile = view.getUint8(0);
+
+      for (let i = 0; i < 5; i++) {
+        const offset = 2 + i * 6;
+        const source = view.getUint16(offset);
+        const invert = Boolean(view.getUint8(offset + 2));
+        const hatSwitch = view.getUint8(offset + 3);
+        const threshold = view.getUint8(offset + 4);
+        const hysteresis = view.getUint8(offset + 5);
+        this._pins.set(i, { source, invert, hatSwitch, threshold, hysteresis });
+      }
+
+      for (let i = 0; i < 2; i++) {
+        const offset = 2 + 5 * 6 + i * 8;
+        const source = view.getUint16(offset);
+        const low = view.getInt16(offset + 2);
+        const high = view.getInt16(offset + 4);
+        const int_speed = view.getInt16(offset + 6);
+        this._pots.set(i, { source, low, high, int_speed });
+      }
+    }
+
+    get profile(): number {
+      return assertPresent(this._profile);
+    }
+
+    get pins(): Map<number, PinConfig> {
+      return this._pins;
+    }
+
+    get pots(): Map<number, PotConfig> {
+      return this._pots;
+    }
+  }
+
+}
