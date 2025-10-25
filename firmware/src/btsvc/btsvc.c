@@ -138,7 +138,7 @@ static void request_work_handler(struct k_work *work)
 
     uint8_t tx_buf[CONFIG_BT_L2CAP_TX_MTU];
 
-    if (!atomic_set(&ctx->txq_ready, false)) {
+    if (!atomic_set(&ctx->txq_ready, true)) {
         k_work_reschedule(&ctx->event_work, K_MSEC(0));
     }
 
