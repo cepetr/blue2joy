@@ -37,6 +37,20 @@ export class ScanDialog extends MobxLitElement {
     this._scanning = false;
   }
 
+  private async connect(addr: Btj.DevAddr) {
+    if (!btj.conn) {
+      return;
+    }
+    this._error = null;
+    try {
+      await this.stopScan();
+      await btj.conn.invoke(new Btj.ConnectDevice(addr));
+      this.onClose();
+    } catch (err: any) {
+      this._error = err?.message ?? String(err);
+    }
+  }
+
   private onClose() {
     this.stopScan();
     this.dispatchEvent(new CustomEvent('close', { bubbles: true }));
@@ -61,6 +75,9 @@ export class ScanDialog extends MobxLitElement {
                     <td>${a.addr.toString()}</td>
                     <td>${a.name}</td>
                     <td>${a.rssi}</td>
+                    <td>
+                      <button type="button" class="button contrast" @click=${() => this.connect(a.addr)}>Connect</button>
+                    </td>
                   </tr>
                 `)
       }
