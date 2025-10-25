@@ -20,8 +20,8 @@ export class DevicesView extends MobxLitElement {
       <table>
         <thead>
           <tr>
-            <th>Address</th>
-            <th>State</th>
+            <th>MAC Address</th>
+            <th>Sstate</th>
             <th>Profile</th>
             <th>Actions</th>
           </tr>
