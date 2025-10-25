@@ -12,7 +12,7 @@ export class PotConfigEditor extends LitElement {
   @property({ type: Number }) potId!: number;
   @property({ attribute: false }) config?: Btj.PotConfig;
 
-  @state() private _local: Btj.PotConfig = { source: 0, low: 0, high: 0, int_speed: 0 };
+  @state() private _local: Btj.PotConfig = { source: 0, low: 0, high: 0, intSpeed: 0 };
 
   override willUpdate(changed: any) {
     if (this.config && changed.has('config')) {
@@ -45,6 +45,11 @@ export class PotConfigEditor extends LitElement {
         <div>
           <label>Max
             <input .value=${String(cfg.high ?? '')} @input=${(e: Event) => { this._local.high = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />
+          </label>
+        </div>
+        <div>
+          <label>Integration Speed
+            <input .value=${String(cfg.intSpeed ?? '')} @input=${(e: Event) => { this._local.intSpeed = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />
           </label>
         </div>
       </article>

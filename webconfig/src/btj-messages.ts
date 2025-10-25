@@ -278,7 +278,7 @@ export namespace Btj {
     source: number;
     low: number;
     high: number;
-    int_speed: number;
+    intSpeed: number;
   }
 
   export class SetPotConfig implements Command {
@@ -293,7 +293,7 @@ export namespace Btj {
       view.setUint32(4, this._data.source, true);
       view.setInt16(8, this._data.low, true);
       view.setInt16(10, this._data.high, true);
-      view.setInt16(12, this._data.int_speed, true);
+      view.setInt16(12, this._data.intSpeed, true);
       return buf;
     }
 
@@ -526,8 +526,8 @@ export namespace Btj {
         const source = view.getUint32(offset, true);
         const low = view.getInt16(offset + 4, true);
         const high = view.getInt16(offset + 6, true);
-        const int_speed = view.getInt16(offset + 8, true);
-        this._pots.set(i, { source, low, high, int_speed });
+        const intSpeed = view.getInt16(offset + 8, true);
+        this._pots.set(i, { source, low, high, intSpeed });
       }
     }
 
