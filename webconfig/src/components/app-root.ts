@@ -33,7 +33,8 @@ export class AppRoot extends MobxLitElement {
     css`
       :host {
         display: block;
-        --header-height: 80px;
+        --header-height: 60px;
+        --sidebar-width: 220px;
       }
 
       .header {
@@ -47,22 +48,83 @@ export class AppRoot extends MobxLitElement {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        border-bottom: 1px solid #e0e0e0;
+        z-index: 100;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+      }
+
+      .header-left img {
+        height: 2em;
+        width: 2em;
+        object-fit: contain;
       }
 
       .device-info {
-        margin-left: 2rem;
+        margin-left: 1em;
         opacity: 0.85;
+        font-size: 0.9em;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        width: var(--sidebar-width);
+        height: calc(100vh - var(--header-height));
+        background: white;
+        overflow-y: auto;
+        padding: 1rem 0;
+      }
+
+      .sidebar nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .sidebar nav li {
+        margin: 0;
+      }
+
+      .sidebar nav a {
+        display: block;
+        padding: 0.6rem 1.5rem;
+        text-decoration: none;
+        color: inherit;
+        transition: background-color 0.2s;
+      }
+
+      .sidebar nav a:hover {
+        background-color: #f5f5f5;
+      }
+
+      .sidebar nav a.active {
+        background-color: var(--pico-primary);
+        color: white;
+        font-weight: 500;
+      }
+
+      .sidebar .menu-group {
+        padding: 0.6rem 1.0rem;
+        color: #666;
+      }
+
+      .sidebar .menu-submenu {
+        padding-left: 1rem;
       }
 
       .content {
         margin-top: var(--header-height);
+        margin-left: var(--sidebar-width);
         height: calc(100vh - var(--header-height));
         padding: 1.5rem;
         background: #f6f6f6;
-      }
-
-      nav a.active {
-        font-weight: bold;
+        overflow-y: auto;
       }
     `
   ];
@@ -76,8 +138,13 @@ export class AppRoot extends MobxLitElement {
     this.router = new Router(this, [
       { path: '/', render: () => html`<devices-view></devices-view>` },
       { path: '/devices', render: () => html`<devices-view></devices-view>` },
-      { path: '/profiles', render: () => html`<profiles-view></profiles-view>` },
-      { path: '/terminal', render: () => this.renderTerminal() },
+      {
+        path: '/profiles/:id', render: (params) => {
+          const profileId = parseInt(params.id as string, 10);
+          return html`<profiles-view .profileId=${profileId}></profiles-view>`;
+        }
+      },
+      { path: '/profiles', render: () => html`<profiles-view .profileId=${0}></profiles-view>` },
       { path: '/.*', render: () => html`<h2>Not found</h2>` },
     ]);
   }
@@ -120,47 +187,52 @@ export class AppRoot extends MobxLitElement {
     `;
   }
 
-  private renderTerminal() {
-    return html`<h2>Terminal</h2><p>Terminal UI here.</p>`;
-  }
+  private renderSidebar() {
+    if (!btj.connected) return null;
 
-  private navLinks() {
-    const links = [
-      ...(btj.connected ? [
-        { path: '/devices', label: 'Devices' },
-        { path: '/profiles', label: 'Profiles' },
-      ] : []),
-      { path: '/terminal', label: 'Terminal' },
-    ];
-    return links.map(i => {
-      const selected = location.pathname === i.path;
-      return html`
-        <li><a href="${i.path}" class=${selected ? 'active' : ''}>${i.label}</a></li>
-      `;
-    });
+    const currentPath = location.pathname;
+    const profileIds = Array.from(btj.profiles.keys());
+
+    return html`
+      <aside class="sidebar">
+        <nav>
+          <ul>
+            <li>
+              <a href="/devices" class=${currentPath === '/devices' || currentPath === '/' ? 'active' : ''}>
+                Devices
+              </a>
+            </li>
+            <li>
+              <div class="menu-group">Profiles</div>
+              <ul class="menu-submenu">
+                ${profileIds.map(id => html`
+                  <li>
+                    <a href="/profiles/${id}" class=${currentPath === `/profiles/${id}` ? 'active' : ''}>
+                      Profile ${id}
+                    </a>
+                  </li>
+                `)}
+              </ul>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+    `;
   }
 
   private renderHeader() {
     return html`
-      <nav class="container-fluid">
-        <ul>
-          <li style="display:flex;align-items:center;gap:0.5em;">
-            <img src="/logo.svg" alt="logo" style="height:2em;width:2em;object-fit:contain;" />
-            <strong>blue2joy</strong>
-            <span class="device-info" style="margin-left:1em;">${this.renderDeviceInfo()}</span>
-            ${btj.sysState?.scanning ? html`<span style="margin-left:0.5em;color:var(--pico-primary);font-weight:bold">SCANNING</span>` : ''}
-          </li>
-        </ul>
-        <ul>
-          ${this.navLinks()}
-          ${btj.connected ? html`
-            <li>
-              <button class="secondary" @click=${this.disconnect}> Disconnect
-              </button>
-            </li>
-          ` : null}
-        </ul>
-      </nav>
+      <div class="header-left">
+        <img src="/logo.svg" alt="logo" />
+        <strong>blue2joy</strong>
+        <span class="device-info">${this.renderDeviceInfo()}</span>
+        ${btj.sysState?.scanning ? html`<span style="margin-left:0.5em;color:var(--pico-primary);font-weight:bold">SCANNING</span>` : ''}
+      </div>
+      <div>
+        ${btj.connected ? html`
+          <button class="secondary" @click=${this.disconnect}>Disconnect</button>
+        ` : null}
+      </div>
     `;
   }
 
@@ -169,11 +241,13 @@ export class AppRoot extends MobxLitElement {
       <header class="header">
         ${this.renderHeader()}
       </header>
-      <main class="content" >
+      ${this.renderSidebar()}
+      <main class="content">
         ${btj.connected
         ? this.router.outlet()
         : this.renderNotConnected()
       }
+      </main>
     `;
   }
 }

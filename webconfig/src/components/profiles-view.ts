@@ -1,6 +1,6 @@
 import { MobxLitElement } from "@adobe/lit-mobx";
 import { html } from "lit";
-import { customElement, state } from "lit/decorators.js";
+import { customElement, property } from "lit/decorators.js";
 import { autorun, IReactionDisposer } from "mobx";
 import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
@@ -14,23 +14,17 @@ import "./pot-editor.js";
 export class ProfilesView extends MobxLitElement {
   static override styles = [picoSheet]
 
-  @state()
-  private selectedId: number | null = 0;
+  @property({ type: Number })
+  profileId: number = 0;
 
   // Collected edits from child editors. Keyed by type+id.
   private _edits: { pins?: Map<number, Btj.PinConfig>, pots?: Map<number, Btj.PotConfig> } = {};
 
   private _disposer: IReactionDisposer | null = null;
 
-  private async selectProfile(id: number) {
-    this.selectedId = id;
-  }
-
   private async saveEditsForSelected() {
-    const id = this.selectedId;
-    if (id == null) return;
     try {
-      await btj.saveProfileEdits(id, this._edits);
+      await btj.saveProfileEdits(this.profileId, this._edits);
       this._edits = {};
     } catch (err: any) {
       globalThis.console.error('Failed to save edits', err);
@@ -68,33 +62,20 @@ export class ProfilesView extends MobxLitElement {
   }
 
   override render() {
-    const tabs = [0, 1, 2, 3, 4];
-    const selected = this.selectedId;
-    const profile = selected != null ? btj.getProfile(selected) : undefined;
-    globalThis.console.log('render profiles, selected=', selected, 'profile=', profile);
+    const profile = btj.getProfile(this.profileId)!;
 
     return html`
-      <h2>HID Profiles</h2>
+      <h2>Profile ${this.profileId}</h2>
       <div class="container-fluid">
         <div>
-          <nav>
-            ${tabs.map(id => html
-      `<button class="button" @click=${() => this.selectProfile(id)} ?disabled=${id === selected}>Profile ${id}</button>`)}
-          </nav>
-        </div>
-
-        <div>
-          ${selected == null ? html`
-            <p>Select a profile to edit</p>` : html`
-            <h3>Profile ${selected}</h3>
-              ${!profile ? html`<p>Loading…</p>` : html`
+          ${!profile ? html`<p>Loading…</p>` : html`
               <form @edit=${(e: Event) => this.onEditorEdit(e as CustomEvent)}>
                 ${Array.from(profile.pins.entries()).map(([pid, cfg]) => html`
-                  <pin-editor .profileId=${selected} .pinId=${pid} .config=${cfg}></pin-editor>
+                  <pin-editor .profileId=${this.profileId} .pinId=${pid} .config=${cfg}></pin-editor>
                   `)}
 
                 ${Array.from(profile.pots.entries()).map(([pid, cfg]) => html`
-                  <pot-editor .profileId=${selected} .potId=${pid} .config=${cfg}></pot-editor>
+                  <pot-editor .profileId=${this.profileId} .potId=${pid} .config=${cfg}></pot-editor>
                   `)}
 
                 <div class="row">
@@ -103,8 +84,7 @@ export class ProfilesView extends MobxLitElement {
                 </div>
               </form>
             `}
-          `}
-          </div>
+        </div>
       </div>
     `;
   }
