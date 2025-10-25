@@ -70,13 +70,14 @@ export class ProfilesView extends MobxLitElement {
         <div>
           ${!profile ? html`<p>Loading…</p>` : html`
               <form @edit=${(e: Event) => this.onEditorEdit(e as CustomEvent)}>
+                <div class="grid">
                 ${Array.from(profile.pins.entries()).map(([pid, cfg]) => html`
-                  <pin-editor .profileId=${this.profileId} .pinId=${pid} .config=${cfg}></pin-editor>
+                  <div><pin-editor .profileId=${this.profileId} .pinId=${pid} .config=${cfg}></pin-editor></div>
                   `)}
-
                 ${Array.from(profile.pots.entries()).map(([pid, cfg]) => html`
-                  <pot-editor .profileId=${this.profileId} .potId=${pid} .config=${cfg}></pot-editor>
+                  <div><pot-editor .profileId=${this.profileId} .potId=${pid} .config=${cfg}></pot-editor></div>
                   `)}
+                </div>
 
                 <div class="row">
                   <button type="button" class="button" @click=${() => this.saveEditsForSelected()}>Save</button>
