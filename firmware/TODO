@@ -1,3 +1,5 @@
+- io_port + io_port state events
+
 - requesty pro subscribe/unsubcsribe eventu pro connection
   - prip. naplanovat odeslani vseho pri pripojeni
 
@@ -5,7 +7,6 @@
 
 - adv list - timeout
 
-- io_port state btjp command
 - factory reset btjp command
 
 - zvazit ruzne skupiny pro logovani (pripadne CONFIG_LOG_FUNC_NAME_PREFIX_xxxx)
@@ -22,10 +23,3 @@
 | scanning | long press 2 | delete bond #1, start pairing #1 | blink |
 | connected | hold 1 + press 2 (x1, x2, x3) | select profile | blink
 | any | long press 1 | start SPI | blink
-
-
-
-
-
-
-
