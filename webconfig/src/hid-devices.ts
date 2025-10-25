@@ -3,7 +3,7 @@ import { html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Btj } from "./btj-messages.js";
 import { btj } from "./btj-model.js";
-import './scan-dialog.js';
+import "./scan-dialog.js";
 import { picoSheet } from './styles/pico';
 
 @customElement("hid-devices")
