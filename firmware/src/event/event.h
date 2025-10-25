@@ -45,7 +45,7 @@ typedef struct {
     // How it changed (CREATE/DELETE only for subjects that support lifecycle; otherwise UPDATE)
     event_action_t action;
     // Identifier of the affected entity:
-    // - use addr for ADV_LIST, DEV_LIST
+    // - use addr for ADV_LIST, DEV_LIST, CONN_ERROR
     // - use idx for PROFILE, IO_STATE
     union {
         bt_addr_le_t addr;
