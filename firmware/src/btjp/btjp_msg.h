@@ -117,7 +117,8 @@ typedef struct {
 typedef struct {
     uint8_t profile;
     uint8_t pin_id;
-    uint16_t source;
+    uint8_t _reserved[2];
+    uint32_t source;
     uint8_t invert;
     uint8_t hat_switch;
     uint8_t threshold;
@@ -129,7 +130,8 @@ typedef struct {
 typedef struct {
     uint8_t profile;
     uint8_t pin_id;
-    uint16_t source;
+    uint8_t _reserved[2];
+    uint32_t source;
     int16_t low;
     int16_t high;
     int16_t int_speed;
@@ -138,7 +140,7 @@ typedef struct {
 // --------------------------------------------------------------------------
 
 typedef struct {
-    uint16_t source;
+    uint32_t source;
     uint8_t invert;
     uint8_t hat_switch;
     uint8_t threshold;
@@ -146,14 +148,16 @@ typedef struct {
 } btjp_pin_config_t;
 
 typedef struct {
-    uint16_t source;
+    uint32_t source;
     int16_t low;
     int16_t high;
     int16_t int_speed;
+    uint8_t _reserved[2];
 } btjp_pot_config_t;
 
 typedef struct {
     uint8_t profile;
+    uint8_t _reserved[3];
     btjp_pin_config_t pins[5];
     btjp_pot_config_t pots[2];
 } btjp_req_set_profile_t;

@@ -1,6 +1,7 @@
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { Btj } from './btj-messages.js';
+import './hid-source.js';
 import { picoSheet } from './styles/pico';
 
 @customElement('pot-config-editor')
@@ -31,6 +32,11 @@ export class PotConfigEditor extends LitElement {
         <header>
           <h4>Pot ${this.potId}</h4>
         </header>
+        <div>
+          <label>Source
+            <hid-source .value=${cfg.source} @change=${(e: CustomEvent) => { this._local.source = e.detail.value; this.emitEdit(); }}></hid-source>
+          </label>
+        </div>
         <div>
           <label>Min
             <input .value=${String(cfg.low ?? '')} @input=${(e: Event) => { this._local.low = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />

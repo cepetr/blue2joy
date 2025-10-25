@@ -244,15 +244,15 @@ export namespace Btj {
 
     constructor(private _profile: number, private _id: number, private _data: PinConfig) { }
     serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(2 + 6);
+      const buf = new ArrayBuffer(4 + 8);
       const view = new DataView(buf);
       view.setUint8(0, this._profile);
       view.setUint8(1, this._id);
-      view.setUint16(2, this._data.source);
-      view.setUint8(4, this._data.invert ? 1 : 0);
-      view.setUint8(5, this._data.hatSwitch);
-      view.setUint8(6, this._data.threshold);
-      view.setUint8(7, this._data.hysteresis);
+      view.setUint32(4, this._data.source, true);
+      view.setUint8(8, this._data.invert ? 1 : 0);
+      view.setUint8(9, this._data.hatSwitch);
+      view.setUint8(10, this._data.threshold);
+      view.setUint8(11, this._data.hysteresis);
       return buf;
     }
 
@@ -286,14 +286,14 @@ export namespace Btj {
 
     constructor(private _profile: number, private _id: number, private _data: PotConfig) { }
     serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(2 + 8);
+      const buf = new ArrayBuffer(4 + 8);
       const view = new DataView(buf);
       view.setUint8(0, this._profile);
       view.setUint8(1, this._id);
-      view.setUint16(2, this._data.source);
-      view.setInt16(4, this._data.low);
-      view.setInt16(6, this._data.high);
-      view.setInt16(8, this._data.int_speed);
+      view.setUint32(4, this._data.source, true);
+      view.setInt16(8, this._data.low, true);
+      view.setInt16(10, this._data.high, true);
+      view.setInt16(12, this._data.int_speed, true);
       return buf;
     }
 
@@ -508,25 +508,25 @@ export namespace Btj {
     private _pots: Map<number, PotConfig> = new Map();
 
     parseMessage(view: DataView) {
-      assertPayloadLength(view, 2 + 5 * 6 + 2 * 8);
+      assertPayloadLength(view, 4 + 5 * 8 + 2 * 12);
       this._profile = view.getUint8(0);
 
       for (let i = 0; i < 5; i++) {
-        const offset = 2 + i * 6;
-        const source = view.getUint16(offset);
-        const invert = Boolean(view.getUint8(offset + 2));
-        const hatSwitch = view.getUint8(offset + 3);
-        const threshold = view.getUint8(offset + 4);
-        const hysteresis = view.getUint8(offset + 5);
+        const offset = 4 + i * 8;
+        const source = view.getUint32(offset, true);
+        const invert = Boolean(view.getUint8(offset + 4));
+        const hatSwitch = view.getUint8(offset + 5);
+        const threshold = view.getUint8(offset + 6);
+        const hysteresis = view.getUint8(offset + 7);
         this._pins.set(i, { source, invert, hatSwitch, threshold, hysteresis });
       }
 
       for (let i = 0; i < 2; i++) {
-        const offset = 2 + 5 * 6 + i * 8;
-        const source = view.getUint16(offset);
-        const low = view.getInt16(offset + 2);
-        const high = view.getInt16(offset + 4);
-        const int_speed = view.getInt16(offset + 6);
+        const offset = 4 + 5 * 8 + i * 12;
+        const source = view.getUint32(offset, true);
+        const low = view.getInt16(offset + 4, true);
+        const high = view.getInt16(offset + 6, true);
+        const int_speed = view.getInt16(offset + 8, true);
         this._pots.set(i, { source, low, high, int_speed });
       }
     }

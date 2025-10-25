@@ -1,6 +1,7 @@
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { Btj } from './btj-messages.js';
+import './hid-source.js';
 import { picoSheet } from './styles/pico';
 
 @customElement('pin-config-editor')
@@ -33,7 +34,7 @@ export class PinConfigEditor extends LitElement {
           </header>
           <div>
             <label>Source
-              <input .value=${String(cfg.source)} @input=${(e: Event) => { this._local.source = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />
+              <hid-source .value=${cfg.source} @change=${(e: CustomEvent) => { this._local.source = e.detail.value; this.emitEdit(); }}></hid-source>
             </label>
           </div>
           <div>
