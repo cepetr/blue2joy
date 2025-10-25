@@ -286,7 +286,7 @@ export namespace Btj {
 
     constructor(private _profile: number, private _id: number, private _data: PotConfig) { }
     serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(4 + 8);
+      const buf = new ArrayBuffer(4 + 12);
       const view = new DataView(buf);
       view.setUint8(0, this._profile);
       view.setUint8(1, this._id);

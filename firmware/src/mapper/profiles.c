@@ -33,8 +33,8 @@ const mapper_profile_t profile_joy_analog = {
     .left = {.source = HRM_USAGE_X, .threshold = 30, .hysteresis = 2, .invert = true},
     .right = {.source = HRM_USAGE_X, .threshold = 70, .hysteresis = 2},
     .trigger = {.source = HRM_USAGE_ACCELL, .threshold = 20, .hysteresis = 2},
-    .pot0 = {.source = HRM_USAGE_Z, .low = 0, .high = 255},
-    .pot1 = {.source = HRM_USAGE_RZ, .low = 0, .high = 255},
+    .pot0 = {.source = HRM_USAGE_Z, .low = 0, .high = 228},
+    .pot1 = {.source = HRM_USAGE_RZ, .low = 0, .high = 228},
 };
 
 // Joystick emulation with a gamepad hat switch
