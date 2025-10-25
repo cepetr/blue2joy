@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { picoSheet } from './styles/pico';
+import { picoSheet } from '../styles/pico';
 
 // HID Usage values as an enum for type safety and display
 export enum HidUsage {

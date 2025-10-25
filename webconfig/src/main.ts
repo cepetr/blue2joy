@@ -16,6 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import "./app-root";
+import "./components/app-root";
 
-export * from "./app-root";
+export * from "./components/app-root";

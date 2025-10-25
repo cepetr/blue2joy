@@ -1,10 +1,10 @@
 import { MobxLitElement } from "@adobe/lit-mobx";
 import { html } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { Btj } from "./btj-messages.js";
-import { btj } from "./btj-model.js";
+import { btj } from "../models/btj-model.js";
+import { Btj } from "../services/btj-messages.js";
+import { picoSheet } from '../styles/pico.js';
 import "./scan-dialog.js";
-import { picoSheet } from './styles/pico';
 
 @customElement("hid-devices")
 export class HidDevices extends MobxLitElement {

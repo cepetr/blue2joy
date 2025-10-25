@@ -20,11 +20,11 @@ import { MobxLitElement } from "@adobe/lit-mobx";
 import { Router } from '@lit-labs/router';
 import { css, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { btj } from "./btj-model.js";
-import { picoSheet } from './styles/pico';
+import { btj } from "../models/btj-model.js";
+import { picoSheet } from '../styles/pico.js';
 
-import "./hid-devices";
-import "./hid-profiles";
+import "./hid-devices.js";
+import "./hid-profiles.js";
 
 @customElement("app-root")
 export class AppRoot extends MobxLitElement {

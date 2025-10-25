@@ -1,9 +1,9 @@
 import { MobxLitElement } from '@adobe/lit-mobx';
 import { html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { Btj } from './btj-messages.js';
-import { btj } from './btj-model.js';
-import { picoSheet } from './styles/pico';
+import { btj } from '../models/btj-model.js';
+import { Btj } from '../services/btj-messages.js';
+import { picoSheet } from '../styles/pico.js';
 
 @customElement('scan-dialog')
 export class ScanDialog extends MobxLitElement {

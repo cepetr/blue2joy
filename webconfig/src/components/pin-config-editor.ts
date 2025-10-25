@@ -1,8 +1,8 @@
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { Btj } from './btj-messages.js';
+import { Btj } from '../services/btj-messages.js';
+import { picoSheet } from '../styles/pico.js';
 import './hid-source.js';
-import { picoSheet } from './styles/pico';
 
 @customElement('pin-config-editor')
 export class PinConfigEditor extends LitElement {

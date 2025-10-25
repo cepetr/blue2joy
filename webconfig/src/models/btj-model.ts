@@ -17,8 +17,8 @@
  */
 
 import { action, computed, makeAutoObservable, observable, runInAction } from "mobx";
-import { BtjConnection, scanAndSelect } from "./btj-connection";
-import { Btj } from "./btj-messages";
+import { BtjConnection, scanAndSelect } from "../services/btj-connection";
+import { Btj } from "../services/btj-messages";
 
 export interface DeviceEntry {
   addr: Btj.DevAddr;
