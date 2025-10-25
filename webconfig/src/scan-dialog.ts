@@ -82,15 +82,15 @@ export class ScanDialog extends MobxLitElement {
                 `)
       }
               </tbody>
-  </table>
-  </div>
+            </table>
+          </div>
 
-  <footer>
+          <footer>
             ${this._scanning ? html`<button class="secondary" @click=${() => this.stopScan()}>Stop</button>` : html`<button class="primary" @click=${() => this.startScan()}>Start</button>`}
-<button class="secondary" @click=${() => this.onClose()}> Close </button>
-  </footer>
-  </article>
-  </dialog>
+            <button class="secondary" @click=${() => this.onClose()}>Close</button>
+          </footer>
+        </article>
+      </dialog>
     `;
   }
 }
