@@ -7,11 +7,11 @@ import { Btj } from "../services/btj-messages.js";
 import { picoSheet } from '../styles/pico.js';
 
 
-import "./pin-config-editor.js";
-import "./pot-config-editor.js";
+import "./pin-editor.js";
+import "./pot-editor.js";
 
-@customElement("hid-profiles")
-export class HidProfiles extends MobxLitElement {
+@customElement("profiles-view")
+export class ProfilesView extends MobxLitElement {
   static override styles = [picoSheet]
 
   @state()
@@ -90,11 +90,11 @@ export class HidProfiles extends MobxLitElement {
               ${!profile ? html`<p>Loading…</p>` : html`
               <form @edit=${(e: Event) => this.onEditorEdit(e as CustomEvent)}>
                 ${Array.from(profile.pins.entries()).map(([pid, cfg]) => html`
-                  <pin-config-editor .profileId=${selected} .pinId=${pid} .config=${cfg}></pin-config-editor>
+                  <pin-editor .profileId=${selected} .pinId=${pid} .config=${cfg}></pin-editor>
                   `)}
 
                 ${Array.from(profile.pots.entries()).map(([pid, cfg]) => html`
-                  <pot-config-editor .profileId=${selected} .potId=${pid} .config=${cfg}></pot-config-editor>
+                  <pot-editor .profileId=${selected} .potId=${pid} .config=${cfg}></pot-editor>
                   `)}
 
                 <div class="row">
@@ -112,6 +112,6 @@ export class HidProfiles extends MobxLitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "hid-profiles": HidProfiles;
+    "profiles-view": ProfilesView;
   }
 }

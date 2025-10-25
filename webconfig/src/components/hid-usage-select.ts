@@ -103,8 +103,8 @@ const ALL_USAGES = Object.values(HidUsage)
   .filter(v => typeof v === 'number')
   .sort((a, b) => (a as number) - (b as number)) as number[];
 
-@customElement('hid-source')
-export class HidSource extends LitElement {
+@customElement('hid-usage-select')
+export class HidUsageSelect extends LitElement {
   static override styles = [picoSheet];
 
   @property({ type: Number })
@@ -151,6 +151,6 @@ export class HidSource extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'hid-source': HidSource;
+    'hid-usage-select': HidUsageSelect;
   }
 }

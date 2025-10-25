@@ -6,8 +6,8 @@ import { Btj } from "../services/btj-messages.js";
 import { picoSheet } from '../styles/pico.js';
 import "./scan-dialog.js";
 
-@customElement("hid-devices")
-export class HidDevices extends MobxLitElement {
+@customElement("devices-view")
+export class DevicesView extends MobxLitElement {
   static override styles = [picoSheet]
 
   @state()
@@ -60,6 +60,6 @@ export class HidDevices extends MobxLitElement {
 // Add to global HTMLElementTagNameMap
 declare global {
   interface HTMLElementTagNameMap {
-    "hid-devices": HidDevices;
+    "devices-view": DevicesView;
   }
 }

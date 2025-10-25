@@ -23,8 +23,8 @@ import { customElement, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
 import { picoSheet } from '../styles/pico.js';
 
-import "./hid-devices.js";
-import "./hid-profiles.js";
+import "./devices-view.js";
+import "./profiles-view.js";
 
 @customElement("app-root")
 export class AppRoot extends MobxLitElement {
@@ -74,9 +74,9 @@ export class AppRoot extends MobxLitElement {
   constructor() {
     super();
     this.router = new Router(this, [
-      { path: '/', render: () => html`<hid-devices></hid-devices>` },
-      { path: '/devices', render: () => html`<hid-devices></hid-devices>` },
-      { path: '/profiles', render: () => html`<hid-profiles></hid-profiles>` },
+      { path: '/', render: () => html`<devices-view></devices-view>` },
+      { path: '/devices', render: () => html`<devices-view></devices-view>` },
+      { path: '/profiles', render: () => html`<profiles-view></profiles-view>` },
       { path: '/terminal', render: () => this.renderTerminal() },
       { path: '/.*', render: () => html`<h2>Not found</h2>` },
     ]);

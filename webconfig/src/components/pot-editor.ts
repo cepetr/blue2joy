@@ -2,10 +2,10 @@ import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { Btj } from '../services/btj-messages.js';
 import { picoSheet } from '../styles/pico.js';
-import './hid-source.js';
+import './hid-usage-select.js';
 
-@customElement('pot-config-editor')
-export class PotConfigEditor extends LitElement {
+@customElement('pot-editor')
+export class PotEditor extends LitElement {
   static override styles = [picoSheet]
 
   @property({ type: Number }) profileId!: number;
@@ -34,7 +34,7 @@ export class PotConfigEditor extends LitElement {
         </header>
         <div>
           <label>Source
-            <hid-source .value=${cfg.source} @change=${(e: CustomEvent) => { this._local.source = e.detail.value; this.emitEdit(); }}></hid-source>
+            <hid-usage-select .value=${cfg.source} @change=${(e: CustomEvent) => { this._local.source = e.detail.value; this.emitEdit(); }}></hid-usage-select>
           </label>
         </div>
         <div>
@@ -59,6 +59,6 @@ export class PotConfigEditor extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pot-config-editor': PotConfigEditor;
+    'pot-editor': PotEditor;
   }
 }
