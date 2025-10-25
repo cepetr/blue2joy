@@ -128,9 +128,15 @@ export namespace Btj {
     }
   }
 
+  export enum SysMode {
+    AUTO = 0,
+    PAIRING = 1,
+    MANUAL = 2,
+  }
+
   export type SysState = {
     scanning: boolean;
-    mode: number;
+    mode: SysMode;
   };
 
   export type IoPortState = {
@@ -318,7 +324,7 @@ export namespace Btj {
   export class SetMode implements Command {
     readonly msgId = MsgId.SET_MODE;
 
-    constructor(private _mode: number, private _restart: boolean) { }
+    constructor(private _mode: SysMode, private _restart: boolean) { }
 
     serializeRequest(): ArrayBuffer {
       const buf = new ArrayBuffer(2);
@@ -332,7 +338,7 @@ export namespace Btj {
       assertPayloadLength(view, 0);
     }
 
-    get mode(): number {
+    get mode(): SysMode {
       return this._mode;
     }
 

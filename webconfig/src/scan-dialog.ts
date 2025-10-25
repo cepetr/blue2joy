@@ -19,7 +19,7 @@ export class ScanDialog extends MobxLitElement {
     }
     this._error = null;
     try {
-      await btj.conn.invoke(new Btj.SetMode(2, true)); // 2 = Manual
+      await btj.conn.invoke(new Btj.SetMode(Btj.SysMode.MANUAL, true));
       await btj.conn.invoke(new Btj.StartScanning());
       this._scanning = true;
     } catch (err: any) {
