@@ -191,7 +191,6 @@ export namespace Btj {
 
   export type DevState = {
     connState: number;
-    bonded: boolean;
   };
 
   export type DevConfig = {
@@ -464,15 +463,14 @@ export namespace Btj {
     private _config?: DevConfig;
 
     parseMessage(view: DataView) {
-      assertPayloadLength(view, 1 + DevAddr.LENGTH + 1 + 1 + 1);
+      assertPayloadLength(view, 1 + DevAddr.LENGTH + 1 + 1);
       const deleted = view.getUint8(0) ? true : false;
       const addr = DevAddr.copyFrom(1, view);
       const connState = view.getInt8(8);
-      const bonded = view.getUint8(9) ? true : false;
-      const profile = view.getUint8(10);
+      const profile = view.getUint8(9);
       this._deleted = deleted;
       this._addr = addr;
-      this._state = { connState, bonded };
+      this._state = { connState };
       this._config = { profile };
     }
 

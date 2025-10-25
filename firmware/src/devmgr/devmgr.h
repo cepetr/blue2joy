@@ -57,7 +57,6 @@ typedef struct {
     devmgr_conn_state_t conn_state;
     int8_t rssi;
     char name[30];
-    bool bonded;
 } devmgr_device_state_t;
 
 typedef struct {

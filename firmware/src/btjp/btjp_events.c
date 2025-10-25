@@ -62,7 +62,6 @@ static size_t btjp_build_evt_dev_list_update(btjp_evt_t *evt, bt_addr_le_t *addr
     if (!err) {
         evt->dev_list_update.deleted = false;
         evt->dev_list_update.conn_state = (uint8_t)state.conn_state;
-        evt->dev_list_update.bonded = state.bonded ? 1 : 0;
         evt->dev_list_update.profile = config.profile;
     } else {
         evt->dev_list_update.deleted = true;

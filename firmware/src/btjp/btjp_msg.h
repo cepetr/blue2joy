@@ -199,7 +199,6 @@ typedef struct {
     uint8_t deleted;
     btjp_dev_addr_t addr;
     uint8_t conn_state;
-    uint8_t bonded;
     uint8_t profile;
 } btjp_evt_dev_list_update_t;
 

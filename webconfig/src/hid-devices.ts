@@ -19,8 +19,8 @@ export class HidDevices extends MobxLitElement {
         <thead>
           <tr>
             <th>Address</th>
+            <th>State</th>
             <th>Profile</th>
-            <th>Bonded</th>
           </tr>
         </thead>
         <tbody>
@@ -30,7 +30,7 @@ export class HidDevices extends MobxLitElement {
                 <tr>
                   <td>${dev.addr.toString()}</td>
                   <td>${dev.state?.connState}</td>
-                  <td>${dev.state?.bonded ? 'Yes' : 'No'}</td>
+                  <td>${dev.config?.profile}</td>
                 </tr>
               `)
       }
