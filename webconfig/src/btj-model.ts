@@ -233,6 +233,18 @@ export class BtjModel {
 
     await Promise.all(tasks);
   }
+
+  @action
+  async deleteDevice(addr: Btj.DevAddr): Promise<void> {
+    if (!this.conn) throw new Error('Not connected');
+    await this.conn.invoke(new Btj.DeleteDevice(addr));
+  }
+
+  @action
+  async setDeviceProfile(addr: Btj.DevAddr, profile: number): Promise<void> {
+    if (!this.conn) throw new Error('Not connected');
+    await this.conn.invoke(new Btj.SetDevConfig(addr, { profile }));
+  }
 }
 
 // Singleton instance for global use

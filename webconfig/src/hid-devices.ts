@@ -13,6 +13,7 @@ export class HidDevices extends MobxLitElement {
   @state()
   private _scanOpen = false;
 
+
   override render() {
     return html`
       <h2>HID Devices</h2>
@@ -22,16 +23,27 @@ export class HidDevices extends MobxLitElement {
             <th>Address</th>
             <th>State</th>
             <th>Profile</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           ${btj.devices.length === 0
-        ? html`<tr><td colspan="3">No devices found.</td></tr>`
+        ? html`<tr><td colspan="4">No devices found.</td></tr>`
         : btj.devices.map(dev => html`
                 <tr>
                   <td>${dev.addr.toString()}</td>
                   <td>${Btj.ConnState[dev.state?.connState]}</td>
-                  <td>${dev.config?.profile}</td>
+                  <td>
+                    <select
+                      @change=${(e: Event) => btj.setDeviceProfile(dev.addr, parseInt((e.target as HTMLSelectElement).value))}
+                      ?disabled=${!btj.conn}
+                    >
+                      ${[0, 1, 2, 3, 4].map(p => html`<option value=${String(p)} ?selected=${p === (dev.config?.profile ?? 0)}>${p}</option>`)}
+                    </select>
+                  </td>
+                  <td>
+                    <button type="button" class="button contrast" @click=${() => btj.deleteDevice(dev.addr)} ?disabled=${!btj.conn}>Delete</button>
+                  </td>
                 </tr>
               `)
       }
