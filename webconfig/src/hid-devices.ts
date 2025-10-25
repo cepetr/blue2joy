@@ -1,6 +1,7 @@
 import { MobxLitElement } from "@adobe/lit-mobx";
 import { html } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { Btj } from "./btj-messages.js";
 import { btj } from "./btj-model.js";
 import './scan-dialog.js';
 import { picoSheet } from './styles/pico';
@@ -29,7 +30,7 @@ export class HidDevices extends MobxLitElement {
         : btj.devices.map(dev => html`
                 <tr>
                   <td>${dev.addr.toString()}</td>
-                  <td>${dev.state?.connState}</td>
+                  <td>${Btj.ConnState[dev.state?.connState]}</td>
                   <td>${dev.config?.profile}</td>
                 </tr>
               `)

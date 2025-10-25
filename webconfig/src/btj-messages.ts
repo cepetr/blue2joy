@@ -189,8 +189,16 @@ export namespace Btj {
     name: string;
   }
 
+  export enum ConnState {
+    DISCONNECTED = 0,
+    ERROR = 1,
+    CONNECTING = 2,
+    CONNECTED = 3,
+    READY = 4,
+  }
+
   export type DevState = {
-    connState: number;
+    connState: ConnState;
   };
 
   export type DevConfig = {
