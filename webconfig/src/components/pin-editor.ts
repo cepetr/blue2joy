@@ -1,5 +1,6 @@
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { btj } from '../models/btj-model.js';
 import { Btj } from '../services/btj-messages.js';
 import { HID_USAGE_TYPE } from '../utils/hid-usage.js';
 import './hid-usage-select.js';
@@ -23,8 +24,7 @@ export class PinEditor extends LitElement {
   }
 
   private emitEdit() {
-    const detail = { type: 'pin', id: this.pinId, config: { ...this._local } };
-    this.dispatchEvent(new CustomEvent('edit', { detail, bubbles: true, composed: true }));
+    btj.setPinConfig(this.profileId, this.pinId, this._local);
   }
 
   private renderSource() {
@@ -110,6 +110,8 @@ export class PinEditor extends LitElement {
           @input=${(e: Event) => {
         const v = Number((e.target as HTMLInputElement).value);
         this._local = { ...this._local, threshold: v };
+      }}
+          @change=${() => {
         this.emitEdit();
       }}
         />
@@ -132,6 +134,8 @@ export class PinEditor extends LitElement {
           @input=${(e: Event) => {
         const v = Number((e.target as HTMLInputElement).value);
         this._local = { ...this._local, hysteresis: v };
+      }}
+          @change=${() => {
         this.emitEdit();
       }}
         />

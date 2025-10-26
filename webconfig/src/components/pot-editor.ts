@@ -1,5 +1,6 @@
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { btj } from '../models/btj-model.js';
 import { Btj } from '../services/btj-messages.js';
 import './hid-usage-select.js';
 
@@ -22,8 +23,7 @@ export class PotEditor extends LitElement {
   }
 
   private emitEdit() {
-    const detail = { type: 'pot', id: this.potId, config: { ...this._local } };
-    this.dispatchEvent(new CustomEvent('edit', { detail, bubbles: true, composed: true }));
+    btj.setPotConfig(this.profileId, this.potId, this._local);
   }
 
   private renderSource() {
@@ -52,9 +52,10 @@ export class PotEditor extends LitElement {
           .value=${String(cfg.low ?? '')}
           @input=${(e: Event) => {
         this._local.low = Number((e.target as HTMLInputElement).value);
-        this.emitEdit();
       }}
-        />
+          @change=${() => {
+        this.emitEdit();
+      }}        />
       </div>
     `;
   }
@@ -69,9 +70,10 @@ export class PotEditor extends LitElement {
           .value=${String(cfg.high ?? '')}
           @input=${(e: Event) => {
         this._local.high = Number((e.target as HTMLInputElement).value);
-        this.emitEdit();
       }}
-        />
+          @change=${() => {
+        this.emitEdit();
+      }}/>
       </div>
     `;
   }
@@ -86,9 +88,10 @@ export class PotEditor extends LitElement {
           .value=${String(cfg.intSpeed ?? '')}
           @input=${(e: Event) => {
         this._local.intSpeed = Number((e.target as HTMLInputElement).value);
-        this.emitEdit();
       }}
-        />
+          @change=${() => {
+        this.emitEdit();
+      }}        />
       </div>
     `;
   }

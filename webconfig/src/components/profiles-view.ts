@@ -3,7 +3,6 @@ import { html } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { autorun, IReactionDisposer } from "mobx";
 import { btj } from "../models/btj-model.js";
-import { Btj } from "../services/btj-messages.js";
 
 
 import "./pin-editor.js";
@@ -18,34 +17,7 @@ export class ProfilesView extends MobxLitElement {
   @property({ type: Number })
   profileId: number = 0;
 
-  // Collected edits from child editors. Keyed by type+id.
-  private _edits: { pins?: Map<number, Btj.PinConfig>, pots?: Map<number, Btj.PotConfig> } = {};
-
   private _disposer: IReactionDisposer | null = null;
-
-  private async saveEditsForSelected() {
-    try {
-      await btj.saveProfileEdits(this.profileId, this._edits);
-      this._edits = {};
-    } catch (err: any) {
-      globalThis.console.error('Failed to save edits', err);
-    }
-  }
-
-  private resetEdits() {
-    this._edits = {};
-  }
-
-  private onEditorEdit(e: CustomEvent) {
-    const d = e.detail as { type: string, id: number, config: any };
-    if (d.type === 'pin') {
-      if (!this._edits.pins) this._edits.pins = new Map();
-      this._edits.pins.set(d.id, d.config as Btj.PinConfig);
-    } else if (d.type === 'pot') {
-      if (!this._edits.pots) this._edits.pots = new Map();
-      this._edits.pots.set(d.id, d.config as Btj.PotConfig);
-    }
-  }
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -75,7 +47,7 @@ export class ProfilesView extends MobxLitElement {
                 <span class="sr-only"></span>
               </div>
               ` : html`
-              <form @edit=${(e: Event) => this.onEditorEdit(e as CustomEvent)}>
+              <form>
                 <div class="row g-3">
                   ${Array.from(profile.pins.entries()).map(([pid, cfg]) => html`
                     <div class="row mb-3">
@@ -91,10 +63,6 @@ export class ProfilesView extends MobxLitElement {
                       </div>
                     </div>
                   `)}
-                </div>
-                <div class="d-flex gap-2 mt-3">
-                  <button type="button" class="btn btn-primary" @click=${() => this.saveEditsForSelected()}>Save</button>
-                  <button type="button" class="btn btn-secondary" @click=${() => this.resetEdits()}>Reset</button>
                 </div>
               </form>
             `}

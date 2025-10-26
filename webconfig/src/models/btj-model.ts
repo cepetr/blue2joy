@@ -214,24 +214,21 @@ export class BtjModel {
   }
 
   @action
-  async saveProfileEdits(profileId: number, edits: { pins?: Map<number, Btj.PinConfig>, pots?: Map<number, Btj.PotConfig> }) {
+  async setPinConfig(profileId: number, pinId: number, config: Btj.PinConfig) {
     if (!this.conn) throw new Error('Not connected');
+    // Update local cache
+    this.profiles.get(profileId)!.pins.set(pinId, config);
+    // Send to device
+    await this.conn.invoke(new Btj.SetPinConfig(profileId, pinId, config));
+  }
 
-    const tasks: Promise<any>[] = [];
-    if (edits.pins) {
-      for (const [pinId, cfg] of edits.pins.entries()) {
-        this.profiles.get(profileId)!.pins.set(pinId, cfg);
-        tasks.push(this.conn.invoke(new Btj.SetPinConfig(profileId, pinId, cfg)));
-      }
-    }
-    if (edits.pots) {
-      for (const [potId, cfg] of edits.pots.entries()) {
-        this.profiles.get(profileId)!.pots.set(potId, cfg);
-        tasks.push(this.conn.invoke(new Btj.SetPotConfig(profileId, potId, cfg)));
-      }
-    }
-
-    await Promise.all(tasks);
+  @action
+  async setPotConfig(profileId: number, potId: number, config: Btj.PotConfig) {
+    if (!this.conn) throw new Error('Not connected');
+    // Update local cache
+    this.profiles.get(profileId)!.pots.set(potId, config);
+    // Send to device
+    await this.conn.invoke(new Btj.SetPotConfig(profileId, potId, config));
   }
 
   @action
