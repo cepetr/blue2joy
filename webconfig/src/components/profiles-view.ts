@@ -66,7 +66,7 @@ export class ProfilesView extends MobxLitElement {
     const profile = btj.getProfile(this.profileId)!;
 
     return html`
-      <h2>Profile ${this.profileId}</h2>
+      <h2>Profile #${this.profileId}</h2>
       <div class="container-fluid">
         <div class="row">
           <div class="col-12">
@@ -78,13 +78,17 @@ export class ProfilesView extends MobxLitElement {
               <form @edit=${(e: Event) => this.onEditorEdit(e as CustomEvent)}>
                 <div class="row g-3">
                   ${Array.from(profile.pins.entries()).map(([pid, cfg]) => html`
-                    <div class="col-md-6 col-lg-4 mb-3">
-                      <pin-editor .profileId=${this.profileId} .pinId=${pid} .config=${cfg}></pin-editor>
+                    <div class="row mb-3">
+                      <div class="col-12">
+                        <pin-editor .profileId=${this.profileId} .pinId=${pid} .config=${cfg}></pin-editor>
+                      </div>
                     </div>
                   `)}
                   ${Array.from(profile.pots.entries()).map(([pid, cfg]) => html`
-                    <div class="col-md-6 col-lg-4 mb-3">
-                      <pot-editor .profileId=${this.profileId} .potId=${pid} .config=${cfg}></pot-editor>
+                    <div class="row mb-3">
+                      <div class="col-12">
+                        <pot-editor .profileId=${this.profileId} .potId=${pid} .config=${cfg}></pot-editor>
+                      </div>
                     </div>
                   `)}
                 </div>

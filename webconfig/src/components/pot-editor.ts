@@ -100,16 +100,23 @@ export class PotEditor extends LitElement {
           <h5 class="card-title mb-0">Pot ${this.potId}</h5>
         </div>
         <div class="card-body">
-          ${this.renderSource()}
-          <div class="row g-2">
-            <div class="col-6">
+          <div class="row g-5">
+            <div class="col-2">
+              ${this.renderSource()}
+            </div>
+            <div class="col-4">
+            </div>
+            <div class="col-2">
               ${this.renderMin()}
             </div>
-            <div class="col-6">
+            <div class="col-2">
               ${this.renderMax()}
             </div>
+            <div class="col-2">
+              ${this.renderIntegrationSpeed()}
+            </div>
           </div>
-          ${this.renderIntegrationSpeed()}
+
         </div>
       </div>
     `;

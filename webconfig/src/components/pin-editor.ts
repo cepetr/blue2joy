@@ -148,28 +148,26 @@ export class PinEditor extends LitElement {
             <h5 class="card-title mb-0">Pin ${this.pinId}</h5>
           </div>
           <div class="card-body">
-            <div class="row g-2">
-              <div class="col-8">
+            <div class="row g-5">
+              <div class="col-2">
                 ${this.renderSource()}
               </div>
-              <div class="col-4">
+              <div class="col-2">
                 ${this.renderInvert()}
               </div>
-            </div>
-            ${usageType === 'hatswitch' ? this.renderHatSwitch() : ''}
-            ${usageType === 'analog' ? html`
-              <div class="row g-2">
-                <div class="col-6">
-                  ${this.renderThreshold()}
-                </div>
-                <div class="col-6">
-                  ${this.renderHysteresis()}
-                </div>
+              <div class="col-2">
+                ${usageType === 'hatswitch' ? this.renderHatSwitch() : ''}
               </div>
-            ` : ''}
+              <div
+              <div class="col-3">
+                ${usageType === 'analog' ? this.renderThreshold() : ''}
+              </div>
+              <div class="col-3">
+                ${usageType === 'analog' ? this.renderHysteresis() : ''}
+              </div>
           </div>
         </div>
-      `;
+    `;
   }
 }
 
