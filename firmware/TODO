@@ -13,8 +13,6 @@
 
 - oboje settings.c -- zvazit zda nepresunout do extra modulu a nespoustet eventem
 
-- zvazit odstraneni nastaveni potu/pinu - mozna bude stacit jen nastaveni celeho profilu
-
 ----
 
 | state |  button | action | signalling |
