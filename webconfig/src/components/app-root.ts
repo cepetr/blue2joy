@@ -21,6 +21,7 @@ import { Router } from '@lit-labs/router';
 import { html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
+import { Btj } from "../services/btj-messages.js";
 import '../styles/bootstrap';
 
 import "./devices-view.js";
@@ -86,10 +87,13 @@ export class AppRoot extends MobxLitElement {
 
   private renderInfo() {
     return html`
-      ${btj.sysInfo ? html`
+      ${btj.sysInfo && btj.sysState ? html`
         <span class="vr mx-2"></span>
         <span class="navbar-text d-none d-sm-inline">ID: ${btj.sysInfo?.hw_id}</span>
         <span class="navbar-text d-none d-sm-inline">FW: ${btj.sysInfo?.sw_version}</span>
+        <span class="navbar-text">${Btj.SysMode[btj.sysState!.mode]}</span>
+        <span class="navbar-text">${btj.sysState?.scanning ? "SCANNING" : ""}</span>
+
       ` : null}
     `;
   }
