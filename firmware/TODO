@@ -1,17 +1,39 @@
+- detection of unconnected blue2joy device
+
+- improve status/mode in navbar - use colors, use fixed position
+
+- fixed column widths in dev list table
+
+- integrate scanning into device view (don't use scan dialog)
+
 - io_port + io_port state events
+   - io_port.digital_mode - normal/uart/spi (/quadrature)
 
-- requesty pro subscribe/unsubcsribe eventu pro connection
-  - prip. naplanovat odeslani vseho pri pripojeni
+- mapper
+    - replace pin.invert with pin.mode - add quadrature mode
+    - add pot.mode - normal/delta
 
-- blokovat odesilani zmeny konfigurace ve stejnem kanalu
+- event subscribe/unsubcsribe requests in the channel
 
-- adv list - timeout
+- block config events in the same channel
+
+- adv list - remove devices automatically after a timeout
+
+- implement HID device name discovery
 
 - factory reset btjp command
 
-- zvazit ruzne skupiny pro logovani (pripadne CONFIG_LOG_FUNC_NAME_PREFIX_xxxx)
+- consider logging groups (eventually CONFIG_LOG_FUNC_NAME_PREFIX_xxxx)
 
-- oboje settings.c -- zvazit zda nepresunout do extra modulu a nespoustet eventem
+- consider moving of settings.c to settings module (trigger by devmgr/profile events)
+
+- disconnect the device when deleted
+
+- control advertising by button, implement advertising timeout, signalize advertising by led
+
+- named profiles
+
+- implement login/password
 
 ----
 
