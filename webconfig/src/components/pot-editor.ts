@@ -95,28 +95,33 @@ export class PotEditor extends LitElement {
 
   override render() {
     return html`
-      <div class="card h-100">
-        <div class="card-header py-2">
-          <h5 class="card-title mb-0">Pot ${this.potId}</h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-5">
-            <div class="col-2">
-              ${this.renderSource()}
-            </div>
-            <div class="col-4">
-            </div>
-            <div class="col-2">
-              ${this.renderMin()}
-            </div>
-            <div class="col-2">
-              ${this.renderMax()}
-            </div>
-            <div class="col-2">
-              ${this.renderIntegrationSpeed()}
+      <div class="card">
+        <div class="row g-0 align-items-stretch">
+          <div class="col-auto">
+            <div class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center">
+              <h5 class="card-title mb-0">Pot ${this.potId}</h5>
             </div>
           </div>
-
+          <div class="col">
+            <div class="card-body">
+              <div class="row g-4">
+                <div class="col-12 col-xl-2">
+                  ${this.renderSource()}
+                </div>
+                <div class="col-12 col-xl-4">
+                </div>
+                <div class="col-6 col-xl-2">
+                  ${this.renderMin()}
+                </div>
+                <div class="col-6 col-xl-2">
+                  ${this.renderMax()}
+                </div>
+                <div class="col-12 col-xl-2">
+                  ${this.renderIntegrationSpeed()}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     `;

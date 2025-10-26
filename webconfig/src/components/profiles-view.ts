@@ -66,7 +66,7 @@ export class ProfilesView extends MobxLitElement {
     const profile = btj.getProfile(this.profileId)!;
 
     return html`
-      <h2>Profile #${this.profileId}</h2>
+      <h2 class="mb-4">Profile #${this.profileId}</h2>
       <div class="container-fluid">
         <div class="row">
           <div class="col-12">
