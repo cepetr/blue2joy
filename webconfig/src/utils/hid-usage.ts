@@ -1,6 +1,7 @@
 // Shared HID Usage definitions and labels
 
 export enum HidUsage {
+  NOT_ASSIGNED = 0x000000,
   X = 0x010030,
   Y = 0x010031,
   Z = 0x010032,
@@ -48,6 +49,7 @@ export enum HidUsage {
 }
 
 export const HID_USAGE_LABELS: Record<number, string> = {
+  [HidUsage.NOT_ASSIGNED]: 'Not Assigned',
   [HidUsage.X]: 'X',
   [HidUsage.Y]: 'Y',
   [HidUsage.Z]: 'Z',
@@ -95,9 +97,11 @@ export const HID_USAGE_LABELS: Record<number, string> = {
 };
 
 // Control type meta: classify HID usages as 'analog', 'digital', or 'hatswitch'
-export type HidControlType = 'analog' | 'digital' | 'hatswitch';
+export type HidControlType = '' | 'analog' | 'digital' | 'hatswitch';
 
 export const HID_USAGE_TYPE: Record<number, HidControlType> = {
+  [HidUsage.NOT_ASSIGNED]: '',
+
   // Analog axes
   [HidUsage.X]: 'analog',
   [HidUsage.Y]: 'analog',

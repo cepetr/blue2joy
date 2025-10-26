@@ -162,7 +162,7 @@ export class PinEditor extends LitElement {
                     ${this.renderSource()}
                   </div>
                   <div class="col-6 col-xl-2">
-                    ${this.renderInvert()}
+                    ${usageType != '' ? this.renderInvert() : ''}
                   </div>
                   <div class="col-12 col-xl-2">
                     ${usageType === 'hatswitch' ? this.renderHatSwitch() : ''}

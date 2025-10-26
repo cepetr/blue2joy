@@ -2,6 +2,7 @@ import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { btj } from '../models/btj-model.js';
 import { Btj } from '../services/btj-messages.js';
+import { HID_USAGE_TYPE } from '../utils/hid-usage.js';
 import './hid-usage-select.js';
 
 @customElement('pot-editor')
@@ -35,7 +36,7 @@ export class PotEditor extends LitElement {
         <hid-usage-select
           .value=${cfg.source}
           @change=${(e: CustomEvent) => {
-        this._local.source = e.detail.value;
+        this._local = { ...this._local, source: e.detail.value };
         this.emitEdit();
       }}
         ></hid-usage-select>
@@ -52,7 +53,7 @@ export class PotEditor extends LitElement {
           class="form-control"
           .value=${String(cfg.low ?? '')}
           @input=${(e: Event) => {
-        this._local.low = Number((e.target as HTMLInputElement).value);
+        this._local = { ...this._local, low: Number((e.target as HTMLInputElement).value) };
       }}
           @change=${() => {
         this.emitEdit();
@@ -70,7 +71,7 @@ export class PotEditor extends LitElement {
           class="form-control"
           .value=${String(cfg.high ?? '')}
           @input=${(e: Event) => {
-        this._local.high = Number((e.target as HTMLInputElement).value);
+        this._local = { ...this._local, high: Number((e.target as HTMLInputElement).value) };
       }}
           @change=${() => {
         this.emitEdit();
@@ -88,7 +89,7 @@ export class PotEditor extends LitElement {
           class="form-control"
           .value=${String(cfg.intSpeed ?? '')}
           @input=${(e: Event) => {
-        this._local.intSpeed = Number((e.target as HTMLInputElement).value);
+        this._local = { ...this._local, intSpeed: Number((e.target as HTMLInputElement).value) };
       }}
           @change=${() => {
         this.emitEdit();
@@ -98,6 +99,7 @@ export class PotEditor extends LitElement {
   }
 
   override render() {
+    const usageType = HID_USAGE_TYPE[this._local.source];
     return html`
       <div class="card">
         <div class="row g-0 align-items-stretch">
@@ -115,13 +117,13 @@ export class PotEditor extends LitElement {
                 <div class="col-12 col-xl-4">
                 </div>
                 <div class="col-6 col-xl-2">
-                  ${this.renderMin()}
+                  ${usageType != '' ? this.renderMin() : ''}
                 </div>
                 <div class="col-6 col-xl-2">
-                  ${this.renderMax()}
+                  ${usageType != '' ? this.renderMax() : ''}
                 </div>
                 <div class="col-12 col-xl-2">
-                  ${this.renderIntegrationSpeed()}
+                  ${usageType != '' ? this.renderIntegrationSpeed() : ''}
                 </div>
               </div>
             </div>

@@ -49,14 +49,14 @@ export class ProfilesView extends MobxLitElement {
               ` : html`
               <form>
                 <div class="row g-3">
-                  ${Array.from(profile.pins.entries()).map(([pid, cfg]) => html`
+                  ${Array.from(profile.pins.entries()).map(([pid]) => html`
                     <div class="row mb-3">
                       <div class="col-12">
                         <pin-editor .profileId=${this.profileId} .pinId=${pid}></pin-editor>
                       </div>
                     </div>
                   `)}
-                  ${Array.from(profile.pots.entries()).map(([pid, cfg]) => html`
+                  ${Array.from(profile.pots.entries()).map(([pid]) => html`
                     <div class="row mb-3">
                       <div class="col-12">
                         <pot-editor .profileId=${this.profileId} .potId=${pid}></pot-editor>
