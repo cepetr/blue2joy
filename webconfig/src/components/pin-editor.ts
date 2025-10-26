@@ -1,6 +1,7 @@
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { Btj } from '../services/btj-messages.js';
+import { HID_USAGE_TYPE } from '../utils/hid-usage.js';
 import './hid-usage-select.js';
 
 @customElement('pin-editor')
@@ -34,7 +35,7 @@ export class PinEditor extends LitElement {
         <hid-usage-select
           .value=${cfg.source}
           @change=${(e: CustomEvent) => {
-        this._local.source = e.detail.value;
+        this._local = { ...this._local, source: e.detail.value };
         this.emitEdit();
       }}
         ></hid-usage-select>
@@ -44,20 +45,21 @@ export class PinEditor extends LitElement {
 
   private renderInvert() {
     const cfg = this._local;
-    const id = `invert${this.pinId}`;
     return html`
-      <div class="form-check mb-2">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          id=${id}
-          .checked=${cfg.invert}
+      <div class="mb-2">
+        <label class="form-label">Mode</label>
+        <select
+          class="form-select"
+          aria-label="Invert"
           @change=${(e: Event) => {
-        this._local.invert = (e.target as HTMLInputElement).checked;
+        const v = (e.target as HTMLSelectElement).value === 'inverted';
+        this._local = { ...this._local, invert: v };
         this.emitEdit();
       }}
-        />
-        <label class="form-check-label" for=${id}>Invert</label>
+        >
+          <option value="normal" ?selected=${!cfg.invert}>Normal</option>
+          <option value="inverted" ?selected=${cfg.invert}>Inverted</option>
+        </select>
       </div>
     `;
   }
@@ -65,11 +67,11 @@ export class PinEditor extends LitElement {
   private renderHatSwitch() {
     const cfg = this._local;
     const knownHatValues = [0, 1, 2, 4, 8];
-    const hatLabels: Record<number, string> = { 0: 'Not used', 1: 'Up', 2: 'Down', 4: 'Left', 8: 'Right' };
+    const hatLabels: Record<number, string> = { 0: 'Not selected', 1: 'Up', 2: 'Down', 4: 'Left', 8: 'Right' };
     const isKnownHat = knownHatValues.includes(cfg.hatSwitch);
     return html`
       <div class="mb-2">
-        <label class="form-label">Hat Switch</label>
+        <label class="form-label">Direction</label>
         <select
           class="form-select"
           @change=${(e: Event) => {
@@ -138,17 +140,33 @@ export class PinEditor extends LitElement {
   }
 
   override render() {
+    const usageType = HID_USAGE_TYPE[this._local.source];
+
     return html`
         <div class="card h-100">
           <div class="card-header py-2">
             <h5 class="card-title mb-0">Pin ${this.pinId}</h5>
           </div>
           <div class="card-body">
-            ${this.renderSource()}
-            ${this.renderInvert()}
-            ${this.renderHatSwitch()}
-            ${this.renderThreshold()}
-            ${this.renderHysteresis()}
+            <div class="row g-2">
+              <div class="col-8">
+                ${this.renderSource()}
+              </div>
+              <div class="col-4">
+                ${this.renderInvert()}
+              </div>
+            </div>
+            ${usageType === 'hatswitch' ? this.renderHatSwitch() : ''}
+            ${usageType === 'analog' ? html`
+              <div class="row g-2">
+                <div class="col-6">
+                  ${this.renderThreshold()}
+                </div>
+                <div class="col-6">
+                  ${this.renderHysteresis()}
+                </div>
+              </div>
+            ` : ''}
           </div>
         </div>
       `;

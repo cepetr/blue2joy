@@ -101,8 +101,14 @@ export class PotEditor extends LitElement {
         </div>
         <div class="card-body">
           ${this.renderSource()}
-          ${this.renderMin()}
-          ${this.renderMax()}
+          <div class="row g-2">
+            <div class="col-6">
+              ${this.renderMin()}
+            </div>
+            <div class="col-6">
+              ${this.renderMax()}
+            </div>
+          </div>
           ${this.renderIntegrationSpeed()}
         </div>
       </div>
