@@ -1,12 +1,16 @@
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { Btj } from '../services/btj-messages.js';
-import { picoSheet } from '../styles/pico.js';
 import './hid-usage-select.js';
 
 @customElement('pin-editor')
 export class PinEditor extends LitElement {
-  static override styles = [picoSheet]
+  // Bootstrap styles are now global
+
+  // Render in light DOM so global Bootstrap CSS applies
+  protected override createRenderRoot() {
+    return this;
+  }
 
   @property({ type: Number }) profileId!: number;
   @property({ type: Number }) pinId!: number;
@@ -32,23 +36,22 @@ export class PinEditor extends LitElement {
     const isKnownHat = knownHatValues.includes(cfg.hatSwitch);
 
     return html`
-        <article class="card">
-          <header>
-            <h4>Pin ${this.pinId}</h4>
-          </header>
-          <div>
-            <label>Source
+        <div class="card h-100">
+          <div class="card-header py-2">
+            <h5 class="card-title mb-0">Pin ${this.pinId}</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-2">
+              <label class="form-label">Source</label>
               <hid-usage-select .value=${cfg.source} @change=${(e: CustomEvent) => { this._local.source = e.detail.value; this.emitEdit(); }}></hid-usage-select>
-            </label>
-          </div>
-          <div>
-            <label>Invert
-              <input type="checkbox" .checked=${cfg.invert} @change=${(e: Event) => { this._local.invert = (e.target as HTMLInputElement).checked; this.emitEdit(); }} />
-            </label>
-          </div>
-          <div>
-            <label>Hat Switch
-              <select
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="invert${this.pinId}" .checked=${cfg.invert} @change=${(e: Event) => { this._local.invert = (e.target as HTMLInputElement).checked; this.emitEdit(); }} />
+              <label class="form-check-label" for="invert${this.pinId}">Invert</label>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Hat Switch</label>
+              <select class="form-select"
                 @change=${(e: Event) => {
         const v = Number((e.target as HTMLSelectElement).value);
         this._local = { ...this._local, hatSwitch: v };
@@ -66,31 +69,29 @@ export class PinEditor extends LitElement {
                   </option>
                 `)}
               </select>
-            </label>
-          </div>
-          <div>
-            <label>Threshold (${cfg.threshold}%)
-              <input type="range" min="0" max="100" step="1"
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Threshold (${cfg.threshold}%)</label>
+              <input type="range" class="form-range" min="0" max="100" step="1"
                      .value=${String(cfg.threshold ?? 0)}
                      @input=${(e: Event) => {
         const v = Number((e.target as HTMLInputElement).value);
         this._local = { ...this._local, threshold: v };
         this.emitEdit();
       }} />
-            </label>
-          </div>
-          <div>
-            <label>Hysteresis (${cfg.hysteresis}%)
-              <input type="range" min="0" max="30" step="1"
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Hysteresis (${cfg.hysteresis}%)</label>
+              <input type="range" class="form-range" min="0" max="30" step="1"
                      .value=${String(cfg.hysteresis ?? 0)}
                      @input=${(e: Event) => {
         const v = Number((e.target as HTMLInputElement).value);
         this._local = { ...this._local, hysteresis: v };
         this.emitEdit();
       }} />
-            </label>
+            </div>
           </div>
-        </article>
+        </div>
       `;
   }
 }

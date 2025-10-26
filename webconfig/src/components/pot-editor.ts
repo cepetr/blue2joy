@@ -1,12 +1,16 @@
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { Btj } from '../services/btj-messages.js';
-import { picoSheet } from '../styles/pico.js';
 import './hid-usage-select.js';
 
 @customElement('pot-editor')
 export class PotEditor extends LitElement {
-  static override styles = [picoSheet]
+  // Bootstrap styles are now global
+
+  // Render in light DOM so global Bootstrap CSS applies
+  protected override createRenderRoot() {
+    return this;
+  }
 
   @property({ type: Number }) profileId!: number;
   @property({ type: Number }) potId!: number;
@@ -28,31 +32,29 @@ export class PotEditor extends LitElement {
   override render() {
     const cfg = this._local;
     return html`
-      <article class="card">
-        <header>
-          <h4>Pot ${this.potId}</h4>
-        </header>
-        <div>
-          <label>Source
+      <div class="card h-100">
+        <div class="card-header py-2">
+          <h5 class="card-title mb-0">Pot ${this.potId}</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label class="form-label">Source</label>
             <hid-usage-select .value=${cfg.source} @change=${(e: CustomEvent) => { this._local.source = e.detail.value; this.emitEdit(); }}></hid-usage-select>
-          </label>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Min</label>
+            <input class="form-control" .value=${String(cfg.low ?? '')} @input=${(e: Event) => { this._local.low = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Max</label>
+            <input class="form-control" .value=${String(cfg.high ?? '')} @input=${(e: Event) => { this._local.high = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Integration Speed</label>
+            <input class="form-control" .value=${String(cfg.intSpeed ?? '')} @input=${(e: Event) => { this._local.intSpeed = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />
+          </div>
         </div>
-        <div>
-          <label>Min
-            <input .value=${String(cfg.low ?? '')} @input=${(e: Event) => { this._local.low = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />
-          </label>
-        </div>
-        <div>
-          <label>Max
-            <input .value=${String(cfg.high ?? '')} @input=${(e: Event) => { this._local.high = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />
-          </label>
-        </div>
-        <div>
-          <label>Integration Speed
-            <input .value=${String(cfg.intSpeed ?? '')} @input=${(e: Event) => { this._local.intSpeed = Number((e.target as HTMLInputElement).value); this.emitEdit(); }} />
-          </label>
-        </div>
-      </article>
+      </div>
     `;
   }
 }

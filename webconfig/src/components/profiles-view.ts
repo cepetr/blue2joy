@@ -4,7 +4,6 @@ import { customElement, property } from "lit/decorators.js";
 import { autorun, IReactionDisposer } from "mobx";
 import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
-import { picoSheet } from '../styles/pico.js';
 
 
 import "./pin-editor.js";
@@ -12,7 +11,12 @@ import "./pot-editor.js";
 
 @customElement("profiles-view")
 export class ProfilesView extends MobxLitElement {
-  static override styles = [picoSheet]
+  // Bootstrap styles are now global
+
+  // Render in light DOM so global Bootstrap CSS applies
+  protected override createRenderRoot() {
+    return this;
+  }
 
   @property({ type: Number })
   profileId: number = 0;
@@ -67,24 +71,33 @@ export class ProfilesView extends MobxLitElement {
     return html`
       <h2>Profile ${this.profileId}</h2>
       <div class="container-fluid">
-        <div>
-          ${!profile ? html`<p>Loading…</p>` : html`
+        <div class="row">
+          <div class="col-12">
+            ${!profile ? html`
+              <div class="spinner-border" role="status">
+                <span class="sr-only"></span>
+              </div>
+              ` : html`
               <form @edit=${(e: Event) => this.onEditorEdit(e as CustomEvent)}>
-                <div class="grid">
-                ${Array.from(profile.pins.entries()).map(([pid, cfg]) => html`
-                  <div><pin-editor .profileId=${this.profileId} .pinId=${pid} .config=${cfg}></pin-editor></div>
+                <div class="row g-3">
+                  ${Array.from(profile.pins.entries()).map(([pid, cfg]) => html`
+                    <div class="col-md-6 col-lg-4 mb-3">
+                      <pin-editor .profileId=${this.profileId} .pinId=${pid} .config=${cfg}></pin-editor>
+                    </div>
                   `)}
-                ${Array.from(profile.pots.entries()).map(([pid, cfg]) => html`
-                  <div><pot-editor .profileId=${this.profileId} .potId=${pid} .config=${cfg}></pot-editor></div>
+                  ${Array.from(profile.pots.entries()).map(([pid, cfg]) => html`
+                    <div class="col-md-6 col-lg-4 mb-3">
+                      <pot-editor .profileId=${this.profileId} .potId=${pid} .config=${cfg}></pot-editor>
+                    </div>
                   `)}
                 </div>
-
-                <div class="row">
-                  <button type="button" class="button" @click=${() => this.saveEditsForSelected()}>Save</button>
-                  <button type="button" class="button secondary" @click=${() => this.resetEdits()}>Reset</button>
+                <div class="d-flex gap-2 mt-3">
+                  <button type="button" class="btn btn-primary" @click=${() => this.saveEditsForSelected()}>Save</button>
+                  <button type="button" class="btn btn-secondary" @click=${() => this.resetEdits()}>Reset</button>
                 </div>
               </form>
             `}
+          </div>
         </div>
       </div>
     `;

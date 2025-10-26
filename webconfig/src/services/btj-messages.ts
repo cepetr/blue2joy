@@ -44,6 +44,13 @@ export namespace Btj {
     return result;
   }
 
+  function versionString(version: number): string {
+    const major = (version >> 24) & 0xff;
+    const minor = (version >> 16) & 0xff;
+    const patch = (version >> 8) & 0xff;
+    return `${major}.${minor}.${patch}`;
+  }
+
   export enum MsgId {
     GET_API_VERSION = 0,
     GET_SYS_INFO = 1,
@@ -101,8 +108,8 @@ export namespace Btj {
 
   export type SysInfo = {
     hw_id: string;
-    hw_version: number;
-    sw_version: number;
+    hw_version: string;
+    sw_version: string;
   }
 
   export class GetSysInfo implements Command {
@@ -118,8 +125,8 @@ export namespace Btj {
     parseResponse(view: DataView) {
       assertPayloadLength(view, 16);
       const hw_id = hexString(view, 0, 8);
-      const hw_version = view.getUint32(8, true);
-      const sw_version = view.getUint32(12, true);
+      const hw_version = versionString(view.getUint32(8, true));
+      const sw_version = versionString(view.getUint32(12, true));
       this._data = { hw_id, hw_version, sw_version };
     }
 

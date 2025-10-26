@@ -3,25 +3,28 @@ import { html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
-import { picoSheet } from '../styles/pico.js';
 import "./scan-dialog.js";
 
 @customElement("devices-view")
 export class DevicesView extends MobxLitElement {
-  static override styles = [picoSheet]
+  // Bootstrap styles are now global
 
   @state()
   private _scanOpen = false;
 
+  // Render in light DOM so global Bootstrap CSS applies
+  protected override createRenderRoot() {
+    return this;
+  }
+
 
   override render() {
     return html`
-      <h2>HID Devices</h2>
-      <table>
+      <table class="table table-striped">
         <thead>
           <tr>
             <th>MAC Address</th>
-            <th>Sstate</th>
+            <th>State</th>
             <th>Profile</th>
             <th>Actions</th>
           </tr>
@@ -34,7 +37,7 @@ export class DevicesView extends MobxLitElement {
                   <td>${dev.addr.toString()}</td>
                   <td>${Btj.ConnState[dev.state?.connState]}</td>
                   <td>
-                    <select
+                    <select class="form-select form-select-sm"
                       @change=${(e: Event) => btj.setDeviceProfile(dev.addr, parseInt((e.target as HTMLSelectElement).value))}
                       ?disabled=${!btj.conn}
                     >
@@ -42,15 +45,15 @@ export class DevicesView extends MobxLitElement {
                     </select>
                   </td>
                   <td>
-                    <button type="button" class="button contrast" @click=${() => btj.deleteDevice(dev.addr)} ?disabled=${!btj.conn}>Delete</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" @click=${() => btj.deleteDevice(dev.addr)} ?disabled=${!btj.conn}>Delete</button>
                   </td>
                 </tr>
               `)
       }
         </tbody>
       </table>
-      <p class="actions">
-        <button type="button" class="primary" @click=${() => { this._scanOpen = true }}>Scan</button>
+      <p>
+        <button type="button" class="btn btn-primary" @click=${() => { this._scanOpen = true }}>Scan</button>
       </p>
       ${this._scanOpen ? html`<scan-dialog @close=${() => { this._scanOpen = false }}></scan-dialog>` : ''}
     `;

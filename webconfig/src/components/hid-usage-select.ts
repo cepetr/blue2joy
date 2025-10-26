@@ -1,6 +1,5 @@
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { picoSheet } from '../styles/pico';
 
 // HID Usage values as an enum for type safety and display
 export enum HidUsage {
@@ -105,7 +104,12 @@ const ALL_USAGES = Object.values(HidUsage)
 
 @customElement('hid-usage-select')
 export class HidUsageSelect extends LitElement {
-  static override styles = [picoSheet];
+  // Bootstrap styles are now global
+
+  // Render in light DOM so global Bootstrap CSS applies
+  protected override createRenderRoot() {
+    return this;
+  }
 
   @property({ type: Number })
   value: number = HidUsage.X;
@@ -130,6 +134,7 @@ export class HidUsageSelect extends LitElement {
 
     return html`
       <select
+        class="form-select"
         key=${this.value}
         @change=${this.handleChange}
         ?disabled=${this.disabled}

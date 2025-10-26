@@ -18,116 +18,22 @@
 
 import { MobxLitElement } from "@adobe/lit-mobx";
 import { Router } from '@lit-labs/router';
-import { css, html } from "lit";
+import { html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
-import { picoSheet } from '../styles/pico.js';
+import '../styles/bootstrap';
 
 import "./devices-view.js";
 import "./profiles-view.js";
 
 @customElement("app-root")
 export class AppRoot extends MobxLitElement {
-  static override styles = [
-    picoSheet,
-    css`
-      :host {
-        display: block;
-        --header-height: 60px;
-        --sidebar-width: 220px;
-      }
+  // All custom styles removed. Using Bootstrap defaults.
 
-      .header {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: var(--header-height);
-        background: white;
-        padding: 0 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        border-bottom: 1px solid #e0e0e0;
-        z-index: 100;
-      }
-
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 0.5em;
-      }
-
-      .header-left img {
-        height: 2em;
-        width: 2em;
-        object-fit: contain;
-      }
-
-      .device-info {
-        margin-left: 1em;
-        opacity: 0.85;
-        font-size: 0.9em;
-      }
-
-      .sidebar {
-        position: fixed;
-        top: var(--header-height);
-        left: 0;
-        width: var(--sidebar-width);
-        height: calc(100vh - var(--header-height));
-        background: white;
-        overflow-y: auto;
-        padding: 1rem 0;
-      }
-
-      .sidebar nav ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-
-      .sidebar nav li {
-        margin: 0;
-      }
-
-      .sidebar nav a {
-        display: block;
-        padding: 0.6rem 1.5rem;
-        text-decoration: none;
-        color: inherit;
-        transition: background-color 0.2s;
-      }
-
-      .sidebar nav a:hover {
-        background-color: #f5f5f5;
-      }
-
-      .sidebar nav a.active {
-        background-color: var(--pico-primary);
-        color: white;
-        font-weight: 500;
-      }
-
-      .sidebar .menu-group {
-        padding: 0.6rem 1.0rem;
-        color: #666;
-      }
-
-      .sidebar .menu-submenu {
-        padding-left: 1rem;
-      }
-
-      .content {
-        margin-top: var(--header-height);
-        margin-left: var(--sidebar-width);
-        height: calc(100vh - var(--header-height));
-        padding: 1.5rem;
-        background: #f6f6f6;
-        overflow-y: auto;
-      }
-    `
-  ];
+  // Render in light DOM so global Bootstrap CSS applies
+  protected override createRenderRoot() {
+    return this;
+  }
 
   @state() private busy = false;
 
@@ -162,92 +68,96 @@ export class AppRoot extends MobxLitElement {
     btj.disconnect();
   }
 
-  private renderDeviceInfo() {
-    if (!btj.connected) return html`<span>Not connected</span>`;
-    return html`
-      <span>ID: ${btj.sysInfo?.hw_id}</span>
-      <span style="margin-left:1em;">FW: ${btj.sysInfo?.sw_version}</span>
-    `;
-  }
 
   private renderNotConnected() {
     return html`
-      <h2>No device is connected.</h2>
+      <h3>No device is connected.</h3>
       <p>Please press the button and select the device to connect.</p>
       <p>
-        <button @click=${this.onScanClick} ?disabled = ${this.busy}>
+        <button class="btn btn-primary" @click=${this.onScanClick}
+          ?disabled=${this.busy}>
           ${this.busy ? 'Scanning…' : 'Scan for devices'}
         </button>
       </p>
       ${btj.error ? html`
-      <article role="alert" style="border-color: var(--pico-primary);">
-        <p>${btj.error}</p>
-      </article>
+        <article role="alert">
+          <p>${btj.error}</p>
+        </article>
       ` : null}
     `;
   }
 
-  private renderSidebar() {
-    if (!btj.connected) return null;
-
-    const currentPath = location.pathname;
-    const profileIds = Array.from(btj.profiles.keys());
-
+  private renderInfo() {
     return html`
-      <aside class="sidebar">
-        <nav>
-          <ul>
-            <li>
-              <a href="/devices" class=${currentPath === '/devices' || currentPath === '/' ? 'active' : ''}>
-                Devices
-              </a>
-            </li>
-            <li>
-              <div class="menu-group">Profiles</div>
-              <ul class="menu-submenu">
-                ${profileIds.map(id => html`
-                  <li>
-                    <a href="/profiles/${id}" class=${currentPath === `/profiles/${id}` ? 'active' : ''}>
-                      Profile ${id}
-                    </a>
-                  </li>
-                `)}
-              </ul>
-            </li>
-          </ul>
-        </nav>
-      </aside>
+      ${btj.sysInfo ? html`
+        <span class="vr mx-2"></span>
+        <span class="navbar-text d-none d-sm-inline">ID: ${btj.sysInfo?.hw_id}</span>
+        <span class="navbar-text d-none d-sm-inline">FW: ${btj.sysInfo?.sw_version}</span>
+      ` : null}
     `;
   }
 
-  private renderHeader() {
+  private renderMenu() {
+    const currentPath = location.pathname;
+    const profileIds = Array.from(btj.profiles.keys());
+    const profilesVisible = btj.connected && profileIds.length > 0;
     return html`
-      <div class="header-left">
-        <img src="/logo.svg" alt="logo" />
-        <strong>blue2joy</strong>
-        <span class="device-info">${this.renderDeviceInfo()}</span>
-        ${btj.sysState?.scanning ? html`<span style="margin-left:0.5em;color:var(--pico-primary);font-weight:bold">SCANNING</span>` : ''}
-      </div>
-      <div>
-        ${btj.connected ? html`
-          <button class="secondary" @click=${this.disconnect}>Disconnect</button>
-        ` : null}
-      </div>
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item ${btj.connected ? '' : 'd-none'}">
+          <a class="nav-link ${currentPath.includes('/devices') ? 'active' : ''}" aria-current="page" href="/devices">Devices</a>
+        </li>
+        <li class="nav-item dropdown ${profilesVisible ? '' : 'd-none'}">
+          <a class="nav-link dropdown-toggle ${currentPath.includes('/profiles') ? 'active' : ''}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Profiles
+          </a>
+          <ul class="dropdown-menu">
+            ${profileIds.map(id => html`
+              <li>
+                <a class="dropdown-item ${currentPath === `/profiles/${id}` ? 'active' : ''}" href="/profiles/${id}">
+                  Profile ${id}
+                </a>
+              </li>
+            `)}
+          </ul>
+        </li>
+      </ul>
+      ${btj.connected ? html`
+        <button class="btn btn-outline-secondary" @click=${this.disconnect}>Disconnect</button>
+      ` : null}
+    `;
+  }
+
+  private renderNavbar() {
+    return html`
+      <nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">Blue2Joy</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <div class="d-flex align-items-left gap-3">
+              ${this.renderInfo()}
+            </div>
+            <div class="d-flex align-items-center ms-auto gap-3">
+              ${this.renderMenu()}
+            </div>
+          </div>
+        </div>
+      </nav>
     `;
   }
 
   override render() {
     return html`
-      <header class="header">
-        ${this.renderHeader()}
-      </header>
-      ${this.renderSidebar()}
-      <main class="content">
-        ${btj.connected
-        ? this.router.outlet()
-        : this.renderNotConnected()
-      }
-      </main>
+      <div class="container">
+        <div class="row">
+          ${this.renderNavbar()}
+        </div>
+        <div class="row">
+          ${btj.connected ? this.router.outlet() : this.renderNotConnected()}
+        </div>
+      </div>
     `;
   }
 }
@@ -257,3 +167,4 @@ declare global {
     "app-root": AppRoot;
   }
 }
+
