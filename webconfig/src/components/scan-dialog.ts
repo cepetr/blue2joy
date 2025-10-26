@@ -6,7 +6,6 @@ import { Btj } from '../services/btj-messages.js';
 
 @customElement('scan-dialog')
 export class ScanDialog extends MobxLitElement {
-  // Render in light DOM so global Bootstrap CSS applies
   protected override createRenderRoot() {
     return this;
   }

@@ -7,16 +7,12 @@ import "./scan-dialog.js";
 
 @customElement("devices-view")
 export class DevicesView extends MobxLitElement {
-  // Bootstrap styles are now global
-
   @state()
   private _scanOpen = false;
 
-  // Render in light DOM so global Bootstrap CSS applies
   protected override createRenderRoot() {
     return this;
   }
-
 
   override render() {
     return html`

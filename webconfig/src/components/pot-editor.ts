@@ -5,9 +5,6 @@ import './hid-usage-select.js';
 
 @customElement('pot-editor')
 export class PotEditor extends LitElement {
-  // Bootstrap styles are now global
-
-  // Render in light DOM so global Bootstrap CSS applies
   protected override createRenderRoot() {
     return this;
   }

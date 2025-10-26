@@ -11,9 +11,6 @@ import "./pot-editor.js";
 
 @customElement("profiles-view")
 export class ProfilesView extends MobxLitElement {
-  // Bootstrap styles are now global
-
-  // Render in light DOM so global Bootstrap CSS applies
   protected override createRenderRoot() {
     return this;
   }

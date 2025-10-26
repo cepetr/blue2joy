@@ -104,9 +104,6 @@ const ALL_USAGES = Object.values(HidUsage)
 
 @customElement('hid-usage-select')
 export class HidUsageSelect extends LitElement {
-  // Bootstrap styles are now global
-
-  // Render in light DOM so global Bootstrap CSS applies
   protected override createRenderRoot() {
     return this;
   }

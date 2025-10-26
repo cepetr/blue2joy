@@ -28,9 +28,6 @@ import "./profiles-view.js";
 
 @customElement("app-root")
 export class AppRoot extends MobxLitElement {
-  // All custom styles removed. Using Bootstrap defaults.
-
-  // Render in light DOM so global Bootstrap CSS applies
   protected override createRenderRoot() {
     return this;
   }
