@@ -13,13 +13,14 @@ export class PinEditor extends LitElement {
 
   @property({ type: Number }) profileId!: number;
   @property({ type: Number }) pinId!: number;
-  @property({ attribute: false }) config?: Btj.PinConfig;
 
-  @state() private _local: Btj.PinConfig = { source: 0, invert: false, hatSwitch: 0, threshold: 0, hysteresis: 0 };
+  @state() private _local: Btj.PinConfig = Btj.PinConfig.default();
 
   override willUpdate(changed: any) {
-    if (this.config && changed.has('config')) {
-      this._local = { ...this.config };
+    if (changed.has('profileId') || changed.has('pinId')) {
+      if (this.profileId !== undefined && this.pinId !== undefined) {
+        this._local = btj.profiles.get(this.profileId)?.pins.get(this.pinId) ?? Btj.PinConfig.default();
+      }
     }
   }
 

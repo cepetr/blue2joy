@@ -244,12 +244,16 @@ export namespace Btj {
   }
 
 
-  export type PinConfig = {
-    source: number;
-    invert: boolean;
-    hatSwitch: number;
-    threshold: number;
-    hysteresis: number;
+  export class PinConfig {
+    source: number = 0;
+    invert: boolean = false;
+    hatSwitch: number = 0;
+    threshold: number = 0;
+    hysteresis: number = 0;
+
+    static default(): PinConfig {
+      return new PinConfig();
+    }
   }
 
   export class SetPinConfig implements Command {
@@ -287,11 +291,15 @@ export namespace Btj {
   }
 
 
-  export type PotConfig = {
-    source: number;
-    low: number;
-    high: number;
-    intSpeed: number;
+  export class PotConfig {
+    source: number = 0;
+    low: number = 0;
+    high: number = 0;
+    intSpeed: number = 0;
+
+    static default(): PotConfig {
+      return new PotConfig();
+    }
   }
 
   export class SetPotConfig implements Command {

@@ -12,13 +12,14 @@ export class PotEditor extends LitElement {
 
   @property({ type: Number }) profileId!: number;
   @property({ type: Number }) potId!: number;
-  @property({ attribute: false }) config?: Btj.PotConfig;
 
-  @state() private _local: Btj.PotConfig = { source: 0, low: 0, high: 0, intSpeed: 0 };
+  @state() private _local: Btj.PotConfig = Btj.PotConfig.default();
 
   override willUpdate(changed: any) {
-    if (this.config && changed.has('config')) {
-      this._local = { ...this.config } as Btj.PotConfig;
+    if (changed.has('profileId') || changed.has('potId')) {
+      if (this.profileId !== undefined && this.potId !== undefined) {
+        this._local = btj.profiles.get(this.profileId)?.pots.get(this.potId) ?? Btj.PotConfig.default();
+      }
     }
   }
 
