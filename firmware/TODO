@@ -1,36 +1,27 @@
-- improve status/mode in navbar - use colors, use fixed position
-
-- fixed column widths in dev list table
-
-- integrate scanning into device view (don't use scan dialog)
-
+## Major
 - io_port + io_port state events
    - io_port.digital_mode - normal/uart/spi (/quadrature)
+- control advertising by button, implement advertising timeout, signalize advertising by led
+- integrate scanning into device view (don't use scan dialog)
 
+## Minor
+- improve status/mode in navbar - use colors, use fixed position
+- fixed column widths in dev list table
 - mapper
     - replace pin.invert with pin.mode - add quadrature mode
     - add pot.mode - normal/delta
-
-- event subscribe/unsubcsribe requests in the channel
-
 - block config events in the same channel
-
-- adv list - remove devices automatically after a timeout
-
-- implement HID device name discovery
-
-- factory reset btjp command
-
-- consider logging groups (eventually CONFIG_LOG_FUNC_NAME_PREFIX_xxxx)
-
-- consider moving of settings.c to settings module (trigger by devmgr/profile events)
-
 - disconnect the device when deleted
+- 3x2 profiles per device - switching / layering
 
-- control advertising by button, implement advertising timeout, signalize advertising by led
-
+## To consider
+- event subscribe/unsubcsribe requests in the channel
+- adv list - remove devices automatically after a timeout
+- implement HID device name discovery
+- factory reset btjp command
+- logging groups (eventually CONFIG_LOG_FUNC_NAME_PREFIX_xxxx)
+- moving of settings.c to settings module (trigger by devmgr/profile events)
 - named profiles
-
 - implement login/password
 
 ----
