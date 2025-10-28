@@ -53,11 +53,14 @@ typedef struct {
     atomic_t txq_ready;
     event_queue_t evq;
 
-} control_conn_ctx_t;
+} btjp_session_t;
 
-control_conn_ctx_t g_btjp_ble_conn[CONFIG_BT_MAX_CONN];
+typedef struct {
+    btjp_session_t session[CONFIG_BT_MAX_CONN];
+    atomic_t is_advertising;
+} btsvc_t;
 
-bool g_is_advertising = false;
+static btsvc_t g_btsvc;
 
 // ------------------------------------------------------------------
 // btjp service UUIDs
@@ -75,32 +78,32 @@ static struct bt_uuid_128 btjp_txq_uuid =
 static ssize_t btjp_rxq_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                               const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
 {
-    control_conn_ctx_t *ctx = &g_btjp_ble_conn[bt_conn_index(conn)];
+    btjp_session_t *session = &g_btsvc.session[bt_conn_index(conn)];
 
-    if (k_work_busy_get(&ctx->request_work)) {
+    if (k_work_busy_get(&session->request_work)) {
         // previous request is still being processed
         LOG_ERR("Previous request is still being processed");
         return BT_GATT_ERR(BT_ATT_ERR_PREPARE_QUEUE_FULL);
     }
 
-    if (offset >= sizeof(ctx->rx_buf)) {
+    if (offset >= sizeof(session->rx_buf)) {
         LOG_ERR("Invalid offset");
         return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
     }
 
-    if (offset + len >= sizeof(ctx->rx_buf)) {
+    if (offset + len >= sizeof(session->rx_buf)) {
         LOG_ERR("Invalid attribute length");
         return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
     }
 
-    memcpy(&ctx->rx_buf[offset], buf, len);
-    ctx->rx_size = offset + len;
+    memcpy(&session->rx_buf[offset], buf, len);
+    session->rx_size = offset + len;
 
-    if (ctx->rx_size >= sizeof(btjp_msg_header_t)) {
-        btjp_msg_header_t *hdr = (btjp_msg_header_t *)ctx->rx_buf;
-        if (ctx->rx_size == sizeof(btjp_msg_header_t) + hdr->size) {
+    if (session->rx_size >= sizeof(btjp_msg_header_t)) {
+        btjp_msg_header_t *hdr = (btjp_msg_header_t *)session->rx_buf;
+        if (session->rx_size == sizeof(btjp_msg_header_t) + hdr->size) {
             // complete message received
-            k_work_submit(&ctx->request_work);
+            k_work_submit(&session->request_work);
         }
     }
 
@@ -136,17 +139,17 @@ static __thread bool handling_own_request = false;
 // Processes a received request and sends a response
 static void request_work_handler(struct k_work *work)
 {
-    control_conn_ctx_t *ctx = CONTAINER_OF(work, control_conn_ctx_t, request_work);
+    btjp_session_t *session = CONTAINER_OF(work, btjp_session_t, request_work);
 
     uint8_t tx_buf[CONFIG_BT_L2CAP_TX_MTU];
 
-    if (!atomic_set(&ctx->txq_ready, true)) {
-        k_work_reschedule(&ctx->event_work, K_MSEC(0));
+    if (!atomic_set(&session->txq_ready, true)) {
+        k_work_reschedule(&session->event_work, K_MSEC(0));
     }
 
     handling_own_request = true;
 
-    size_t tx_size = btjp_handle_message(ctx->rx_buf, ctx->rx_size, tx_buf, sizeof(tx_buf));
+    size_t tx_size = btjp_handle_message(session->rx_buf, session->rx_size, tx_buf, sizeof(tx_buf));
 
     handling_own_request = false;
 
@@ -155,7 +158,7 @@ static void request_work_handler(struct k_work *work)
         return;
     }
 
-    int err = bt_gatt_notify(ctx->conn, btjp_svc_txq_attr, tx_buf, tx_size);
+    int err = bt_gatt_notify(session->conn, btjp_svc_txq_attr, tx_buf, tx_size);
     if (err) {
         LOG_ERR("Failed to notify response: %d", err);
     }
@@ -165,16 +168,16 @@ static void request_work_handler(struct k_work *work)
 // (it used to schedule sending next event if any)
 static void notify_sent_cb(struct bt_conn *conn, void *user_data)
 {
-    control_conn_ctx_t *ctx = (control_conn_ctx_t *)user_data;
+    btjp_session_t *session = (btjp_session_t *)user_data;
 
-    if (!event_queue_is_empty(&ctx->evq)) {
+    if (!event_queue_is_empty(&session->evq)) {
         // Schecdule sending next event
-        k_work_reschedule(&ctx->event_work, K_MSEC(0));
+        k_work_reschedule(&session->event_work, K_MSEC(0));
     }
 }
 
 // Wrapper for sending notification with the callback
-static int send_notify(control_conn_ctx_t *ctx, const void *data, size_t len)
+static int send_notify(btjp_session_t *session, const void *data, size_t len)
 {
     struct bt_gatt_notify_params params;
 
@@ -184,9 +187,9 @@ static int send_notify(control_conn_ctx_t *ctx, const void *data, size_t len)
     params.data = data;
     params.len = len;
     params.func = notify_sent_cb;
-    params.user_data = ctx;
+    params.user_data = session;
 
-    return bt_gatt_notify_cb(ctx->conn, &params);
+    return bt_gatt_notify_cb(session->conn, &params);
 }
 
 // Work handler for sending event notifications
@@ -194,11 +197,11 @@ static void event_work_handler(struct k_work *work_)
 {
     struct k_work_delayable *work = (struct k_work_delayable *)work_;
 
-    control_conn_ctx_t *ctx = CONTAINER_OF(work, control_conn_ctx_t, event_work);
+    btjp_session_t *session = CONTAINER_OF(work, btjp_session_t, event_work);
 
     uint8_t tx_buf[CONFIG_BT_L2CAP_TX_MTU];
 
-    size_t tx_size = btjp_build_evt_message(tx_buf, sizeof(tx_buf), &ctx->evq);
+    size_t tx_size = btjp_build_evt_message(tx_buf, sizeof(tx_buf), &session->evq);
 
     LOG_INF("Sending event(size=%d)", tx_size);
 
@@ -207,7 +210,7 @@ static void event_work_handler(struct k_work *work_)
         return;
     }
 
-    int err = send_notify(ctx, tx_buf, tx_size);
+    int err = send_notify(session, tx_buf, tx_size);
     if (err) {
         LOG_ERR("Failed to notify event: %d", err);
     }
@@ -217,16 +220,16 @@ static void event_work_handler(struct k_work *work_)
 // (invoked from arbitrary thread context)
 static void event_callback(void *context, const event_t *ev)
 {
-    control_conn_ctx_t *ctx = (control_conn_ctx_t *)context;
+    btjp_session_t *session = (btjp_session_t *)context;
 
     /* if (handling_own_request || config_changed) {
         continue;
     }*/
 
-    event_queue_push(&ctx->evq, ev);
+    event_queue_push(&session->evq, ev);
 
-    if (atomic_get(&ctx->txq_ready)) {
-        k_work_reschedule(&ctx->event_work, K_MSEC(20));
+    if (atomic_get(&session->txq_ready)) {
+        k_work_reschedule(&session->event_work, K_MSEC(20));
     }
 }
 
@@ -274,32 +277,31 @@ static void connected(struct bt_conn *conn, uint8_t err)
         return;
     }
 
-    if (g_is_advertising) {
-        g_is_advertising = false;
+    if (atomic_set(&g_btsvc.is_advertising, false)) {
         btsvc_publish_change_event();
     }
 
-    control_conn_ctx_t *ctx = &g_btjp_ble_conn[bt_conn_index(conn)];
-    if (ctx->conn != NULL) {
+    btjp_session_t *session = &g_btsvc.session[bt_conn_index(conn)];
+    if (session->conn != NULL) {
         LOG_ERR("Connection already exists {peer: %s}", addr_str);
-        ctx = NULL;
+        session = NULL;
         goto error;
     }
 
-    memset(ctx, 0, sizeof(control_conn_ctx_t));
-    ctx->conn = bt_conn_ref(conn);
+    memset(session, 0, sizeof(btjp_session_t));
+    session->conn = bt_conn_ref(conn);
 
-    k_work_init(&ctx->request_work, request_work_handler);
-    k_work_init_delayable(&ctx->event_work, event_work_handler);
+    k_work_init(&session->request_work, request_work_handler);
+    k_work_init_delayable(&session->event_work, event_work_handler);
 
-    if (event_queue_init(&ctx->evq) != 0) {
+    if (event_queue_init(&session->evq) != 0) {
         LOG_ERR("Failed to create event queue");
         goto error;
     }
 
-    btjp_populate_event_queue(&ctx->evq);
+    btjp_populate_event_queue(&session->evq);
 
-    err = event_bus_subscribe(event_callback, ctx);
+    err = event_bus_subscribe(event_callback, session);
     if (err) {
         LOG_ERR("Failed to register device manager listener (err %d)", err);
         goto error;
@@ -320,11 +322,11 @@ static void connected(struct bt_conn *conn, uint8_t err)
     return;
 
 error:
-    if (ctx != NULL) {
-        if (ctx->conn != NULL) {
-            bt_conn_unref(ctx->conn);
+    if (session != NULL) {
+        if (session->conn != NULL) {
+            bt_conn_unref(session->conn);
         }
-        memset(ctx, 0, sizeof(control_conn_ctx_t));
+        memset(session, 0, sizeof(btjp_session_t));
     }
 
     bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
@@ -332,9 +334,9 @@ error:
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
-    control_conn_ctx_t *ctx = &g_btjp_ble_conn[bt_conn_index(conn)];
+    btjp_session_t *session = &g_btsvc.session[bt_conn_index(conn)];
 
-    if (ctx->conn != conn) {
+    if (session->conn != conn) {
         return;
     }
 
@@ -343,13 +345,13 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
     LOG_INF("Disconnected {peer: %s}", addr_str);
 
-    event_bus_unsubscribe(event_callback, ctx);
+    event_bus_unsubscribe(event_callback, session);
 
-    k_work_cancel(&ctx->request_work);         // !@# sync???
-    k_work_cancel_delayable(&ctx->event_work); // !@# sync???
+    k_work_cancel(&session->request_work);         // !@# sync???
+    k_work_cancel_delayable(&session->event_work); // !@# sync???
 
-    bt_conn_unref(ctx->conn);
-    memset(ctx, 0, sizeof(control_conn_ctx_t));
+    bt_conn_unref(session->conn);
+    memset(session, 0, sizeof(btjp_session_t));
 
     btsvc_start_advertising();
 }
@@ -432,6 +434,8 @@ int btsvc_init(void)
 
 int btsvc_start_advertising(void)
 {
+    btsvc_t *svc = &g_btsvc;
+
     int err = bt_le_ext_adv_start(adv, BT_LE_EXT_ADV_START_DEFAULT);
 
     if (err) {
@@ -439,8 +443,7 @@ int btsvc_start_advertising(void)
     } else {
         LOG_INF("Advertising successfully started");
 
-        if (!g_is_advertising) {
-            g_is_advertising = true;
+        if (!atomic_set(&svc->is_advertising, true)) {
             btsvc_publish_change_event();
         }
     }
@@ -450,6 +453,8 @@ int btsvc_start_advertising(void)
 
 void btsvc_stop_advertising(void)
 {
+    btsvc_t *svc = &g_btsvc;
+
     int err = bt_le_ext_adv_stop(adv);
 
     if (err) {
@@ -458,13 +463,14 @@ void btsvc_stop_advertising(void)
         LOG_INF("Advertising successfully stopped");
     }
 
-    if (g_is_advertising) {
-        g_is_advertising = false;
+    if (atomic_set(&svc->is_advertising, false)) {
         btsvc_publish_change_event();
     }
 }
 
 bool btsvc_is_advertising(void)
 {
-    return g_is_advertising;
+    btsvc_t *svc = &g_btsvc;
+
+    return atomic_get(&svc->is_advertising);
 }
