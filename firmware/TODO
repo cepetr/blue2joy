@@ -11,7 +11,6 @@
     - replace pin.invert with pin.mode - add quadrature mode
     - add pot.mode - normal/delta
 - block config events in the same channel
-- disconnect the device when deleted
 - 3x2 profiles per device - switching / layering
 
 ## To consider

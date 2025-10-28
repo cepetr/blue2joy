@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <bthid/bthid.h>
+
 #include "devmgr_internal.h"
 
 int devmgr_get_devices(bt_addr_le_t *addrs)
@@ -157,9 +159,10 @@ int devmgr_delete_device(const bt_addr_le_t *addr)
 {
     devmgr_t *devmgr = &g_devmgr;
 
-    k_mutex_lock(&devmgr->mutex, K_FOREVER);
+    // TODO: We should disconnect specific device by address
+    bthid_disconnect(BTHID_DEFAULT_SLOT);
 
-    // !@# disconnect if connected
+    k_mutex_lock(&devmgr->mutex, K_FOREVER);
 
     devmgr_entry_t *entry = devmgr_find_entry(addr);
 
