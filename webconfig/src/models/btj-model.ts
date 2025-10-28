@@ -167,6 +167,11 @@ export class BtjModel {
   async connect(device: BluetoothDevice): Promise<void> {
     this.removeAllDevices();
     this.removeAllProfiles();
+
+    device.addEventListener('gattserverdisconnected', () => {
+      this.disconnect();
+    });
+
     // create connection with event handler
     this.conn = new BtjConnection(device, this.processEvent);
     try {
