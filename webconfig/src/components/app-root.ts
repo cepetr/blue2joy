@@ -69,19 +69,19 @@ export class AppRoot extends MobxLitElement {
 
   private renderNotConnected() {
     return html`
-      <h3>No device is connected.</h3>
-      <p>Please press the button and select the device to connect.</p>
-      <p>
+      <div class="text-center pt-4">
+        <h3>No device is connected.</h3>
+        <p>Please press the button and select the device to connect.</p>
         <button class="btn btn-primary" @click=${this.onScanClick}
           ?disabled=${this.busy}>
-          ${this.busy ? 'Scanning…' : 'Scan for devices'}
+          ${this.busy ? 'Scanning…' : 'Select a Blue2Joy device'}
         </button>
-      </p>
-      ${btj.error ? html`
-        <article role="alert">
-          <p>${btj.error}</p>
-        </article>
-      ` : null}
+        ${btj.error ? html`
+          <article role="alert">
+            <p>${btj.error}</p>
+          </article>
+        ` : null}
+      </div>
     `;
   }
 
@@ -124,7 +124,9 @@ export class AppRoot extends MobxLitElement {
       </ul>
       ${btj.connected ? html`
         <button class="btn btn-outline-secondary" @click=${this.disconnect}>Disconnect</button>
-      ` : null}
+      ` : html`
+        <span class="navbar-text">NOT CONNECTED</span>
+      `}
     `;
   }
 
@@ -132,6 +134,7 @@ export class AppRoot extends MobxLitElement {
     return html`
       <nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary">
         <div class="container-fluid">
+          <a class="navbar-brand">🕹️</a>
           <a class="navbar-brand" href="#">Blue2Joy</a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
