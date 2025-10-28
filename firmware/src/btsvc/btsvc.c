@@ -56,8 +56,12 @@ typedef struct {
 } btjp_session_t;
 
 typedef struct {
+    // Session contexts for each possible connection
     btjp_session_t session[CONFIG_BT_MAX_CONN];
+    // Indicates if advertising is currently enabled
     atomic_t is_advertising;
+    // Work item to stop advertising after timeout
+    struct k_work_delayable adv_timeout_work;
 } btsvc_t;
 
 static btsvc_t g_btsvc;
@@ -394,8 +398,62 @@ static int btsvc_set_name(void)
     return 0;
 }
 
+int btsvc_start_advertising(void)
+{
+    btsvc_t *svc = &g_btsvc;
+
+    int err = bt_le_ext_adv_start(adv, BT_LE_EXT_ADV_START_DEFAULT);
+
+    if (err) {
+        LOG_ERR("Advertising failed to start (err %d)", err);
+    } else {
+        LOG_INF("Advertising successfully started");
+
+        if (!atomic_set(&svc->is_advertising, true)) {
+            btsvc_publish_change_event();
+
+            // Start timer to stop advertising after timeout
+            k_work_reschedule(&svc->adv_timeout_work, K_SECONDS(15));
+        }
+    }
+
+    return err;
+}
+
+void btsvc_stop_advertising(void)
+{
+    btsvc_t *svc = &g_btsvc;
+
+    int err = bt_le_ext_adv_stop(adv);
+
+    if (err) {
+        LOG_ERR("Advertising failed to stop (err %d)", err);
+    } else {
+        LOG_INF("Advertising successfully stopped");
+    }
+
+    if (atomic_set(&svc->is_advertising, false)) {
+        btsvc_publish_change_event();
+    }
+}
+
+bool btsvc_is_advertising(void)
+{
+    btsvc_t *svc = &g_btsvc;
+
+    return atomic_get(&svc->is_advertising);
+}
+
+static void adv_timeout_handler(struct k_work *work)
+{
+    LOG_INF("Advertising timeout, stopping advertising");
+    btsvc_stop_advertising();
+}
+
 int btsvc_init(void)
 {
+    btsvc_t *svc = &g_btsvc;
+
     static const struct bt_le_adv_param adv_param = {
         .options = BT_LE_ADV_OPT_CONN,
         .interval_min = BT_GAP_ADV_FAST_INT_MIN_2,
@@ -429,48 +487,7 @@ int btsvc_init(void)
         return err;
     }
 
+    k_work_init_delayable(&svc->adv_timeout_work, adv_timeout_handler);
+
     return 0;
-}
-
-int btsvc_start_advertising(void)
-{
-    btsvc_t *svc = &g_btsvc;
-
-    int err = bt_le_ext_adv_start(adv, BT_LE_EXT_ADV_START_DEFAULT);
-
-    if (err) {
-        LOG_ERR("Advertising failed to start (err %d)", err);
-    } else {
-        LOG_INF("Advertising successfully started");
-
-        if (!atomic_set(&svc->is_advertising, true)) {
-            btsvc_publish_change_event();
-        }
-    }
-
-    return err;
-}
-
-void btsvc_stop_advertising(void)
-{
-    btsvc_t *svc = &g_btsvc;
-
-    int err = bt_le_ext_adv_stop(adv);
-
-    if (err) {
-        LOG_ERR("Advertising failed to stop (err %d)", err);
-    } else {
-        LOG_INF("Advertising successfully stopped");
-    }
-
-    if (atomic_set(&svc->is_advertising, false)) {
-        btsvc_publish_change_event();
-    }
-}
-
-bool btsvc_is_advertising(void)
-{
-    btsvc_t *svc = &g_btsvc;
-
-    return atomic_get(&svc->is_advertising);
 }
