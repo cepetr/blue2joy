@@ -1,7 +1,6 @@
 ## Major
 - io_port + io_port state events
    - io_port.digital_mode - normal/uart/spi (/quadrature)
-`- integrate scanning into device view (don't use scan dialog)
 
 ## Minor
 - improve status/mode in navbar - use colors, use fixed position
