@@ -23,6 +23,7 @@
 extern const rgbled_seq_t led_seq_error[];
 extern const rgbled_seq_t led_seq_factory_reset[];
 
+extern const rgbled_seq_t led_seq_advertising[];
 extern const rgbled_seq_t led_seq_manual[];
 extern const rgbled_seq_t led_seq_scanning[];
 extern const rgbled_seq_t led_seq_pairing[];

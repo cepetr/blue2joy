@@ -21,6 +21,7 @@
 #include <zephyr/input/input.h>
 
 #include <devmgr/devmgr.h>
+#include <btsvc/btsvc.h>
 
 LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -41,9 +42,21 @@ static void input_cb(struct input_event *evt, void *user_data)
     }
 
     if (pressed && keycode == INPUT_KEY_R) {
+        // Disconnect from all devices first and start scanning
         devmgr_set_mode(DEVMGR_MODE_AUTO, true);
     } else if (pressed && keycode == INPUT_KEY_P) {
+        // Disconnect from all devices first and start scanning in pairing mode
         devmgr_set_mode(DEVMGR_MODE_PAIRING, true);
+    } else if (pressed && keycode == INPUT_KEY_A) {
+        // Enable/disable advertising
+        if (btsvc_is_advertising()) {
+            btsvc_stop_advertising();
+        } else {
+            btsvc_start_advertising();
+        }
+    } else if (pressed && keycode == INPUT_KEY_B) {
+        // Switch profiles if connected
+        // !@# TODO
     }
 }
 

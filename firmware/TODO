@@ -1,7 +1,7 @@
 ## Major
 - io_port + io_port state events
    - io_port.digital_mode - normal/uart/spi (/quadrature)
-- control advertising by button, implement advertising timeout, signalize advertising by led
+- implement advertising timeout
 - integrate scanning into device view (don't use scan dialog)
 
 ## Minor

@@ -31,12 +31,13 @@ typedef enum {
 // Describes what changed or what happened.
 // Used to route events to interested parts of the system.
 typedef enum {
-    EV_SUBJECT_SYS_STATE,  // System state changed
-    EV_SUBJECT_ADV_LIST,   // Scan results list changed
-    EV_SUBJECT_DEV_LIST,   // Manager HID devices
-    EV_SUBJECT_PROFILE,    // Mapping/profile changed
-    EV_SUBJECT_IO_STATE,   // Joystick/paddle output state changed
-    EV_SUBJECT_CONN_ERROR, // A connection-related error occurred
+    EV_SUBJECT_SYS_STATE,   // System state changed
+    EV_SUBJECT_ADV_LIST,    // Scan results list changed
+    EV_SUBJECT_DEV_LIST,    // Manager HID devices
+    EV_SUBJECT_PROFILE,     // Mapping/profile changed
+    EV_SUBJECT_IO_STATE,    // Joystick/paddle output state changed
+    EV_SUBJECT_BTSVC_STATE, // BT service state changed
+    EV_SUBJECT_CONN_ERROR,  // A connection-related error occurred
 } event_subject_t;
 
 typedef struct {

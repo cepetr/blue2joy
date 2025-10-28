@@ -51,11 +51,14 @@ static int erase_storage_partition(void)
 
 static void event_callback(void *context, const event_t *ev)
 {
-    if (ev->subject == EV_SUBJECT_SYS_STATE || ev->subject == EV_SUBJECT_DEV_LIST) {
+    if (ev->subject == EV_SUBJECT_SYS_STATE || ev->subject == EV_SUBJECT_DEV_LIST ||
+        ev->subject == EV_SUBJECT_BTSVC_STATE) {
         devmgr_state_t state;
         devmgr_get_state(&state);
 
-        if (state.mode == DEVMGR_MODE_MANUAL) {
+        if (btsvc_is_advertising()) {
+            rgbled_set_state(led_seq_advertising);
+        } else if (state.mode == DEVMGR_MODE_MANUAL) {
             rgbled_set_state(led_seq_manual);
         } else if (state.scanning) {
             if (state.mode == DEVMGR_MODE_PAIRING) {
@@ -146,9 +149,7 @@ int main(void)
         return 0;
     }
 
-    btsvc_start_advertising();
-
-    devmgr_set_mode(DEVMGR_MODE_PAIRING, true);
+    devmgr_set_mode(DEVMGR_MODE_AUTO, true);
 
     return 0;
 }

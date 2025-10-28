@@ -19,9 +19,9 @@
     longpress {
         input = <&buttons>;
         compatible = "zephyr,input-longpress";
-        input-codes = <INPUT_KEY_1>;
-        short-codes = <INPUT_KEY_R>;
-        long-codes = <INPUT_KEY_P>;
+        input-codes = <INPUT_KEY_1>, <INPUT_KEY_2>;
+        short-codes = <INPUT_KEY_R>, <INPUT_KEY_A>;
+        long-codes = <INPUT_KEY_P>, <INPUT_KEY_B>;
         long-delay-ms = <2000>;
     };
 

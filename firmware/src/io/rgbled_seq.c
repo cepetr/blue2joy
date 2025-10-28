@@ -39,6 +39,11 @@ const rgbled_seq_t led_seq_factory_reset[] = {
     {0},
 };
 
+const rgbled_seq_t led_seq_advertising[] = {
+    {100, COLOR_BLUE},
+    {100, COLOR_OFF},
+    {0, COLOR_BLUE},
+};
 
 const rgbled_seq_t led_seq_manual[] = {
     {0, COLOR_PURPLE},

@@ -57,6 +57,8 @@ typedef struct {
 
 control_conn_ctx_t g_btjp_ble_conn[CONFIG_BT_MAX_CONN];
 
+bool g_is_advertising = false;
+
 // ------------------------------------------------------------------
 // btjp service UUIDs
 // ------------------------------------------------------------------
@@ -232,6 +234,16 @@ static void event_callback(void *context, const event_t *ev)
 // Connection management
 // ------------------------------------------------------------------
 
+static void btsvc_publish_change_event(void)
+{
+    event_t ev = {
+        .subject = EV_SUBJECT_BTSVC_STATE,
+        .action = EV_ACTION_UPDATE,
+    };
+
+    event_bus_publish(&ev);
+}
+
 static void mtu_exchanged(struct bt_conn *conn, uint8_t err, struct bt_gatt_exchange_params *params)
 {
     uint16_t mtu = bt_gatt_get_mtu(conn);
@@ -260,6 +272,11 @@ static void connected(struct bt_conn *conn, uint8_t err)
     if (err) {
         LOG_ERR("Connection failed {peer: %s, err: %u %s}", addr_str, err, bt_hci_err_to_str(err));
         return;
+    }
+
+    if (g_is_advertising) {
+        g_is_advertising = false;
+        btsvc_publish_change_event();
     }
 
     control_conn_ctx_t *ctx = &g_btjp_ble_conn[bt_conn_index(conn)];
@@ -421,7 +438,33 @@ int btsvc_start_advertising(void)
         LOG_ERR("Advertising failed to start (err %d)", err);
     } else {
         LOG_INF("Advertising successfully started");
+
+        if (!g_is_advertising) {
+            g_is_advertising = true;
+            btsvc_publish_change_event();
+        }
     }
 
     return err;
+}
+
+void btsvc_stop_advertising(void)
+{
+    int err = bt_le_ext_adv_stop(adv);
+
+    if (err) {
+        LOG_ERR("Advertising failed to stop (err %d)", err);
+    } else {
+        LOG_INF("Advertising successfully stopped");
+    }
+
+    if (g_is_advertising) {
+        g_is_advertising = false;
+        btsvc_publish_change_event();
+    }
+}
+
+bool btsvc_is_advertising(void)
+{
+    return g_is_advertising;
 }

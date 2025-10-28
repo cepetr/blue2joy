@@ -18,5 +18,14 @@
 
 #pragma once
 
+// Initializes the btjp service
 int btsvc_init(void);
+
+// Returns true if advertising is currently enabled
+bool btsvc_is_advertising(void);
+
+// Starts advertising
 int btsvc_start_advertising(void);
+
+// Stops advertising
+void btsvc_stop_advertising(void);
