@@ -22,11 +22,3 @@
 - named profiles
 - implement login/password
 
-----
-
-| state |  button | action | signalling |
-|-------|---------|--------|------------|
-| connected, connecting | long press 2 | disconnect & start scanning | no signalling |
-| scanning | long press 2 | delete bond #1, start pairing #1 | blink |
-| connected | hold 1 + press 2 (x1, x2, x3) | select profile | blink
-| any | long press 1 | start SPI | blink
