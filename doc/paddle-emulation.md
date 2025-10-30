@@ -1,6 +1,6 @@
 # How paddle input works
 
-Paddle controllers use 1 MΩ potentiometers to charge an RC network (1.8 kΩ, 47 nF) located inside the 8-bit Atari system. This network is connected to the POTx inputs of the POKEY chip. The POKEY chip contains discharge (dump) transistors, eight 8-bit latches, and a binary counter that counts up to 228, driven by ~16kHz clock signal⏱️.
+Paddle controllers use 1 MΩ potentiometers to charge an RC network (1.8 kΩ, 47 nF) located inside the 8-bit Atari system. This network is connected to the POTx inputs of the POKEY chip. The POKEY chip contains discharge (dump) transistors, eight 8-bit latches, and a binary counter that counts up to 228, driven by ~16kHz clock signal.
 
 The measurement cycle begins when the CPU writes to the `POTGO` register. This action:
 - resets the counter,
@@ -46,7 +46,7 @@ Because all timing is handled entirely in hardware - without any CPU interventio
 
 ❹-❶ **Drive caps:** When a `CCx` compare match occurs, PPI triggers `GPIOTE_SET(POT0)`, briefly enabling a P-MOSFET to apply 5 V to the paddle input. This action synthesizes the RC charge delay that POKEY measures. The 5 V level is held on the POTx line until the next scan cycle to allow detection of the next discharge-release event by the comparator.
 
-🔗 Since all POKEY POTx inputs are sampled synchronously, the timing for POT1 channel is derived from the measurement on POT0.
+Since all POKEY POTx inputs are sampled synchronously, the timing for POT1 channel is derived from the measurement on POT0.
 
 The following pictures show the voltage on the paddle input (on the joystick port) for two different timer compare register values, emulating two different POT0 values:
 
@@ -54,6 +54,6 @@ The following pictures show the voltage on the paddle input (on the joystick por
 |----------|-------------|
 | ![Top PCB](images/paddle-emulation-32.png) | ![Bottom PCB](images/paddle-emulation-192.png) |
 
-## ⚠️ Limitations
+## Limitations
 
 The proposed control method, along with the current circuit (with the 1.8 kΩ resistor in place), slightly limits the minimum time in which the capacitor can be charged. As a result, it is currently not possible to emulate all values in the 1-228 range, only 2-228. This could probably be addressed somehow, but at the moment I don't consider it critical.

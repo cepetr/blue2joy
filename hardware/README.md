@@ -70,6 +70,6 @@ DE9 (Cannon) connectors are manufactured only with a metal housing. After cuttin
 
 ## Hardware Status & Disclaimer
 
-The PCB has been fabricated and tested on a single Atari 800XL. Hidden design flaws may still exist. Use all design files, instructions, and the board at your own risk; no warranties or guarantees are implied.
+Although the device has been tested with three Atari models (800XL, 800XE, and 600XL - all PAL), hidden design flaws may still exist. Use all design files, instructions, and the board at your own risk; no warranties or guarantees are implied.
 
-The plastic parts were printed from PLA (with 30% infill) on a Prusa Mk3 printer. The tolerances are quite tight, so it’s likely that on a different printer or with another material, there may be issues fitting the parts together.
+The plastic parts were printed from PLA (standard 0.4 mm nozzle, 0.2 mm layer height, 30% infill) on a Prusa Mk3 printer. The tolerances are quite tight, so it’s likely that on a different printer or with another material, there may be issues fitting the parts together.
