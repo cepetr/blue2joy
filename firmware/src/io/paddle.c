@@ -31,14 +31,6 @@
 
 LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
 
-static void comparator_handler(nrf_comp_event_t event)
-{
-}
-
-static void timer_handler(nrf_timer_event_t event_type, void *p_context)
-{
-}
-
 static const nrfx_timer_t timer = NRFX_TIMER_INSTANCE(2);
 static const nrfx_gpiote_t gpiote = NRFX_GPIOTE_INSTANCE(0);
 
@@ -53,9 +45,31 @@ typedef struct {
     nrf_ppi_channel_t ppi_p1_charge;   // PPI channel for POT1 charging
     nrf_ppi_channel_t ppi_end_cycle;   // PPI channel to end the timer cycle
 
+    atomic_t cc0_value;
+    atomic_t cc1_value;
+
 } paddle_drv_t;
 
 paddle_drv_t g_paddle_drv;
+
+static void comparator_handler(nrf_comp_event_t event)
+{
+}
+
+static void timer_handler(nrf_timer_event_t event_type, void *p_context)
+{
+    // Since TIMER CC registers are not double buffered, we need to
+    // update them in the timer interrupt handler - just after the
+    // compare event has occurred.
+
+    if (event_type == NRF_TIMER_EVENT_COMPARE0) {
+        uint32_t cc0_value = atomic_get(&g_paddle_drv.cc0_value);
+        nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL0, cc0_value, true);
+    } else if (event_type == NRF_TIMER_EVENT_COMPARE1) {
+        uint32_t cc1_value = atomic_get(&g_paddle_drv.cc1_value);
+        nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL1, cc1_value, true);
+    }
+}
 
 void paddle_init(void)
 {
@@ -102,7 +116,7 @@ void paddle_init(void)
     // Connect COMP_IRQ to nrfx_comp_irq_handler - TODO: do we need this??
     IRQ_CONNECT(COMP_LPCOMP_IRQn, IRQ_PRIO_LOWEST, nrfx_isr, nrfx_comp_irq_handler, 0);
 
-    nrfx_comp_start(0, NRFX_COMP_SHORT_STOP_AFTER_UP_EVT);
+    nrfx_comp_start(NRF_COMP_INT_UP_MASK, NRFX_COMP_SHORT_STOP_AFTER_UP_EVT);
 
     // -------------------------------------------------------------------------------
     // Initialize the timer
@@ -130,9 +144,17 @@ void paddle_init(void)
         return;
     }
 
-    nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL0, 14000, false);
-    nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL1, 10000, false);
-    nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL2, 17000, false);
+    IRQ_CONNECT(TIMER2_IRQn, IRQ_PRIO_LOWEST, nrfx_isr, nrfx_timer_2_irq_handler, 0)
+
+    uint32_t initial_cc_value = 16000; // => 228
+
+    atomic_set(&drv->cc0_value, initial_cc_value);
+    atomic_set(&drv->cc1_value, initial_cc_value);
+
+    nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL0, initial_cc_value, true);
+    nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL1, initial_cc_value, true);
+
+    nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL2, 17000, false); // 17ms
 
     nrfx_timer_extended_compare(&timer, NRF_TIMER_CC_CHANNEL3, 25000,
                                 NRF_TIMER_SHORT_COMPARE3_CLEAR_MASK, false);
@@ -247,7 +269,7 @@ void paddle_init(void)
     // --------------------------------------------------------------------
     // ppi_p0_charge
     //
-    // Timer COMPARE1 event:
+    // Timer COMPARE0 event:
     //   -> enables the POT0 charging output
 
     err = nrfx_ppi_channel_alloc(&drv->ppi_p0_charge);
@@ -338,22 +360,26 @@ void paddle_init(void)
 
 void paddle_set_pot0(int value)
 {
+    paddle_drv_t *drv = &g_paddle_drv;
+
     if (value < 1) {
         value = 1;
     } else if (value > 228) {
         value = 228;
     }
 
-    nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL0, 64 * value, false);
+    atomic_set(&drv->cc0_value, 64 * value);
 }
 
 void paddle_set_pot1(int value)
 {
+    paddle_drv_t *drv = &g_paddle_drv;
+
     if (value < 1) {
         value = 1;
     } else if (value > 228) {
         value = 228;
     }
 
-    nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL1, 64 * value, false);
+    atomic_set(&drv->cc1_value, 64 * value);
 }
