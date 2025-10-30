@@ -45,6 +45,17 @@ typedef struct {
     nrf_ppi_channel_t ppi_p1_charge;   // PPI channel for POT1 charging
     nrf_ppi_channel_t ppi_end_cycle;   // PPI channel to end the timer cycle
 
+    // Simple averaging filter state
+    struct {
+        uint8_t buf[10];
+        uint8_t pos;
+        uint16_t sum;
+        uint32_t time;
+    } filter;
+
+    // Measured period in milliseconds
+    atomic_t period;
+
     atomic_t cc0_value;
     atomic_t cc1_value;
 
@@ -54,19 +65,38 @@ paddle_drv_t g_paddle_drv;
 
 static void comparator_handler(nrf_comp_event_t event)
 {
+    paddle_drv_t *drv = &g_paddle_drv;
+
+    uint32_t now = k_uptime_get_32();
+
+    if (drv->filter.time > 0) {
+        uint32_t diff = now - drv->filter.time;
+
+        // Calculate moving average
+        drv->filter.sum -= drv->filter.buf[drv->filter.pos];
+        drv->filter.buf[drv->filter.pos] = diff;
+        drv->filter.sum += drv->filter.buf[drv->filter.pos];
+        drv->filter.pos = (drv->filter.pos + 1) % ARRAY_SIZE(drv->filter.buf);
+    }
+
+    atomic_set(&drv->period, (drv->filter.sum / ARRAY_SIZE(drv->filter.buf)));
+
+    drv->filter.time = now;
 }
 
 static void timer_handler(nrf_timer_event_t event_type, void *p_context)
 {
+    paddle_drv_t *drv = &g_paddle_drv;
+
     // Since TIMER CC registers are not double buffered, we need to
     // update them in the timer interrupt handler - just after the
     // compare event has occurred.
 
     if (event_type == NRF_TIMER_EVENT_COMPARE0) {
-        uint32_t cc0_value = atomic_get(&g_paddle_drv.cc0_value);
+        uint32_t cc0_value = atomic_get(&drv->cc0_value);
         nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL0, cc0_value, true);
     } else if (event_type == NRF_TIMER_EVENT_COMPARE1) {
-        uint32_t cc1_value = atomic_get(&g_paddle_drv.cc1_value);
+        uint32_t cc1_value = atomic_get(&drv->cc1_value);
         nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL1, cc1_value, true);
     }
 }
