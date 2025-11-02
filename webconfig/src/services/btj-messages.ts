@@ -57,13 +57,14 @@ export namespace Btj {
     SET_DEV_CONFIG = 2,
     SET_PIN_CONFIG = 3,
     SET_POT_CONFIG = 4,
-    SET_PROFILE = 5,
-    SET_MODE = 6,
-    START_SCANNING = 7,
-    STOP_SCANNING = 8,
-    CONNECT_DEVICE = 9,
-    DELETE_DEVICE = 10,
-    FACTORY_RESET = 11,
+    SET_ENC_CONFIG = 5,
+    SET_PROFILE = 6,
+    SET_MODE = 7,
+    START_SCANNING = 8,
+    STOP_SCANNING = 9,
+    CONNECT_DEVICE = 10,
+    DELETE_DEVICE = 11,
+    FACTORY_RESET = 12,
 
     EVT_SYS_STATE_UPDATE = 64,
     EVT_IO_PORT_UPDATE = 65,
@@ -335,6 +336,44 @@ export namespace Btj {
     }
   }
 
+  export class EncConfig {
+    source: number = 0;
+
+    static default(): EncConfig {
+      return new EncConfig();
+    }
+  }
+
+  export class SetEncConfig implements Command {
+    readonly msgId = MsgId.SET_ENC_CONFIG;
+
+    constructor(private _profile: number, private _id: number, private _data: EncConfig) { }
+
+    serializeRequest(): ArrayBuffer {
+      const buf = new ArrayBuffer(4 + 4);
+      const view = new DataView(buf);
+      view.setUint8(0, this._profile);
+      view.setUint8(1, this._id);
+      view.setUint32(4, this._data.source, true);
+      return buf;
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+
+    get profile(): number {
+      return this._profile;
+    }
+
+    get id(): number {
+      return this._id;
+    }
+
+    get data(): EncConfig {
+      return this._data;
+    }
+  }
 
   export class SetMode implements Command {
     readonly msgId = MsgId.SET_MODE;
@@ -527,9 +566,10 @@ export namespace Btj {
 
     private _pins: Map<number, PinConfig> = new Map();
     private _pots: Map<number, PotConfig> = new Map();
+    private _encs: Map<number, EncConfig> = new Map();
 
     parseMessage(view: DataView) {
-      assertPayloadLength(view, 4 + 5 * 8 + 2 * 12);
+      assertPayloadLength(view, 4 + 5 * 8 + 2 * 12 + 2 * 4);
       this._profile = view.getUint8(0);
 
       for (let i = 0; i < 5; i++) {
@@ -550,6 +590,12 @@ export namespace Btj {
         const intSpeed = view.getInt16(offset + 8, true);
         this._pots.set(i, { source, low, high, intSpeed });
       }
+
+      for (let i = 0; i < 2; i++) {
+        const offset = 4 + 5 * 8 + 2 * 12 + i * 4;
+        const source = view.getUint32(offset, true);
+        this._encs.set(i, { source });
+      }
     }
 
     get profile(): number {
@@ -562,6 +608,10 @@ export namespace Btj {
 
     get pots(): Map<number, PotConfig> {
       return this._pots;
+    }
+
+    get encs(): Map<number, EncConfig> {
+      return this._encs;
     }
   }
 

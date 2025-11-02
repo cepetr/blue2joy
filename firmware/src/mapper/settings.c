@@ -28,7 +28,7 @@
 
 LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint32_t source;
     bool invert;
     uint8_t hat_switch;
@@ -36,14 +36,18 @@ typedef struct __attribute__((packed)) {
     uint8_t hysteresis;
 } mapper_pin_config_dto_v1_t;
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint32_t source;
     int16_t low;
     int16_t high;
     int16_t int_speed;
 } mapper_pot_config_dto_v1_t;
 
-typedef struct __attribute__((packed)) {
+typedef struct {
+    uint32_t source;
+} mapper_enc_config_dto_v1_t;
+
+typedef struct {
     mapper_pin_config_dto_v1_t up;
     mapper_pin_config_dto_v1_t down;
     mapper_pin_config_dto_v1_t left;
@@ -51,9 +55,11 @@ typedef struct __attribute__((packed)) {
     mapper_pin_config_dto_v1_t trigger;
     mapper_pot_config_dto_v1_t pot0;
     mapper_pot_config_dto_v1_t pot1;
+    mapper_enc_config_dto_v1_t enc0;
+    mapper_enc_config_dto_v1_t enc1;
 } mapper_profile_dto_v1_t;
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t version;
     mapper_profile_dto_v1_t v1;
 } mapper_profile_dto_t;
@@ -77,6 +83,12 @@ static void pot_config_dto_v1_parse(const mapper_pot_config_dto_v1_t *dto,
     config->int_speed = dto->int_speed;
 }
 
+static void enc_config_dto_v1_parse(const mapper_enc_config_dto_v1_t *dto,
+                                    mapper_enc_config_t *config)
+{
+    config->source = (hrm_usage_t)dto->source;
+}
+
 static void profile_dto_v1_parse(const mapper_profile_dto_v1_t *dto, mapper_profile_t *profile)
 {
     pin_config_dto_v1_parse(&dto->up, &profile->up);
@@ -86,6 +98,8 @@ static void profile_dto_v1_parse(const mapper_profile_dto_v1_t *dto, mapper_prof
     pin_config_dto_v1_parse(&dto->trigger, &profile->trigger);
     pot_config_dto_v1_parse(&dto->pot0, &profile->pot0);
     pot_config_dto_v1_parse(&dto->pot1, &profile->pot1);
+    enc_config_dto_v1_parse(&dto->enc0, &profile->enc0);
+    enc_config_dto_v1_parse(&dto->enc1, &profile->enc1);
 }
 
 static int profile_dto_parse(const void *data, size_t data_size, mapper_profile_t *profile)
@@ -99,7 +113,7 @@ static int profile_dto_parse(const void *data, size_t data_size, mapper_profile_
 
     switch (dto->version) {
     case 1:
-        if (data_size != sizeof(dto->version) + sizeof(dto->v1)) {
+        if (data_size != offsetof(mapper_profile_dto_t, v1) + sizeof(dto->v1)) {
             return -1;
         }
 
@@ -130,6 +144,12 @@ static void pot_config_dto_v1_build(const mapper_pot_config_t *config,
     dto->int_speed = config->int_speed;
 }
 
+static void enc_config_dto_v1_build(const mapper_enc_config_t *config,
+                                    mapper_enc_config_dto_v1_t *dto)
+{
+    dto->source = (uint32_t)config->source;
+}
+
 static ssize_t profile_dto_build(const mapper_profile_t *profile, mapper_profile_dto_t *dto)
 {
     dto->version = 1;
@@ -140,8 +160,10 @@ static ssize_t profile_dto_build(const mapper_profile_t *profile, mapper_profile
     pin_config_dto_v1_build(&profile->trigger, &dto->v1.trigger);
     pot_config_dto_v1_build(&profile->pot0, &dto->v1.pot0);
     pot_config_dto_v1_build(&profile->pot1, &dto->v1.pot1);
+    enc_config_dto_v1_build(&profile->enc0, &dto->v1.enc0);
+    enc_config_dto_v1_build(&profile->enc1, &dto->v1.enc1);
 
-    return sizeof(dto->version) + sizeof(dto->v1);
+    return offsetof(mapper_profile_dto_t, v1) + sizeof(dto->v1);
 }
 
 void mapper_save_settings(struct k_work *work)

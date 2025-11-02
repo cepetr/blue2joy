@@ -28,12 +28,12 @@
 
 LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t addr[7];
     uint8_t profile;
 } dev_config_dto_v1_t;
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t version;
     dev_config_dto_v1_t v1;
 } dev_config_dto_t;

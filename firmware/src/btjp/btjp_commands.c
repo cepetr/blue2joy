@@ -156,6 +156,30 @@ static btjp_status_t btjp_handle_request(const btjp_req_t *req, btjp_rsp_t *rsp)
         }
     } break;
 
+    case BTJP_MSG_SET_ENC_CONFIG: {
+        CHECK_REQ_SIZE(req, sizeof(req->set_enc_config));
+
+        mapper_profile_t profile;
+        int err = mapper_get_profile(req->set_enc_config.profile, &profile);
+        if (err != 0) {
+            LOG_ERR("Invalid profile #%d", req->set_enc_config.profile);
+            return BTJP_ERR_INVALID_ARG;
+        }
+
+        mapper_enc_config_t *config = profile_enc(&profile, req->set_enc_config.enc_id);
+        if (config == NULL) {
+            LOG_ERR("Invalid encoder ID %d", req->set_enc_config.enc_id);
+            return BTJP_ERR_INVALID_ARG;
+        }
+
+        config->source = req->set_enc_config.source;
+
+        err = mapper_set_profile(req->set_enc_config.profile, &profile, true);
+        if (err != 0) {
+            return BTJP_ERR_INVALID_ARG;
+        }
+    } break;
+
     case BTJP_MSG_SET_MODE: {
         CHECK_REQ_SIZE(req, sizeof(req->set_mode));
         CHECK_REQ_ARG(req->set_mode.mode <= DEVMGR_MODE_MANUAL);
@@ -186,6 +210,11 @@ static btjp_status_t btjp_handle_request(const btjp_req_t *req, btjp_rsp_t *rsp)
             pot->low = req->set_profile.pots[i].low;
             pot->high = req->set_profile.pots[i].high;
             pot->int_speed = req->set_profile.pots[i].int_speed;
+        }
+
+        for (int i = 0; i < ARRAY_SIZE(req->set_profile.encs); i++) {
+            mapper_enc_config_t *enc = profile_enc(&profile, i);
+            enc->source = req->set_profile.encs[i].source;
         }
 
         // Save updated profile

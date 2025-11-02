@@ -102,6 +102,11 @@ static size_t btjp_build_evt_profile_update(btjp_evt_t *evt, uint8_t idx)
         evt->profile_update.pots[i].int_speed = pot->int_speed;
     }
 
+    for (int i = 0; i < ARRAY_SIZE(evt->profile_update.encs); i++) {
+        mapper_enc_config_t *enc = profile_enc(&profile, i);
+        evt->profile_update.encs[i].source = enc->source;
+    }
+
     return sizeof(btjp_msg_header_t) + evt->hdr.size;
 }
 

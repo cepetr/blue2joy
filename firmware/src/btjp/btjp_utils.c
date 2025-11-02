@@ -59,3 +59,15 @@ mapper_pot_config_t *profile_pot(mapper_profile_t *profile, uint8_t pin_id)
         return NULL;
     }
 }
+
+mapper_enc_config_t *profile_enc(mapper_profile_t *profile, uint8_t enc_id)
+{
+    switch (enc_id) {
+    case BTJP_ENC_1:
+        return &profile->enc0;
+    case BTJP_ENC_2:
+        return &profile->enc1;
+    default:
+        return NULL;
+    }
+}

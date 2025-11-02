@@ -29,6 +29,7 @@ export interface DeviceEntry {
 export interface ProfileEntry {
   pins: Map<number, Btj.PinConfig>;
   pots: Map<number, Btj.PotConfig>;
+  encs: Map<number, Btj.EncConfig>;
 }
 
 export class BtjModel {
@@ -135,7 +136,7 @@ export class BtjModel {
     const evt = new Btj.ProfileUpdateEvent();
     evt.parseMessage(payload);
     runInAction(() => {
-      const entry: ProfileEntry = { pins: evt.pins, pots: evt.pots };
+      const entry: ProfileEntry = { pins: evt.pins, pots: evt.pots, encs: evt.encs };
       this.profiles.set(evt.profile, entry);
     });
   }
@@ -234,6 +235,15 @@ export class BtjModel {
     this.profiles.get(profileId)!.pots.set(potId, config);
     // Send to device
     await this.conn.invoke(new Btj.SetPotConfig(profileId, potId, config));
+  }
+
+  @action
+  async setEncConfig(profileId: number, encId: number, config: Btj.EncConfig) {
+    if (!this.conn) throw new Error('Not connected');
+    // Update local cache
+    this.profiles.get(profileId)!.encs.set(encId, config);
+    // Send to device
+    await this.conn.invoke(new Btj.SetEncConfig(profileId, encId, config));
   }
 
   @action

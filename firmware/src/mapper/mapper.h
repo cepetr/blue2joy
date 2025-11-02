@@ -55,6 +55,12 @@ typedef struct {
     int16_t int_speed;
 } mapper_pot_config_t;
 
+// Configuration for quadrature encoder inputs
+typedef struct {
+    // Source field
+    hrm_usage_t source;
+} mapper_enc_config_t;
+
 // Configuration for all inputs of joystick port
 typedef struct {
     mapper_pin_config_t up;
@@ -64,6 +70,8 @@ typedef struct {
     mapper_pin_config_t trigger;
     mapper_pot_config_t pot0;
     mapper_pot_config_t pot1;
+    mapper_enc_config_t enc0;
+    mapper_enc_config_t enc1;
 } mapper_profile_t;
 
 #define MAPPER_MAX_PROFILES 4

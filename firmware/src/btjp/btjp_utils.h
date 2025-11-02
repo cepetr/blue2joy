@@ -31,3 +31,5 @@ void dev_addr_from_bt_addr_le(btjp_dev_addr_t *dst, const bt_addr_le_t *src);
 mapper_pin_config_t *profile_pin(mapper_profile_t *profile, uint8_t pin_id);
 
 mapper_pot_config_t *profile_pot(mapper_profile_t *profile, uint8_t pin_id);
+
+mapper_enc_config_t *profile_enc(mapper_profile_t *profile, uint8_t enc_id);

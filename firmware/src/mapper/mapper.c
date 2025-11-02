@@ -39,6 +39,11 @@ typedef struct {
     uint16_t value;
 } mapper_pot_state_t;
 
+typedef struct {
+    // Accumulated delta since last update
+    int16_t delta;
+} mapper_enc_state_t;
+
 // Mapper state
 typedef struct {
     mapper_pin_state_t up;
@@ -48,6 +53,8 @@ typedef struct {
     mapper_pin_state_t trigger;
     mapper_pot_state_t pot0;
     mapper_pot_state_t pot1;
+    mapper_enc_state_t enc0;
+    mapper_enc_state_t enc1;
 } mapper_state_t;
 
 typedef struct {
@@ -233,6 +240,21 @@ static void update_pot_state(mapper_pot_state_t *state, const mapper_pot_config_
     state->value = CLAMP(out, ANALOG_FP_MULT * 1, ANALOG_FP_MULT * 228);
 }
 
+static void update_enc_state(mapper_enc_state_t *state, const mapper_enc_config_t *config,
+                             const hrm_report_t *report, const uint8_t *data)
+{
+    const hrm_field_t *field = hrm_report_find_field(report, config->source);
+
+    if (field == NULL) {
+        return;
+    }
+
+    int32_t in = hrm_field_extract(field, data);
+    in = CLAMP(in, field->logical_min, field->logical_max);
+
+    state->delta = in;
+}
+
 static void update_outputs(const mapper_state_t *state)
 {
     joystick_set_up(state->up.state);
@@ -240,8 +262,12 @@ static void update_outputs(const mapper_state_t *state)
     joystick_set_left(state->left.state);
     joystick_set_right(state->right.state);
     joystick_set_trig(state->trigger.state);
+
     paddle_set_pot0(state->pot0.value / ANALOG_FP_MULT);
     paddle_set_pot1(state->pot1.value / ANALOG_FP_MULT);
+
+    joystick_queue_x_steps(state->enc0.delta);
+    joystick_queue_y_steps(state->enc1.delta);
 }
 
 // Callback invoked from bt layer when a report is received
@@ -264,6 +290,12 @@ void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_repor
     update_pin_state(&state->trigger, &profile.trigger, report, data);
     update_pot_state(&state->pot0, &profile.pot0, report, data);
     update_pot_state(&state->pot1, &profile.pot1, report, data);
+    update_enc_state(&state->enc0, &profile.enc0, report, data);
+    update_enc_state(&state->enc1, &profile.enc1, report, data);
 
     update_outputs(state);
+
+    // Reset encoder deltas after processing
+    state->enc0.delta = 0;
+    state->enc1.delta = 0;
 }
