@@ -182,12 +182,9 @@ export class BtjModel {
       runInAction(() => {
         this.sysInfo = info;
       });
+      this.error = null;
     } catch (err: any) {
-      if (err instanceof Btj.Error) {
-        this.error = `Device error: ${err.code}`;
-      } else {
-        this.error = err?.message ?? String(err);
-      }
+      this.error = this.formatError(err);
       this.disconnect();
     }
   }
@@ -204,6 +201,12 @@ export class BtjModel {
     this.sysState = null;
   }
 
+  private formatError(err: any): string {
+    if (err instanceof Btj.Error) {
+      return `Device error: ${err.code}`;
+    }
+    return err?.message ?? String(err);
+  }
 
   getProfile(id: number): ProfileEntry | undefined {
     return this.profiles.get(id);
@@ -224,8 +227,18 @@ export class BtjModel {
     if (!this.conn) throw new Error('Not connected');
     // Update local cache
     this.profiles.get(profileId)!.pins.set(pinId, config);
-    // Send to device
-    await this.conn.invoke(new Btj.SetPinConfig(profileId, pinId, config));
+    try {
+      // Send to device
+      await this.conn.invoke(new Btj.SetPinConfig(profileId, pinId, config));
+      this.error = null;
+    } catch (err: any) {
+      this.error = this.formatError(err);
+      // Revert local cache change on error
+      const profile = this.profiles.get(profileId);
+      if (profile) {
+        profile.pins.delete(pinId);
+      }
+    }
   }
 
   @action
@@ -233,8 +246,18 @@ export class BtjModel {
     if (!this.conn) throw new Error('Not connected');
     // Update local cache
     this.profiles.get(profileId)!.pots.set(potId, config);
-    // Send to device
-    await this.conn.invoke(new Btj.SetPotConfig(profileId, potId, config));
+    try {
+      // Send to device
+      await this.conn.invoke(new Btj.SetPotConfig(profileId, potId, config));
+      this.error = null;
+    } catch (err: any) {
+      this.error = this.formatError(err);
+      // Revert local cache change on error
+      const profile = this.profiles.get(profileId);
+      if (profile) {
+        profile.pots.delete(potId);
+      }
+    }
   }
 
   @action
@@ -242,20 +265,40 @@ export class BtjModel {
     if (!this.conn) throw new Error('Not connected');
     // Update local cache
     this.profiles.get(profileId)!.encs.set(encId, config);
-    // Send to device
-    await this.conn.invoke(new Btj.SetEncConfig(profileId, encId, config));
+    try {
+      // Send to device
+      await this.conn.invoke(new Btj.SetEncConfig(profileId, encId, config));
+      this.error = null;
+    } catch (err: any) {
+      this.error = this.formatError(err);
+      // Revert local cache change on error
+      const profile = this.profiles.get(profileId);
+      if (profile) {
+        profile.encs.delete(encId);
+      }
+    }
   }
 
   @action
   async deleteDevice(addr: Btj.DevAddr): Promise<void> {
     if (!this.conn) throw new Error('Not connected');
-    await this.conn.invoke(new Btj.DeleteDevice(addr));
+    try {
+      await this.conn.invoke(new Btj.DeleteDevice(addr));
+      this.error = null;
+    } catch (err: any) {
+      this.error = this.formatError(err);
+    }
   }
 
   @action
   async setDeviceProfile(addr: Btj.DevAddr, profile: number): Promise<void> {
     if (!this.conn) throw new Error('Not connected');
-    await this.conn.invoke(new Btj.SetDevConfig(addr, { profile }));
+    try {
+      await this.conn.invoke(new Btj.SetDevConfig(addr, { profile }));
+      this.error = null;
+    } catch (err: any) {
+      this.error = this.formatError(err);
+    }
   }
 
   @action
@@ -269,11 +312,7 @@ export class BtjModel {
       await this.conn.invoke(new Btj.SetMode(Btj.SysMode.MANUAL, true));
       await this.conn.invoke(new Btj.StartScanning());
     } catch (err: any) {
-      if (err instanceof Btj.Error) {
-        this.error = `Device error: ${err.code}`;
-      } else {
-        this.error = err?.message ?? String(err);
-      }
+      this.error = this.formatError(err);
     }
   }
 
@@ -298,11 +337,7 @@ export class BtjModel {
       await this.stopScanning();
       await this.conn.invoke(new Btj.ConnectDevice(addr));
     } catch (err: any) {
-      if (err instanceof Btj.Error) {
-        this.error = `Device error: ${err.code}`;
-      } else {
-        this.error = err?.message ?? String(err);
-      }
+      this.error = this.formatError(err);
     }
   }
 }
