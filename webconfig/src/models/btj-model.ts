@@ -32,7 +32,15 @@ export interface ProfileEntry {
   encs: Map<number, Btj.EncConfig>;
 }
 
+export interface ErrorEntry {
+  id: number;
+  message: string;
+  source?: string;  // e.g., 'connection', 'device', 'profile'
+}
+
 export class BtjModel {
+  private _errorIdCounter = 0;
+
   constructor() {
     // Make the instance observable so MobX tracks fields and methods
     // (works regardless of decorator transform settings).
@@ -43,7 +51,7 @@ export class BtjModel {
   conn: BtjConnection | null = null;
 
   @observable
-  error: string | null = null;
+  errors: ErrorEntry[] = [];
 
   @observable
   sysInfo: Btj.SysInfo | null = null;
@@ -66,6 +74,33 @@ export class BtjModel {
     return this.conn != null;
   }
 
+  private formatError(err: any): string {
+    if (err instanceof Btj.Error) {
+      return `Device error: ${err.code}`;
+    }
+    return err?.message ?? String(err);
+  }
+
+  @action
+  logError(err: Error | string, source?: string): void {
+    const error: ErrorEntry = {
+      id: ++this._errorIdCounter,
+      message: err instanceof Error ? this.formatError(err) : err,
+      source,
+    };
+    this.errors.push(error);
+  }
+
+  @action
+  clearErrors(): void {
+    this.errors = [];
+  }
+
+  @action
+  removeError(id: number): void {
+    this.errors = this.errors.filter(e => e.id !== id);
+  }
+
   @action
   async scanAndConnect(): Promise<void> {
     try {
@@ -76,7 +111,7 @@ export class BtjModel {
         // User canceled the chooser - not an error
         return;
       }
-      this.error = err?.message ?? String(err);
+      this.logError(err, 'connection');
     }
   }
 
@@ -169,15 +204,16 @@ export class BtjModel {
       this.disconnect();
     });
 
+    this.clearErrors();
+
     // create connection with event handler
     this.conn = new BtjConnection(device, this.processEvent);
     try {
       // Wait for the connection to be fully initialized
       await this.conn.connect();
       this.sysInfo = (await this.conn.invoke(new Btj.GetSysInfo())).data;
-      this.error = null;
     } catch (err: any) {
-      this.error = this.formatError(err);
+      this.logError(err, 'connection');
       this.disconnect();
     }
   }
@@ -192,13 +228,6 @@ export class BtjModel {
     this.conn = null;
     this.sysInfo = null;
     this.sysState = null;
-  }
-
-  private formatError(err: any): string {
-    if (err instanceof Btj.Error) {
-      return `Device error: ${err.code}`;
-    }
-    return err?.message ?? String(err);
   }
 
   getProfile(id: number): ProfileEntry | undefined {
@@ -223,9 +252,8 @@ export class BtjModel {
     try {
       // Send to device
       await this.conn.invoke(new Btj.SetPinConfig(profileId, pinId, config));
-      this.error = null;
     } catch (err: any) {
-      this.error = this.formatError(err);
+      this.logError(err, 'profile');
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
       if (profile) {
@@ -242,9 +270,8 @@ export class BtjModel {
     try {
       // Send to device
       await this.conn.invoke(new Btj.SetPotConfig(profileId, potId, config));
-      this.error = null;
     } catch (err: any) {
-      this.error = this.formatError(err);
+      this.logError(err, 'profile');
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
       if (profile) {
@@ -261,9 +288,8 @@ export class BtjModel {
     try {
       // Send to device
       await this.conn.invoke(new Btj.SetEncConfig(profileId, encId, config));
-      this.error = null;
     } catch (err: any) {
-      this.error = this.formatError(err);
+      this.logError(err, 'profile');
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
       if (profile) {
@@ -277,9 +303,8 @@ export class BtjModel {
     if (!this.conn) throw new Error('Not connected');
     try {
       await this.conn.invoke(new Btj.DeleteDevice(addr));
-      this.error = null;
     } catch (err: any) {
-      this.error = this.formatError(err);
+      this.logError(err, 'device');
     }
   }
 
@@ -288,24 +313,22 @@ export class BtjModel {
     if (!this.conn) throw new Error('Not connected');
     try {
       await this.conn.invoke(new Btj.SetDevConfig(addr, { profile }));
-      this.error = null;
     } catch (err: any) {
-      this.error = this.formatError(err);
+      this.logError(err, 'device');
     }
   }
 
   @action
   async startScanning(): Promise<void> {
     if (!this.conn) {
-      this.error = 'Not connected';
+      this.logError('Not connected', 'connection');
       return;
     }
     try {
-      this.error = null;
       await this.conn.invoke(new Btj.SetMode(Btj.SysMode.MANUAL, true));
       await this.conn.invoke(new Btj.StartScanning());
     } catch (err: any) {
-      this.error = this.formatError(err);
+      this.logError(err, 'device');
     }
   }
 
@@ -315,22 +338,21 @@ export class BtjModel {
     try {
       await this.conn.invoke(new Btj.StopScanning());
     } catch (err: any) {
-      // ignore
+      this.logError(err, 'device');
     }
   }
 
   @action
   async connectDevice(addr: Btj.DevAddr): Promise<void> {
     if (!this.conn) {
-      this.error = 'Not connected';
+      this.logError('Not connected', 'connection');
       return;
     }
     try {
-      this.error = null;
       await this.stopScanning();
       await this.conn.invoke(new Btj.ConnectDevice(addr));
     } catch (err: any) {
-      this.error = this.formatError(err);
+      this.logError(err, 'device');
     }
   }
 }

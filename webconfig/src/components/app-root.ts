@@ -76,11 +76,21 @@ export class AppRoot extends MobxLitElement {
           ?disabled=${this.busy}>
           ${this.busy ? 'Scanning…' : 'Select a Blue2Joy device'}
         </button>
-        ${btj.error ? html`
-          <article role="alert">
-            <p>${btj.error}</p>
-          </article>
-        ` : null}
+        ${this.renderErrors()}
+      </div>
+    `;
+  }
+
+  private renderErrors() {
+    if (btj.errors.length === 0) return null;
+    return html`
+      <div class="mt-3">
+        ${btj.errors.map(err => html`
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>${err.source ? `${err.source}: ` : ''}</strong>${err.message}
+            <button type="button" class="btn-close" @click=${() => btj.removeError(err.id)} aria-label="Close"></button>
+          </div>
+        `)}
       </div>
     `;
   }
