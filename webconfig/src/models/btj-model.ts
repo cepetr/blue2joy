@@ -257,6 +257,54 @@ export class BtjModel {
     if (!this.conn) throw new Error('Not connected');
     await this.conn.invoke(new Btj.SetDevConfig(addr, { profile }));
   }
+
+  @action
+  async startScanning(): Promise<void> {
+    if (!this.conn) {
+      this.error = 'Not connected';
+      return;
+    }
+    try {
+      this.error = null;
+      await this.conn.invoke(new Btj.SetMode(Btj.SysMode.MANUAL, true));
+      await this.conn.invoke(new Btj.StartScanning());
+    } catch (err: any) {
+      if (err instanceof Btj.Error) {
+        this.error = `Device error: ${err.code}`;
+      } else {
+        this.error = err?.message ?? String(err);
+      }
+    }
+  }
+
+  @action
+  async stopScanning(): Promise<void> {
+    if (!this.conn) return;
+    try {
+      await this.conn.invoke(new Btj.StopScanning());
+    } catch (err: any) {
+      // ignore
+    }
+  }
+
+  @action
+  async connectDevice(addr: Btj.DevAddr): Promise<void> {
+    if (!this.conn) {
+      this.error = 'Not connected';
+      return;
+    }
+    try {
+      this.error = null;
+      await this.stopScanning();
+      await this.conn.invoke(new Btj.ConnectDevice(addr));
+    } catch (err: any) {
+      if (err instanceof Btj.Error) {
+        this.error = `Device error: ${err.code}`;
+      } else {
+        this.error = err?.message ?? String(err);
+      }
+    }
+  }
 }
 
 // Singleton instance for global use

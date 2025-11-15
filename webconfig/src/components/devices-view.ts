@@ -1,46 +1,13 @@
 import { MobxLitElement } from "@adobe/lit-mobx";
 import { html } from "lit";
-import { customElement, state } from "lit/decorators.js";
+import { customElement } from "lit/decorators.js";
 import { btj, DeviceEntry } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
 
 @customElement("devices-view")
 export class DevicesView extends MobxLitElement {
-  @state() private _error: string | null = null;
-
   protected override createRenderRoot() {
     return this;
-  }
-
-  private async startScanning() {
-    if (!btj.conn) return;
-    this._error = null;
-    try {
-      await btj.conn.invoke(new Btj.SetMode(Btj.SysMode.MANUAL, true));
-      await btj.conn.invoke(new Btj.StartScanning());
-    } catch (err: any) {
-      this._error = err?.message ?? String(err);
-    }
-  }
-
-  private async stopScanning() {
-    if (!btj.conn) return;
-    try {
-      await btj.conn.invoke(new Btj.StopScanning());
-    } catch (err: any) {
-      // ignore
-    }
-  }
-
-  private async connect(addr: Btj.DevAddr) {
-    if (!btj.conn) return;
-    this._error = null;
-    try {
-      await this.stopScanning();
-      await btj.conn.invoke(new Btj.ConnectDevice(addr));
-    } catch (err: any) {
-      this._error = err?.message ?? String(err);
-    }
   }
 
   private renderDeviceRow(dev: DeviceEntry) {
@@ -113,7 +80,7 @@ export class DevicesView extends MobxLitElement {
             <td>${a.rssi}</td>
             <td>
               <button type="button" class="btn btn-primary btn-sm"
-                @click=${() => this.connect(a.addr)}>Connect</button>
+                @click=${() => btj.connectDevice(a.addr)}>Connect</button>
               </td>
             </tr>
           `)}
@@ -130,11 +97,11 @@ export class DevicesView extends MobxLitElement {
 
       ${!scanning ? html`
         <button type="button" class="btn btn-primary"
-          @click=${() => { this.startScanning() }}>Start scanning
+          @click=${() => { btj.startScanning() }}>Start scanning
         </button>
         ` : html`
         <button type="button" class="btn btn-danger"
-          @click=${() => { this.stopScanning() }}>Stop scanning
+          @click=${() => { btj.stopScanning() }}>Stop scanning
         </button>
         `
       }
