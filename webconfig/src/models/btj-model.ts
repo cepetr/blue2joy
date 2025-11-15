@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { action, computed, makeAutoObservable, observable, runInAction } from "mobx";
+import { action, computed, makeAutoObservable, observable } from "mobx";
 import { BtjConnection, scanAndSelect } from "../services/btj-connection";
 import { Btj } from "../services/btj-messages";
 
@@ -80,65 +80,61 @@ export class BtjModel {
     }
   }
 
+  @action
   private processSysStateUpdateEvent(payload: DataView) {
     const evt = new Btj.SysStateUpdateEvent();
     evt.parseMessage(payload);
-    runInAction(() => {
-      this.sysState = evt.data;
-    });
+    this.sysState = evt.data;
   }
 
+  @action
   private processAdvListUpdateEvent(payload: DataView) {
     const evt = new Btj.AdvListUpdateEvent();
     evt.parseMessage(payload);
-    runInAction(() => {
-      if (!evt.deleted) {
-        // New or updated entry
-        const idx = this.advDevices.findIndex(dev => dev.addr.equals(evt.data.addr));
-        if (idx >= 0) {
-          // replace existing entry
-          this.advDevices.splice(idx, 1, evt.data);
-        } else {
-          // append new entry
-          this.advDevices.push(evt.data);
-        }
+    if (!evt.deleted) {
+      // New or updated entry
+      const idx = this.advDevices.findIndex(dev => dev.addr.equals(evt.data.addr));
+      if (idx >= 0) {
+        // replace existing entry
+        this.advDevices.splice(idx, 1, evt.data);
       } else {
-        // Entry removed
-        this.advDevices = this.advDevices.filter(dev => !dev.addr.equals(evt.data.addr));
+        // append new entry
+        this.advDevices.push(evt.data);
       }
-    });
+    } else {
+      // Entry removed
+      this.advDevices = this.advDevices.filter(dev => !dev.addr.equals(evt.data.addr));
+    }
   }
 
+  @action
   private processDevListUpdateEvent(payload: DataView) {
     const evt = new Btj.DevListUpdateEvent();
     evt.parseMessage(payload);
-    runInAction(() => {
-      if (!evt.deleted) {
-        // New or updated entry
-        const idx = this.devices.findIndex(dev => dev.addr.equals(evt.addr));
-        const entry = { addr: evt.addr, config: evt.config!, state: evt.state! };
-        if (idx >= 0) {
-          // replace existing entry
-          this.devices.splice(idx, 1, entry);
+    if (!evt.deleted) {
+      // New or updated entry
+      const idx = this.devices.findIndex(dev => dev.addr.equals(evt.addr));
+      const entry = { addr: evt.addr, config: evt.config!, state: evt.state! };
+      if (idx >= 0) {
+        // replace existing entry
+        this.devices.splice(idx, 1, entry);
 
-        } else {
-          // append new entry
-          this.devices.push(entry);
-        }
       } else {
-        // Entry removed
-        this.devices = this.devices.filter(dev => !dev.addr.equals(evt.addr));
+        // append new entry
+        this.devices.push(entry);
       }
-    });
+    } else {
+      // Entry removed
+      this.devices = this.devices.filter(dev => !dev.addr.equals(evt.addr));
+    }
   }
 
+  @action
   private processProfileUpdateEvent(payload: DataView) {
     const evt = new Btj.ProfileUpdateEvent();
     evt.parseMessage(payload);
-    runInAction(() => {
-      const entry: ProfileEntry = { pins: evt.pins, pots: evt.pots, encs: evt.encs };
-      this.profiles.set(evt.profile, entry);
-    });
+    const entry: ProfileEntry = { pins: evt.pins, pots: evt.pots, encs: evt.encs };
+    this.profiles.set(evt.profile, entry);
   }
 
   // Handler forwarded to BtjConnection to receive async events from the device
@@ -178,10 +174,7 @@ export class BtjModel {
     try {
       // Wait for the connection to be fully initialized
       await this.conn.connect();
-      const info = (await this.conn.invoke(new Btj.GetSysInfo())).data;
-      runInAction(() => {
-        this.sysInfo = info;
-      });
+      this.sysInfo = (await this.conn.invoke(new Btj.GetSysInfo())).data;
       this.error = null;
     } catch (err: any) {
       this.error = this.formatError(err);
