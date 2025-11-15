@@ -4,6 +4,8 @@
 
 While primarily intended for gamepads, the device is not limited to them - in principle, any BLE HID device, such as a keyboard or mouse, can be connected.
 
+> Only devices that fully support the BLE HID over GATT Profile (HOGP) are supported. For this reason many older devices (especially gamepads) are unfortunately are not usable with Blue2Joy. See [compatible devices](/doc/compatible-devices.md).
+
 <div>
   <img width="24%" src="doc/images/blue2joy-case-top.jpg">
   <img width="24%" src="doc/images/blue2joy-case-bot.jpg">
