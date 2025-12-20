@@ -66,7 +66,6 @@ export class AppRoot extends MobxLitElement {
     btj.disconnect();
   }
 
-
   private renderNotConnected() {
     return html`
       <div class="text-center pt-4">
@@ -95,48 +94,81 @@ export class AppRoot extends MobxLitElement {
     `;
   }
 
-  private renderInfo() {
-    return html`
-      ${btj.sysInfo && btj.sysState ? html`
+  private renderInfo(mode: 'navbar' | 'offcanvas' = 'navbar') {
+    if (!btj.sysInfo || !btj.sysState) return null;
+    const scanning = btj.sysState?.scanning ? 'SCANNING' : '';
+    if (mode === 'navbar') {
+      return html`
         <span class="vr mx-2"></span>
-        <span class="navbar-text d-none d-sm-inline">ID: ${btj.sysInfo?.hw_id}</span>
-        <span class="navbar-text d-none d-sm-inline">FW: ${btj.sysInfo?.sw_version}</span>
-        <span class="navbar-text">${Btj.SysMode[btj.sysState!.mode]}</span>
-        <span class="navbar-text">${btj.sysState?.scanning ? "SCANNING" : ""}</span>
-
-      ` : null}
+        <span class="navbar-text d-none d-sm-inline">ID: ${btj.sysInfo.hw_id}</span>
+        <span class="navbar-text d-none d-sm-inline">FW: ${btj.sysInfo.sw_version}</span>
+        <span class="navbar-text">${Btj.SysMode[btj.sysState.mode]}</span>
+        <span class="navbar-text">${scanning}</span>
+      `;
+    }
+    return html`
+      <ul class="list-unstyled mb-0">
+        <li><strong>Device:</strong> ${btj.sysInfo.hw_id}</li>
+        <li><strong>Firmware:</strong> ${btj.sysInfo.sw_version}</li>
+        <li><strong>Current Mode:</strong> ${Btj.SysMode[btj.sysState.mode]} ${scanning}</li>
+      </ul>
     `;
   }
 
-  private renderMenu() {
+  private renderMenu(mode: 'navbar' | 'offcanvas' = 'navbar') {
     const currentPath = location.pathname;
+    const devicesActive = currentPath === '/' || currentPath.startsWith('/devices');
+    const profilesActive = currentPath.startsWith('/profiles');
+    const isProfileActive = (id: number) => currentPath === `/profiles/${id}`;
     const profileIds = Array.from(btj.profiles.keys());
     const profilesVisible = btj.connected && profileIds.length > 0;
+    if (mode === 'navbar') {
+      return html`
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item ${btj.connected ? '' : 'd-none'}">
+            <a class="nav-link ${devicesActive ? 'active' : ''}" aria-current=${devicesActive ? 'page' : undefined} href="/devices">Devices</a>
+          </li>
+          <li class="nav-item dropdown ${profilesVisible ? '' : 'd-none'}">
+            <a class="nav-link dropdown-toggle ${profilesActive ? 'active' : ''}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Profiles
+            </a>
+            <ul class="dropdown-menu">
+              ${profileIds.map(id => html`
+                <li>
+                  <a class="dropdown-item ${isProfileActive(id) ? 'active' : ''}" href="/profiles/${id}">
+                    Profile ${id}
+                  </a>
+                </li>
+              `)}
+            </ul>
+          </li>
+        </ul>
+        ${btj.connected ? html`
+          <button class="btn btn-outline-secondary ms-3" @click=${this.disconnect}>Disconnect</button>
+        ` : html`
+          <span class="navbar-text ms-3">NOT CONNECTED</span>
+        `}
+      `;
+    }
     return html`
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item ${btj.connected ? '' : 'd-none'}">
-          <a class="nav-link ${currentPath.includes('/devices') ? 'active' : ''}" aria-current="page" href="/devices">Devices</a>
-        </li>
-        <li class="nav-item dropdown ${profilesVisible ? '' : 'd-none'}">
-          <a class="nav-link dropdown-toggle ${currentPath.includes('/profiles') ? 'active' : ''}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Profiles
-          </a>
-          <ul class="dropdown-menu">
-            ${profileIds.map(id => html`
-              <li>
-                <a class="dropdown-item ${currentPath === `/profiles/${id}` ? 'active' : ''}" href="/profiles/${id}">
-                  Profile ${id}
-                </a>
-              </li>
-            `)}
-          </ul>
-        </li>
-      </ul>
-      ${btj.connected ? html`
-        <button class="btn btn-outline-secondary" @click=${this.disconnect}>Disconnect</button>
-      ` : html`
-        <span class="navbar-text">NOT CONNECTED</span>
-      `}
+      <nav class="nav nav-pills flex-column gap-1">
+        <a class="nav-link ${btj.connected ? '' : 'disabled'} ${devicesActive ? 'active' : ''}"
+           href="/devices"
+           aria-current=${devicesActive ? 'page' : undefined}>Devices</a>
+        ${profilesVisible ? html`
+          <div class="mt-2 text-muted">Profiles</div>
+          ${profileIds.map(id => html`
+            <a class="nav-link ${isProfileActive(id) ? 'active' : ''}"
+               href="/profiles/${id}"
+               aria-current=${isProfileActive(id) ? 'page' : undefined}>
+              Profile ${id}
+            </a>
+          `)}
+        ` : null}
+        <div class="mt-3">
+          <button class="btn btn-outline-secondary w-100" data-bs-dismiss="offcanvas" @click=${() => this.disconnect()}>Disconnect</button>
+        </div>
+      </nav>
     `;
   }
 
@@ -144,19 +176,38 @@ export class AppRoot extends MobxLitElement {
     return html`
       <nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary">
         <div class="container-fluid">
-          <a class="navbar-brand">🕹️</a>
-          <a class="navbar-brand" href="#">Blue2Joy</a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="navbarNavDropdown">
-            <div class="d-flex align-items-left gap-3">
-              ${this.renderInfo()}
+          <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+            <span>🕹️</span>
+            <span>Blue2Joy</span>
+          </a>
+
+          <div class="d-none d-lg-flex w-100 align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+              ${this.renderInfo('navbar')}
             </div>
             <div class="d-flex align-items-center ms-auto gap-3">
-              ${this.renderMenu()}
+              ${this.renderMenu('navbar')}
             </div>
           </div>
+
+          ${btj.connected ? html`
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#appNavOffcanvas" aria-controls="appNavOffcanvas" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="offcanvas offcanvas-end d-lg-none" tabindex="-1" id="appNavOffcanvas" aria-labelledby="appNavOffcanvasLabel">
+              <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="appNavOffcanvasLabel">Blue2Joy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+              </div>
+              <div class="offcanvas-body">
+                <div class="mb-3">
+                  ${this.renderInfo('offcanvas')}
+                </div>
+                <hr class="my-3">
+                ${this.renderMenu('offcanvas')}
+              </div>
+            </div>
+          ` : null}
         </div>
       </nav>
     `;
@@ -164,7 +215,7 @@ export class AppRoot extends MobxLitElement {
 
   override render() {
     return html`
-      <div class="container">
+      <div class="container-xl">
         <div class="row">
           ${this.renderNavbar()}
         </div>
