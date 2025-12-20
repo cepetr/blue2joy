@@ -164,15 +164,21 @@ export class PinEditor extends LitElement {
                   <div class="col-6 col-xl-2">
                     ${usageType != '' ? this.renderInvert() : ''}
                   </div>
-                  <div class="col-12 col-xl-2">
-                    ${usageType === 'hatswitch' ? this.renderHatSwitch() : ''}
-                  </div>
+
+                  ${usageType === 'hatswitch' ? html`
                   <div class="col-6 col-xl-3">
-                    ${usageType == 'analog' ? this.renderThreshold() : ''}
+                    ${this.renderHatSwitch()}
                   </div>
-                  <div class="col-6 col-xl-3">
-                    ${usageType == 'analog' ? this.renderHysteresis() : ''}
+                  ` : ''}
+
+                  ${usageType == 'analog' ? html`
+                  <div class="col-6 col-xl-4">
+                    ${this.renderThreshold()}
                   </div>
+                  <div class="col-6 col-xl-4">
+                    ${this.renderHysteresis()}
+                  </div>
+                  ` : ''}
                 </div>
             </div>
           </div>

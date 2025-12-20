@@ -114,7 +114,7 @@ export class PotEditor extends LitElement {
                 <div class="col-12 col-xl-2">
                   ${this.renderSource()}
                 </div>
-                <div class="d-none d-xl-block col-xl-4">
+                <div class="d-none d-xl-block col-xl-2">
                 </div>
                 <div class="col-6 col-xl-2">
                   ${usageType != '' ? this.renderMin() : ''}
