@@ -27,6 +27,10 @@
 #define HAT_SWITCH_LEFT  0x04
 #define HAT_SWITCH_RIGHT 0x08
 
+#define MAPPER_MAX_IO_PINS 5
+#define MAPPER_MAX_IO_POTS 2
+#define MAPPER_MAX_IO_ENCS 2
+
 // Configuration for digital inputs
 typedef struct {
     // Source field in the HID report
@@ -63,15 +67,9 @@ typedef struct {
 
 // Configuration for all inputs of joystick port
 typedef struct {
-    mapper_pin_config_t up;
-    mapper_pin_config_t down;
-    mapper_pin_config_t left;
-    mapper_pin_config_t right;
-    mapper_pin_config_t trigger;
-    mapper_pot_config_t pot0;
-    mapper_pot_config_t pot1;
-    mapper_enc_config_t enc0;
-    mapper_enc_config_t enc1;
+    mapper_pin_config_t pin[MAPPER_MAX_IO_PINS];
+    mapper_pot_config_t pot[MAPPER_MAX_IO_POTS];
+    mapper_enc_config_t enc[MAPPER_MAX_IO_ENCS];
 } mapper_profile_t;
 
 #define MAPPER_MAX_PROFILES 4

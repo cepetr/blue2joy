@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <io/joystick.h>
+
 #include "profiles.h"
 
 // Xbox wireless controller buttons
@@ -28,57 +30,57 @@
 // Left gamepad joystick -> up/down/left/right intputs
 // Right trigger-> trigger input
 const mapper_profile_t profile_joy_analog = {
-    .up = {.source = HRM_USAGE_Y, .threshold = 30, .hysteresis = 2, .invert = true},
-    .down = {.source = HRM_USAGE_Y, .threshold = 70, .hysteresis = 2},
-    .left = {.source = HRM_USAGE_X, .threshold = 30, .hysteresis = 2, .invert = true},
-    .right = {.source = HRM_USAGE_X, .threshold = 70, .hysteresis = 2},
-    .trigger = {.source = HRM_USAGE_ACCELL, .threshold = 20, .hysteresis = 2},
-    .pot0 = {.source = HRM_USAGE_Z, .low = 0, .high = 228},
-    .pot1 = {.source = HRM_USAGE_RZ, .low = 0, .high = 228},
+    .pin[IO_PIN_UP] = {.source = HRM_USAGE_Y, .threshold = 30, .hysteresis = 2, .invert = true},
+    .pin[IO_PIN_DOWN] = {.source = HRM_USAGE_Y, .threshold = 70, .hysteresis = 2},
+    .pin[IO_PIN_LEFT] = {.source = HRM_USAGE_X, .threshold = 30, .hysteresis = 2, .invert = true},
+    .pin[IO_PIN_RIGHT] = {.source = HRM_USAGE_X, .threshold = 70, .hysteresis = 2},
+    .pin[IO_PIN_TRIG] = {.source = HRM_USAGE_ACCELL, .threshold = 20, .hysteresis = 2},
+    .pot[0] = {.source = HRM_USAGE_Z, .low = 0, .high = 228},
+    .pot[1] = {.source = HRM_USAGE_RZ, .low = 0, .high = 228},
 };
 
 // Joystick emulation with a gamepad hat switch
 // Hat switch -> up/down/left/right intputs
 // Main button (button 1) -> trigger input
 const mapper_profile_t profile_joy_hatswitch = {
-    .up = {.source = HRM_USAGE_HAT_SWITCH, .hat_switch = HAT_SWITCH_UP},
-    .down = {.source = HRM_USAGE_HAT_SWITCH, .hat_switch = HAT_SWITCH_DOWN},
-    .left = {.source = HRM_USAGE_HAT_SWITCH, .hat_switch = HAT_SWITCH_LEFT},
-    .right = {.source = HRM_USAGE_HAT_SWITCH, .hat_switch = HAT_SWITCH_RIGHT},
-    .trigger = {.source = HRM_USAGE_BUTTON_1},
+    .pin[IO_PIN_UP] = {.source = HRM_USAGE_HAT_SWITCH, .hat_switch = HAT_SWITCH_UP},
+    .pin[IO_PIN_DOWN] = {.source = HRM_USAGE_HAT_SWITCH, .hat_switch = HAT_SWITCH_DOWN},
+    .pin[IO_PIN_LEFT] = {.source = HRM_USAGE_HAT_SWITCH, .hat_switch = HAT_SWITCH_LEFT},
+    .pin[IO_PIN_RIGHT] = {.source = HRM_USAGE_HAT_SWITCH, .hat_switch = HAT_SWITCH_RIGHT},
+    .pin[IO_PIN_TRIG] = {.source = HRM_USAGE_BUTTON_1},
 };
 
 // Emulation of paddles with a gamepad (tested with Arkanoid)
 // (direct mapping of joystick to paddle values)
 const mapper_profile_t profile_arkanoid = {
-    .up = {.source = HRM_USAGE_BUTTON_2},
-    .down = {.source = HRM_USAGE_BUTTON_4},
-    .left = {.source = HRM_USAGE_BUTTON_5},
-    .right = {.source = HRM_USAGE_BUTTON_8},
-    .trigger = {.source = HRM_USAGE_BUTTON_1},
-    .pot0 = {.source = HRM_USAGE_X, .low = 228, .high = 114},
-    .pot1 = {.source = HRM_USAGE_Y, .low = 228, .high = 114},
+    .pin[IO_PIN_UP] = {.source = HRM_USAGE_BUTTON_2},
+    .pin[IO_PIN_DOWN] = {.source = HRM_USAGE_BUTTON_4},
+    .pin[IO_PIN_LEFT] = {.source = HRM_USAGE_BUTTON_5},
+    .pin[IO_PIN_RIGHT] = {.source = HRM_USAGE_BUTTON_8},
+    .pin[IO_PIN_TRIG] = {.source = HRM_USAGE_BUTTON_1},
+    .pot[0] = {.source = HRM_USAGE_X, .low = 228, .high = 114},
+    .pot[1] = {.source = HRM_USAGE_Y, .low = 228, .high = 114},
 };
 
 // Emulation of CX77 touch pad with a gamepad
 // (joystick deflection is integrated)
 const mapper_profile_t profile_cx77 = {
-    .up = {.source = HRM_USAGE_BUTTON_2},
-    .down = {.source = HRM_USAGE_BUTTON_4},
-    .left = {.source = HRM_USAGE_BUTTON_5},
-    .right = {.source = HRM_USAGE_BUTTON_8},
-    .trigger = {.source = HRM_USAGE_BUTTON_1},
-    .pot0 = {.source = HRM_USAGE_X, .low = 1, .high = 228, .int_speed = 256},
-    .pot1 = {.source = HRM_USAGE_Y, .low = 1, .high = 228, .int_speed = 256},
+    .pin[IO_PIN_UP] = {.source = HRM_USAGE_BUTTON_2},
+    .pin[IO_PIN_DOWN] = {.source = HRM_USAGE_BUTTON_4},
+    .pin[IO_PIN_LEFT] = {.source = HRM_USAGE_BUTTON_5},
+    .pin[IO_PIN_RIGHT] = {.source = HRM_USAGE_BUTTON_8},
+    .pin[IO_PIN_TRIG] = {.source = HRM_USAGE_BUTTON_1},
+    .pot[0] = {.source = HRM_USAGE_X, .low = 1, .high = 228, .int_speed = 256},
+    .pot[1] = {.source = HRM_USAGE_Y, .low = 1, .high = 228, .int_speed = 256},
 };
 
 // Mouse
 const mapper_profile_t profile_mouse = {
-    .up = {.source = HRM_USAGE_BUTTON_2},
-    .down = {.source = HRM_USAGE_BUTTON_3},
-    .left = {.source = HRM_USAGE_BUTTON_4},
-    .right = {.source = HRM_USAGE_BUTTON_5},
-    .trigger = {.source = HRM_USAGE_BUTTON_1},
-    .pot0 = {.source = HRM_USAGE_X, .low = -1710, .high = 1938},
-    .pot1 = {.source = HRM_USAGE_Y, .low = -1710, .high = 1938},
+    .pin[IO_PIN_UP] = {.source = HRM_USAGE_BUTTON_2},
+    .pin[IO_PIN_DOWN] = {.source = HRM_USAGE_BUTTON_3},
+    .pin[IO_PIN_LEFT] = {.source = HRM_USAGE_BUTTON_4},
+    .pin[IO_PIN_RIGHT] = {.source = HRM_USAGE_BUTTON_5},
+    .pin[IO_PIN_TRIG] = {.source = HRM_USAGE_BUTTON_1},
+    .pot[0] = {.source = HRM_USAGE_X, .low = -1710, .high = 1938},
+    .pot[1] = {.source = HRM_USAGE_Y, .low = -1710, .high = 1938},
 };

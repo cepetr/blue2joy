@@ -22,5 +22,4 @@
 
 void paddle_init(void);
 
-void paddle_set_pot0(int value);
-void paddle_set_pot1(int value);
+void paddle_set(int pot_idx, int value);

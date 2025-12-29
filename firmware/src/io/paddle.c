@@ -388,7 +388,7 @@ void paddle_init(void)
     LOG_INF("Paddle outputs initialized");
 }
 
-void paddle_set_pot0(int value)
+void paddle_set(int pot_idx, int value)
 {
     paddle_drv_t *drv = &g_paddle_drv;
 
@@ -398,18 +398,9 @@ void paddle_set_pot0(int value)
         value = 228;
     }
 
-    atomic_set(&drv->cc0_value, 64 * value);
-}
-
-void paddle_set_pot1(int value)
-{
-    paddle_drv_t *drv = &g_paddle_drv;
-
-    if (value < 1) {
-        value = 1;
-    } else if (value > 228) {
-        value = 228;
+    if (pot_idx == 0) {
+        atomic_set(&drv->cc0_value, 64 * value);
+    } else if (pot_idx == 1) {
+        atomic_set(&drv->cc1_value, 64 * value);
     }
-
-    atomic_set(&drv->cc1_value, 64 * value);
 }

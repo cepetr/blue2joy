@@ -28,17 +28,19 @@ typedef enum {
     JOYSTICK_IO_MODE_UART,
 } joystick_mode_t;
 
+typedef enum {
+    IO_PIN_UP,
+    IO_PIN_DOWN,
+    IO_PIN_LEFT,
+    IO_PIN_RIGHT,
+    IO_PIN_TRIG,
+} io_pin_t;
+
 void joystick_set_mode(joystick_mode_t mode);
 
 // Sets joystick direction buttons
 
-void joystick_set_up(bool active);
-void joystick_set_down(bool active);
-void joystick_set_left(bool active);
-void joystick_set_right(bool active);
-
-// Sets joystick trigger button
-void joystick_set_trig(bool active);
+void joystick_set(io_pin_t pin, bool active);
 
 // Queues movement steps for horizontal and vertical quadrature encoder.
 // Joystick module will process these steps in the timer interrupt

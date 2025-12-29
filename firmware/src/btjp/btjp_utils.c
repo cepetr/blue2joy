@@ -18,6 +18,8 @@
 
 #include "btjp_utils.h"
 
+#include <io/joystick.h>
+
 void dev_addr_to_bt_addr_le(const btjp_dev_addr_t *src, bt_addr_le_t *dst)
 {
     _Static_assert(sizeof(*src) == sizeof(*dst), "Invalid btjp_addr_t size");
@@ -34,40 +36,34 @@ mapper_pin_config_t *profile_pin(mapper_profile_t *profile, uint8_t pin_id)
 {
     switch (pin_id) {
     case BTJP_PIN_UP:
-        return &profile->up;
+        return &profile->pin[IO_PIN_UP];
     case BTJP_PIN_DOWN:
-        return &profile->down;
+        return &profile->pin[IO_PIN_DOWN];
     case BTJP_PIN_LEFT:
-        return &profile->left;
+        return &profile->pin[IO_PIN_LEFT];
     case BTJP_PIN_RIGHT:
-        return &profile->right;
+        return &profile->pin[IO_PIN_RIGHT];
     case BTJP_PIN_TRIGGER:
-        return &profile->trigger;
+        return &profile->pin[IO_PIN_TRIG];
     default:
         return NULL;
     }
 }
 
-mapper_pot_config_t *profile_pot(mapper_profile_t *profile, uint8_t pin_id)
+mapper_pot_config_t *profile_pot(mapper_profile_t *profile, uint8_t pot_id)
 {
-    switch (pin_id) {
-    case BTJP_POT_1:
-        return &profile->pot0;
-    case BTJP_POT_2:
-        return &profile->pot1;
-    default:
-        return NULL;
+    if (pot_id < MAPPER_MAX_IO_POTS) {
+        return &profile->pot[pot_id];
     }
+
+    return NULL;
 }
 
 mapper_enc_config_t *profile_enc(mapper_profile_t *profile, uint8_t enc_id)
 {
-    switch (enc_id) {
-    case BTJP_ENC_1:
-        return &profile->enc0;
-    case BTJP_ENC_2:
-        return &profile->enc1;
-    default:
-        return NULL;
+    if (enc_id < MAPPER_MAX_IO_ENCS) {
+        return &profile->enc[enc_id];
     }
+
+    return NULL;
 }

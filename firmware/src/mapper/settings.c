@@ -48,15 +48,9 @@ typedef struct {
 } mapper_enc_config_dto_v1_t;
 
 typedef struct {
-    mapper_pin_config_dto_v1_t up;
-    mapper_pin_config_dto_v1_t down;
-    mapper_pin_config_dto_v1_t left;
-    mapper_pin_config_dto_v1_t right;
-    mapper_pin_config_dto_v1_t trigger;
-    mapper_pot_config_dto_v1_t pot0;
-    mapper_pot_config_dto_v1_t pot1;
-    mapper_enc_config_dto_v1_t enc0;
-    mapper_enc_config_dto_v1_t enc1;
+    mapper_pin_config_dto_v1_t pin[5];
+    mapper_pot_config_dto_v1_t pot[2];
+    mapper_enc_config_dto_v1_t enc[2];
 } mapper_profile_dto_v1_t;
 
 typedef struct {
@@ -91,15 +85,17 @@ static void enc_config_dto_v1_parse(const mapper_enc_config_dto_v1_t *dto,
 
 static void profile_dto_v1_parse(const mapper_profile_dto_v1_t *dto, mapper_profile_t *profile)
 {
-    pin_config_dto_v1_parse(&dto->up, &profile->up);
-    pin_config_dto_v1_parse(&dto->down, &profile->down);
-    pin_config_dto_v1_parse(&dto->left, &profile->left);
-    pin_config_dto_v1_parse(&dto->right, &profile->right);
-    pin_config_dto_v1_parse(&dto->trigger, &profile->trigger);
-    pot_config_dto_v1_parse(&dto->pot0, &profile->pot0);
-    pot_config_dto_v1_parse(&dto->pot1, &profile->pot1);
-    enc_config_dto_v1_parse(&dto->enc0, &profile->enc0);
-    enc_config_dto_v1_parse(&dto->enc1, &profile->enc1);
+    for (int i = 0; i < ARRAY_SIZE(dto->pin); i++) {
+        pin_config_dto_v1_parse(&dto->pin[i], &profile->pin[i]);
+    }
+
+    for (int i = 0; i < ARRAY_SIZE(dto->pot); i++) {
+        pot_config_dto_v1_parse(&dto->pot[i], &profile->pot[i]);
+    }
+
+    for (int i = 0; i < ARRAY_SIZE(dto->enc); i++) {
+        enc_config_dto_v1_parse(&dto->enc[i], &profile->enc[i]);
+    }
 }
 
 static int profile_dto_parse(const void *data, size_t data_size, mapper_profile_t *profile)
@@ -153,15 +149,18 @@ static void enc_config_dto_v1_build(const mapper_enc_config_t *config,
 static ssize_t profile_dto_build(const mapper_profile_t *profile, mapper_profile_dto_t *dto)
 {
     dto->version = 1;
-    pin_config_dto_v1_build(&profile->up, &dto->v1.up);
-    pin_config_dto_v1_build(&profile->down, &dto->v1.down);
-    pin_config_dto_v1_build(&profile->left, &dto->v1.left);
-    pin_config_dto_v1_build(&profile->right, &dto->v1.right);
-    pin_config_dto_v1_build(&profile->trigger, &dto->v1.trigger);
-    pot_config_dto_v1_build(&profile->pot0, &dto->v1.pot0);
-    pot_config_dto_v1_build(&profile->pot1, &dto->v1.pot1);
-    enc_config_dto_v1_build(&profile->enc0, &dto->v1.enc0);
-    enc_config_dto_v1_build(&profile->enc1, &dto->v1.enc1);
+
+    for (int i = 0; i < ARRAY_SIZE(dto->v1.pin); i++) {
+        pin_config_dto_v1_build(&profile->pin[i], &dto->v1.pin[i]);
+    }
+
+    for (int i = 0; i < ARRAY_SIZE(dto->v1.pot); i++) {
+        pot_config_dto_v1_build(&profile->pot[i], &dto->v1.pot[i]);
+    }
+
+    for (int i = 0; i < ARRAY_SIZE(dto->v1.enc); i++) {
+        enc_config_dto_v1_build(&profile->enc[i], &dto->v1.enc[i]);
+    }
 
     return offsetof(mapper_profile_dto_t, v1) + sizeof(dto->v1);
 }

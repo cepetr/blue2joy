@@ -124,7 +124,7 @@ void joystick_init(void)
     nrfx_timer_enable(&timer);
 }
 
-void joystick_set_up(bool active)
+static void joystick_set_up(bool active)
 {
     joystick_drv_t *drv = &g_joystick_drv;
 
@@ -137,7 +137,7 @@ void joystick_set_up(bool active)
     }
 }
 
-void joystick_set_down(bool active)
+static void joystick_set_down(bool active)
 {
     joystick_drv_t *drv = &g_joystick_drv;
 
@@ -150,7 +150,7 @@ void joystick_set_down(bool active)
     }
 }
 
-void joystick_set_left(bool active)
+static void joystick_set_left(bool active)
 {
     joystick_drv_t *drv = &g_joystick_drv;
 
@@ -163,7 +163,7 @@ void joystick_set_left(bool active)
     }
 }
 
-void joystick_set_right(bool active)
+static void joystick_set_right(bool active)
 {
     joystick_drv_t *drv = &g_joystick_drv;
 
@@ -176,9 +176,32 @@ void joystick_set_right(bool active)
     }
 }
 
-void joystick_set_trig(bool active)
+static void joystick_set_trig(bool active)
 {
     gpio_pin_set_dt(&joy_trig, active ? 0 : 1);
+}
+
+void joystick_set(io_pin_t pin, bool active)
+{
+    switch (pin) {
+    case IO_PIN_UP:
+        joystick_set_up(active);
+        break;
+    case IO_PIN_DOWN:
+        joystick_set_down(active);
+        break;
+    case IO_PIN_LEFT:
+        joystick_set_left(active);
+        break;
+    case IO_PIN_RIGHT:
+        joystick_set_right(active);
+        break;
+    case IO_PIN_TRIG:
+        joystick_set_trig(active);
+        break;
+    default:
+        break;
+    }
 }
 
 void joystick_queue_x_steps(int delta)

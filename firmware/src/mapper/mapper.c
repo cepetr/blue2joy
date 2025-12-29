@@ -46,15 +46,9 @@ typedef struct {
 
 // Mapper state
 typedef struct {
-    mapper_pin_state_t up;
-    mapper_pin_state_t down;
-    mapper_pin_state_t left;
-    mapper_pin_state_t right;
-    mapper_pin_state_t trigger;
-    mapper_pot_state_t pot0;
-    mapper_pot_state_t pot1;
-    mapper_enc_state_t enc0;
-    mapper_enc_state_t enc1;
+    mapper_pin_state_t pin[MAPPER_MAX_IO_PINS];
+    mapper_pot_state_t pot[MAPPER_MAX_IO_POTS];
+    mapper_enc_state_t enc[MAPPER_MAX_IO_ENCS];
 } mapper_state_t;
 
 typedef struct {
@@ -257,17 +251,16 @@ static void update_enc_state(mapper_enc_state_t *state, const mapper_enc_config_
 
 static void update_outputs(const mapper_state_t *state)
 {
-    joystick_set_up(state->up.state);
-    joystick_set_down(state->down.state);
-    joystick_set_left(state->left.state);
-    joystick_set_right(state->right.state);
-    joystick_set_trig(state->trigger.state);
+    for (int i = 0; i < MAPPER_MAX_IO_PINS; i++) {
+        joystick_set((io_pin_t)i, state->pin[i].state);
+    }
 
-    paddle_set_pot0(state->pot0.value / ANALOG_FP_MULT);
-    paddle_set_pot1(state->pot1.value / ANALOG_FP_MULT);
+    for (int i = 0; i < MAPPER_MAX_IO_POTS; i++) {
+        paddle_set(i, state->pot[i].value / ANALOG_FP_MULT);
+    }
 
-    joystick_queue_x_steps(state->enc0.delta);
-    joystick_queue_y_steps(state->enc1.delta);
+    joystick_queue_x_steps(state->enc[0].delta);
+    joystick_queue_y_steps(state->enc[1].delta);
 }
 
 // Callback invoked from bt layer when a report is received
@@ -283,19 +276,21 @@ void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_repor
 
     mapper_state_t *state = &mapper->state;
 
-    update_pin_state(&state->up, &profile.up, report, data);
-    update_pin_state(&state->down, &profile.down, report, data);
-    update_pin_state(&state->left, &profile.left, report, data);
-    update_pin_state(&state->right, &profile.right, report, data);
-    update_pin_state(&state->trigger, &profile.trigger, report, data);
-    update_pot_state(&state->pot0, &profile.pot0, report, data);
-    update_pot_state(&state->pot1, &profile.pot1, report, data);
-    update_enc_state(&state->enc0, &profile.enc0, report, data);
-    update_enc_state(&state->enc1, &profile.enc1, report, data);
+    for (int i = 0; i < MAPPER_MAX_IO_PINS; i++) {
+        update_pin_state(&state->pin[i], &profile.pin[i], report, data);
+    }
+
+    for (int i = 0; i < MAPPER_MAX_IO_POTS; i++) {
+        update_pot_state(&state->pot[i], &profile.pot[i], report, data);
+    }
+
+    for (int i = 0; i < MAPPER_MAX_IO_ENCS; i++) {
+        update_enc_state(&state->enc[i], &profile.enc[i], report, data);
+    }
 
     update_outputs(state);
 
     // Reset encoder deltas after processing
-    state->enc0.delta = 0;
-    state->enc1.delta = 0;
+    state->enc[0].delta = 0;
+    state->enc[1].delta = 0;
 }
