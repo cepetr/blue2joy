@@ -31,6 +31,9 @@ typedef struct {
     uint16_t decl_handle;
     uint16_t value_handle;
     uint16_t ccc_handle;
+    uint16_t ref_handle;
+    uint8_t report_id;
+    uint8_t report_type;
 } report_char_t;
 
 // HID device state
@@ -41,10 +44,18 @@ struct bthid_device {
     // Indicates whether handles and report map are valid
     bool discovered;
 
+    // Currently discovered report characteristic
+    int report_index;
+
     // Handles of the HID service characteristics
     struct {
         uint16_t control_point;
         uint16_t report_map;
+
+        // Last handle of the HID service
+        uint16_t service_end;
+        // Last handle of report characteristics
+        uint16_t report_end;
 
         // Number of HID report characteristics found
         uint16_t report_count;
