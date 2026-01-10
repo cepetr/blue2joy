@@ -62,6 +62,25 @@ static uint8_t report_map_read_cb(struct bt_conn *conn, uint8_t err,
     return BT_GATT_ITER_CONTINUE;
 }
 
+static int start_report_map_read(bthid_device_t *dev)
+{
+    static struct bt_gatt_read_params read_report_map_params;
+    read_report_map_params = (struct bt_gatt_read_params){
+        .func = report_map_read_cb,
+        .handle_count = 1,
+        .single.handle = dev->handles.report_map,
+    };
+
+    int err = bt_gatt_read(dev->conn, &read_report_map_params);
+    if (err) {
+        LOG_ERR("Failed to read HID report map {err: %d}", err);
+    } else {
+        LOG_INF("Reading report map...");
+    }
+
+    return err;
+}
+
 static uint8_t on_hid_characteristic(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                                      struct bt_gatt_discover_params *params)
 {
@@ -69,20 +88,7 @@ static uint8_t on_hid_characteristic(struct bt_conn *conn, const struct bt_gatt_
     assert(dev != NULL);
 
     if (attr == NULL) {
-        static struct bt_gatt_read_params read_report_map_params;
-        read_report_map_params = (struct bt_gatt_read_params){
-            .func = report_map_read_cb,
-            .handle_count = 1,
-            .single.handle = dev->handles.report_map,
-        };
-
-        int err = bt_gatt_read(conn, &read_report_map_params);
-        if (err) {
-            LOG_ERR("Failed to read HID report map {err: %d}", err);
-        } else {
-            LOG_INF("Reading report map...");
-        }
-
+        start_report_map_read(dev);
         return BT_GATT_ITER_STOP;
     }
 
@@ -104,16 +110,42 @@ static uint8_t on_hid_characteristic(struct bt_conn *conn, const struct bt_gatt_
             if (chrc->properties & BT_GATT_CHRC_NOTIFY) {
                 if (dev->handles.report_count == 0) {
                     LOG_INF("HID report characteristic found");
-                    dev->handles.report = chrc->value_handle;
-                    // !@# TODO: retrieve ccc handle correctly
-                    dev->handles.report_ccc = chrc->value_handle + 1;
+                }
+                if (dev->handles.report_count < ARRAY_SIZE(dev->handles.report)) {
+                    report_char_t *report_char = &dev->handles.report[dev->handles.report_count];
+                    report_char->decl_handle = attr->handle;
+                    report_char->value_handle = chrc->value_handle;
+                    report_char->ccc_handle = chrc->value_handle + 1; // Assumes CCC is next handle
+                    // !@# report_char->ccc_handle = 0; // To be discovered later
+                    dev->handles.report_count++;
                 }
             }
-            dev->handles.report_count++;
         }
     }
 
     return BT_GATT_ITER_CONTINUE;
+}
+
+static int start_hid_characteristic_discovery(bthid_device_t *dev, uint16_t start_handle,
+                                              uint16_t end_handle)
+{
+    static struct bt_gatt_discover_params discover_params;
+    discover_params = (struct bt_gatt_discover_params){
+        .uuid = NULL,
+        .func = on_hid_characteristic,
+        .start_handle = start_handle,
+        .end_handle = end_handle,
+        .type = BT_GATT_DISCOVER_CHARACTERISTIC,
+    };
+
+    int err = bt_gatt_discover(dev->conn, &discover_params);
+    if (err) {
+        LOG_ERR("Cannot start HID characteristic discovery {err: %d}", err);
+    } else {
+        LOG_INF("Discovering HID characteristics...");
+    }
+
+    return err;
 }
 
 static uint8_t on_primary_service(struct bt_conn *conn, const struct bt_gatt_attr *attr,
@@ -137,22 +169,7 @@ static uint8_t on_primary_service(struct bt_conn *conn, const struct bt_gatt_att
         LOG_INF("Service {uuid=%s, handles: %u - %u}", uuid_str, attr->handle, service->end_handle);
 
         if (0 == bt_uuid_cmp(service->uuid, BT_UUID_HIDS)) {
-            static struct bt_gatt_discover_params discover_params;
-            discover_params = (struct bt_gatt_discover_params){
-                .uuid = NULL,
-                .func = on_hid_characteristic,
-                .start_handle = attr->handle + 1,
-                .end_handle = service->end_handle,
-                .type = BT_GATT_DISCOVER_CHARACTERISTIC,
-            };
-
-            int err = bt_gatt_discover(conn, &discover_params);
-            if (err) {
-                LOG_ERR("Cannot start HID service discovery {err: %d}", err);
-                bthid.cb->discovery_error(dev);
-            } else {
-                LOG_INF("Discovering HID service...");
-            }
+            start_hid_characteristic_discovery(dev, attr->handle, service->end_handle);
             return BT_GATT_ITER_STOP;
         }
     }

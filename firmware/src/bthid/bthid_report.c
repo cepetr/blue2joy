@@ -68,8 +68,8 @@ int bthid_device_subscribe(bthid_device_t *dev)
         .subscribe = hid_report_subscribed,
         .notify = hid_report_received,
         .value = BT_GATT_CCC_NOTIFY,
-        .value_handle = dev->handles.report,
-        .ccc_handle = dev->handles.report_ccc,
+        .value_handle = dev->handles.report[0].value_handle,
+        .ccc_handle = dev->handles.report[0].ccc_handle,
         .flags = BIT(BT_GATT_SUBSCRIBE_FLAG_VOLATILE) | BIT(BT_GATT_SUBSCRIBE_FLAG_NO_RESUB),
     };
 

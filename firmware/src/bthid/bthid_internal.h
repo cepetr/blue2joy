@@ -27,6 +27,12 @@
 
 LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
 
+typedef struct {
+    uint16_t decl_handle;
+    uint16_t value_handle;
+    uint16_t ccc_handle;
+} report_char_t;
+
 // HID device state
 struct bthid_device {
     // Lower layer connection to the device
@@ -42,11 +48,8 @@ struct bthid_device {
 
         // Number of HID report characteristics found
         uint16_t report_count;
-
-        // First report characteristic (with notify property)
-        uint16_t report;
-        uint16_t report_ccc;
-
+        // Report characteristic handles
+        report_char_t report[16];
     } handles;
 
     // Received report map data
