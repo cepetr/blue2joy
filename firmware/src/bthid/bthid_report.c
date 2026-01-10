@@ -48,6 +48,34 @@ static void hid_report_subscribed(struct bt_conn *conn, uint8_t err,
     }
 }
 
+report_char_t *get_report_char_to_subscribe(bthid_device_t *dev)
+{
+    report_char_t *report_char = NULL;
+
+    if (dev->report_map.report_count > 0) {
+        // Currently we subscribe just to one report - the first one in the report map
+        uint8_t report_id = dev->report_map.reports[0].id;
+        LOG_INF("Subscribing to report ID %u", report_id);
+
+        // Find the report characteristic with the matching report ID
+        for (int i = 0; i < dev->handles.report_count; i++) {
+            report_char = &dev->handles.report[i];
+            if (report_char->report_id == report_id) {
+                break;
+            }
+        }
+
+        if (report_char != NULL) {
+            LOG_INF("Found report characteristic for ID %u at handle %u", report_id,
+                    report_char->value_handle);
+        } else {
+            LOG_ERR("No matching report characteristic found for subscription");
+        }
+    }
+
+    return report_char;
+}
+
 int bthid_device_subscribe(bthid_device_t *dev)
 {
     // Command to wake up the gamepad (write to HID Control Point)
@@ -63,13 +91,20 @@ int bthid_device_subscribe(bthid_device_t *dev)
         LOG_INF("Wake-up command sent");
     }
 
+    // Try to find the report characteristic to subscribe to
+    report_char_t *report_char = get_report_char_to_subscribe(dev);
+
+    if (report_char == NULL) {
+        return -ENOENT;
+    }
+
     static struct bt_gatt_subscribe_params subscribe_params;
     subscribe_params = (struct bt_gatt_subscribe_params){
         .subscribe = hid_report_subscribed,
         .notify = hid_report_received,
         .value = BT_GATT_CCC_NOTIFY,
-        .value_handle = dev->handles.report[0].value_handle,
-        .ccc_handle = dev->handles.report[0].ccc_handle,
+        .value_handle = report_char->value_handle,
+        .ccc_handle = report_char->ccc_handle,
         .flags = BIT(BT_GATT_SUBSCRIBE_FLAG_VOLATILE) | BIT(BT_GATT_SUBSCRIBE_FLAG_NO_RESUB),
     };
 
