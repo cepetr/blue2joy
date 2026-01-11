@@ -40,17 +40,20 @@ typedef struct {
     uint32_t source;
     int16_t low;
     int16_t high;
-    int16_t int_speed;
 } mapper_pot_config_dto_v1_t;
 
 typedef struct {
     uint32_t source;
-} mapper_enc_config_dto_v1_t;
+    uint8_t mode;
+    uint8_t dead_zone;
+    int16_t gain;
+    int16_t max;
+} mapper_intg_config_dto_v1_t;
 
 typedef struct {
     mapper_pin_config_dto_v1_t pin[5];
     mapper_pot_config_dto_v1_t pot[2];
-    mapper_enc_config_dto_v1_t enc[2];
+    mapper_intg_config_dto_v1_t intg[2];
 } mapper_profile_dto_v1_t;
 
 typedef struct {
@@ -74,13 +77,16 @@ static void pot_config_dto_v1_parse(const mapper_pot_config_dto_v1_t *dto,
     config->source = (hrm_usage_t)dto->source;
     config->low = dto->low;
     config->high = dto->high;
-    config->int_speed = dto->int_speed;
 }
 
-static void enc_config_dto_v1_parse(const mapper_enc_config_dto_v1_t *dto,
-                                    mapper_enc_config_t *config)
+static void intg_config_dto_v1_parse(const mapper_intg_config_dto_v1_t *dto,
+                                     mapper_intg_config_t *config)
 {
     config->source = (hrm_usage_t)dto->source;
+    config->mode = (mapper_intr_mode_t)dto->mode;
+    config->dead_zone = dto->dead_zone;
+    config->gain = dto->gain;
+    config->max = dto->max;
 }
 
 static void profile_dto_v1_parse(const mapper_profile_dto_v1_t *dto, mapper_profile_t *profile)
@@ -93,8 +99,8 @@ static void profile_dto_v1_parse(const mapper_profile_dto_v1_t *dto, mapper_prof
         pot_config_dto_v1_parse(&dto->pot[i], &profile->pot[i]);
     }
 
-    for (int i = 0; i < ARRAY_SIZE(dto->enc); i++) {
-        enc_config_dto_v1_parse(&dto->enc[i], &profile->enc[i]);
+    for (int i = 0; i < ARRAY_SIZE(dto->intg); i++) {
+        intg_config_dto_v1_parse(&dto->intg[i], &profile->intg[i]);
     }
 }
 
@@ -137,13 +143,16 @@ static void pot_config_dto_v1_build(const mapper_pot_config_t *config,
     dto->source = (uint32_t)config->source;
     dto->low = config->low;
     dto->high = config->high;
-    dto->int_speed = config->int_speed;
 }
 
-static void enc_config_dto_v1_build(const mapper_enc_config_t *config,
-                                    mapper_enc_config_dto_v1_t *dto)
+static void intg_config_dto_v1_build(const mapper_intg_config_t *config,
+                                     mapper_intg_config_dto_v1_t *dto)
 {
     dto->source = (uint32_t)config->source;
+    dto->mode = (uint8_t)config->mode;
+    dto->dead_zone = config->dead_zone;
+    dto->gain = config->gain;
+    dto->max = config->max;
 }
 
 static ssize_t profile_dto_build(const mapper_profile_t *profile, mapper_profile_dto_t *dto)
@@ -158,8 +167,8 @@ static ssize_t profile_dto_build(const mapper_profile_t *profile, mapper_profile
         pot_config_dto_v1_build(&profile->pot[i], &dto->v1.pot[i]);
     }
 
-    for (int i = 0; i < ARRAY_SIZE(dto->v1.enc); i++) {
-        enc_config_dto_v1_build(&profile->enc[i], &dto->v1.enc[i]);
+    for (int i = 0; i < ARRAY_SIZE(dto->v1.intg); i++) {
+        intg_config_dto_v1_build(&profile->intg[i], &dto->v1.intg[i]);
     }
 
     return offsetof(mapper_profile_dto_t, v1) + sizeof(dto->v1);

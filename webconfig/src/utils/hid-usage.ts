@@ -43,9 +43,15 @@ export enum HidUsage {
   BUTTON_30 = 0x09001E,
   BUTTON_31 = 0x09001F,
   BUTTON_32 = 0x090020,
-  BUTTON_PLAY = 0x0C00CD,
-  BUTTON_VOL_INC = 0x0C00E9,
-  BUTTON_VOL_DEC = 0x0C00EA,
+
+  INTG0_QA = 0xFFF00000, // Encoder 0, quadrature encoder, channel A
+  INTG0_QB = 0xFFF00001, // Encoder 0, quadrature encoder, channel B
+  INTG0_ABS = 0xFFF00002, // Integrator 0, absolute mode
+  INTG0_ENC = 0xFFF00003, // Integrator 0, encoder mode
+  INTG1_QA = 0xFFF00100, // Encoder 1, quadrature encoder, channel A
+  INTG1_QB = 0xFFF00101, // Encoder 1, quadrature encoder, channel B
+  INTG1_ABS = 0xFFF00102, // Integrator 1, absolute mode
+  INTG1_ENC = 0xFFF00103, // Integrator 1, encoder mode
 }
 
 export const HID_USAGE_LABELS: Record<number, string> = {
@@ -91,9 +97,14 @@ export const HID_USAGE_LABELS: Record<number, string> = {
   [HidUsage.BUTTON_30]: 'Button 30',
   [HidUsage.BUTTON_31]: 'Button 31',
   [HidUsage.BUTTON_32]: 'Button 32',
-  [HidUsage.BUTTON_PLAY]: 'Play',
-  [HidUsage.BUTTON_VOL_INC]: 'Volume +',
-  [HidUsage.BUTTON_VOL_DEC]: 'Volume -',
+  [HidUsage.INTG0_QA]: 'INT0.A',
+  [HidUsage.INTG0_QB]: 'INT0.B',
+  [HidUsage.INTG0_ABS]: 'INT0.Abs',
+  [HidUsage.INTG0_ENC]: 'INT0.Enc',
+  [HidUsage.INTG1_QA]: 'INT1.A',
+  [HidUsage.INTG1_QB]: 'INT1.B',
+  [HidUsage.INTG1_ABS]: 'INT1.Abs',
+  [HidUsage.INTG1_ENC]: 'INT1.Enc',
 };
 
 // Control type meta: classify HID usages as 'analog', 'digital', or 'hatswitch'
@@ -111,6 +122,11 @@ export const HID_USAGE_TYPE: Record<number, HidControlType> = {
   [HidUsage.RZ]: 'analog',
   [HidUsage.ACCELL]: 'analog',
   [HidUsage.BRAKE]: 'analog',
+
+  [HidUsage.INTG0_ABS]: 'analog',
+  [HidUsage.INTG0_ENC]: 'analog',
+  [HidUsage.INTG1_ABS]: 'analog',
+  [HidUsage.INTG1_ENC]: 'analog',
 
   // Hat switch
   [HidUsage.HAT_SWITCH]: 'hatswitch',
@@ -148,7 +164,9 @@ export const HID_USAGE_TYPE: Record<number, HidControlType> = {
   [HidUsage.BUTTON_30]: 'digital',
   [HidUsage.BUTTON_31]: 'digital',
   [HidUsage.BUTTON_32]: 'digital',
-  [HidUsage.BUTTON_PLAY]: 'digital',
-  [HidUsage.BUTTON_VOL_INC]: 'digital',
-  [HidUsage.BUTTON_VOL_DEC]: 'digital',
+
+  [HidUsage.INTG0_QA]: 'digital',
+  [HidUsage.INTG0_QB]: 'digital',
+  [HidUsage.INTG1_QA]: 'digital',
+  [HidUsage.INTG1_QB]: 'digital',
 };

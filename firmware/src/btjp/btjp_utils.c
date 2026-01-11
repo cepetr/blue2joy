@@ -16,9 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <zephyr/kernel.h>
+
 #include "btjp_utils.h"
 
-#include <io/joystick.h>
+#include <io/io_pin.h>
 
 void dev_addr_to_bt_addr_le(const btjp_dev_addr_t *src, bt_addr_le_t *dst)
 {
@@ -52,17 +54,17 @@ mapper_pin_config_t *profile_pin(mapper_profile_t *profile, uint8_t pin_id)
 
 mapper_pot_config_t *profile_pot(mapper_profile_t *profile, uint8_t pot_id)
 {
-    if (pot_id < MAPPER_MAX_IO_POTS) {
+    if (pot_id < ARRAY_SIZE(profile->pot)) {
         return &profile->pot[pot_id];
     }
 
     return NULL;
 }
 
-mapper_enc_config_t *profile_enc(mapper_profile_t *profile, uint8_t enc_id)
+mapper_intg_config_t *profile_intg(mapper_profile_t *profile, uint8_t intg_id)
 {
-    if (enc_id < MAPPER_MAX_IO_ENCS) {
-        return &profile->enc[enc_id];
+    if (intg_id < ARRAY_SIZE(profile->intg)) {
+        return &profile->intg[intg_id];
     }
 
     return NULL;

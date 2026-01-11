@@ -27,8 +27,8 @@
 #include <btsvc/btsvc.h>
 #include <io/buttons.h>
 #include <io/rgbled_seq.h>
-#include <io/joystick.h>
-#include <io/paddle.h>
+#include <io/io_pin.h>
+#include <io/io_pot.h>
 #include <io/spislave.h>
 #include <mapper/mapper.h>
 #include <mapper/profiles.h>
@@ -114,8 +114,17 @@ int main(void)
         return 0;
     }
 
-    joystick_init();
-    paddle_init();
+    err = io_pin_init();
+    if (err) {
+        LOG_ERR("io_pin driver init failed {err: %d}", err);
+        return 0;
+    }
+
+    err = io_pot_init();
+    if (err) {
+        LOG_ERR("io_pot driver init failed {err: %d}", err);
+        return 0;
+    }
 
     err = mapper_init();
     if (err) {

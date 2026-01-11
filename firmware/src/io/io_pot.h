@@ -20,30 +20,22 @@
 
 #include <stdbool.h>
 
-void joystick_init(void);
+// Number of emulated analog potentiometers
+#define IO_POT_COUNT 2
 
+// Pot operation modes
 typedef enum {
-    JOYSTICK_IO_MODE_NORMAL,
-    JOYSTICK_IO_MODE_SPI,
-    JOYSTICK_IO_MODE_UART,
-} joystick_mode_t;
+    IO_PIN_NORMAL,  // Normal operation
+    IO_PIN_ENCODER, // Use as encoder output
+} io_pot_mode_t;
 
-typedef enum {
-    IO_PIN_UP,
-    IO_PIN_DOWN,
-    IO_PIN_LEFT,
-    IO_PIN_RIGHT,
-    IO_PIN_TRIG,
-} io_pin_t;
+// Initializes joystick analog potentiometer outputs
+int io_pot_init(void);
 
-void joystick_set_mode(joystick_mode_t mode);
+// Sets potentiometer value (1..228)
+void io_pot_set(uint8_t pot_idx, int value);
 
-// Sets joystick direction buttons
-
-void joystick_set(io_pin_t pin, bool active);
-
-// Queues movement steps for horizontal and vertical quadrature encoder.
-// Joystick module will process these steps in the timer interrupt
-// and generate appropriate quadrature signals.
-void joystick_queue_x_steps(int delta);
-void joystick_queue_y_steps(int delta);
+// Adds or subtracts steps from the encoder position
+// delta - change in steps in Q17.14 format
+// max - maximum absolute value
+void io_pot_update_encoder(uint8_t pot_idx, int32_t delta, int32_t max);

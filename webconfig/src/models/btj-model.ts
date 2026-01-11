@@ -29,7 +29,7 @@ export interface DeviceEntry {
 export interface ProfileEntry {
   pins: Map<number, Btj.PinConfig>;
   pots: Map<number, Btj.PotConfig>;
-  encs: Map<number, Btj.EncConfig>;
+  intgs: Map<number, Btj.IntgConfig>;
 }
 
 export interface ErrorEntry {
@@ -168,7 +168,7 @@ export class BtjModel {
   private processProfileUpdateEvent(payload: DataView) {
     const evt = new Btj.ProfileUpdateEvent();
     evt.parseMessage(payload);
-    const entry: ProfileEntry = { pins: evt.pins, pots: evt.pots, encs: evt.encs };
+    const entry: ProfileEntry = { pins: evt.pins, pots: evt.pots, intgs: evt.intgs };
     this.profiles.set(evt.profile, entry);
   }
 
@@ -281,19 +281,19 @@ export class BtjModel {
   }
 
   @action
-  async setEncConfig(profileId: number, encId: number, config: Btj.EncConfig) {
+  async setIntgConfig(profileId: number, intgId: number, config: Btj.IntgConfig) {
     if (!this.conn) throw new Error('Not connected');
     // Update local cache
-    this.profiles.get(profileId)!.encs.set(encId, config);
+    this.profiles.get(profileId)!.intgs.set(intgId, config);
     try {
       // Send to device
-      await this.conn.invoke(new Btj.SetEncConfig(profileId, encId, config));
+      await this.conn.invoke(new Btj.SetIntgConfig(profileId, intgId, config));
     } catch (err: any) {
       this.logError(err, 'profile');
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
       if (profile) {
-        profile.encs.delete(encId);
+        profile.intgs.delete(intgId);
       }
     }
   }

@@ -148,7 +148,6 @@ static btjp_status_t btjp_handle_request(const btjp_req_t *req, btjp_rsp_t *rsp)
         config->source = req->set_pot_config.source;
         config->low = req->set_pot_config.low;
         config->high = req->set_pot_config.high;
-        config->int_speed = req->set_pot_config.int_speed;
 
         err = mapper_set_profile(req->set_pot_config.profile, &profile, true);
         if (err != 0) {
@@ -156,25 +155,29 @@ static btjp_status_t btjp_handle_request(const btjp_req_t *req, btjp_rsp_t *rsp)
         }
     } break;
 
-    case BTJP_MSG_SET_ENC_CONFIG: {
-        CHECK_REQ_SIZE(req, sizeof(req->set_enc_config));
+    case BTJP_MSG_SET_INTG_CONFIG: {
+        CHECK_REQ_SIZE(req, sizeof(req->set_intg_config));
 
         mapper_profile_t profile;
-        int err = mapper_get_profile(req->set_enc_config.profile, &profile);
+        int err = mapper_get_profile(req->set_intg_config.profile, &profile);
         if (err != 0) {
-            LOG_ERR("Invalid profile #%d", req->set_enc_config.profile);
+            LOG_ERR("Invalid profile #%d", req->set_intg_config.profile);
             return BTJP_ERR_INVALID_ARG;
         }
 
-        mapper_enc_config_t *config = profile_enc(&profile, req->set_enc_config.enc_id);
+        mapper_intg_config_t *config = profile_intg(&profile, req->set_intg_config.intg_id);
         if (config == NULL) {
-            LOG_ERR("Invalid encoder ID %d", req->set_enc_config.enc_id);
+            LOG_ERR("Invalid integrator ID %d", req->set_intg_config.intg_id);
             return BTJP_ERR_INVALID_ARG;
         }
 
-        config->source = req->set_enc_config.source;
+        config->source = req->set_intg_config.source;
+        config->mode = (mapper_intr_mode_t)req->set_intg_config.mode;
+        config->dead_zone = req->set_intg_config.dead_zone;
+        config->gain = req->set_intg_config.gain;
+        config->max = req->set_intg_config.max;
 
-        err = mapper_set_profile(req->set_enc_config.profile, &profile, true);
+        err = mapper_set_profile(req->set_intg_config.profile, &profile, true);
         if (err != 0) {
             return BTJP_ERR_INVALID_ARG;
         }
@@ -209,12 +212,15 @@ static btjp_status_t btjp_handle_request(const btjp_req_t *req, btjp_rsp_t *rsp)
             pot->source = req->set_profile.pots[i].source;
             pot->low = req->set_profile.pots[i].low;
             pot->high = req->set_profile.pots[i].high;
-            pot->int_speed = req->set_profile.pots[i].int_speed;
         }
 
-        for (int i = 0; i < ARRAY_SIZE(req->set_profile.encs); i++) {
-            mapper_enc_config_t *enc = profile_enc(&profile, i);
-            enc->source = req->set_profile.encs[i].source;
+        for (int i = 0; i < ARRAY_SIZE(req->set_profile.intgs); i++) {
+            mapper_intg_config_t *intg = profile_intg(&profile, i);
+            intg->source = req->set_profile.intgs[i].source;
+            intg->mode = (mapper_intr_mode_t)req->set_profile.intgs[i].mode;
+            intg->dead_zone = req->set_profile.intgs[i].dead_zone;
+            intg->gain = req->set_profile.intgs[i].gain;
+            intg->max = req->set_profile.intgs[i].max;
         }
 
         // Save updated profile

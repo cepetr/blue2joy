@@ -53,7 +53,7 @@ typedef enum {
     BTJP_MSG_SET_DEV_CONFIG = 2,
     BTJP_MSG_SET_PIN_CONFIG = 3,
     BTJP_MSG_SET_POT_CONFIG = 4,
-    BTJP_MSG_SET_ENC_CONFIG = 5,
+    BTJP_MSG_SET_INTG_CONFIG = 5,
     BTJP_MSG_SET_PROFILE = 6,
     BTJP_MSG_SET_MODE = 7,
     BTJP_MSG_START_SCANNING = 8,
@@ -86,11 +86,11 @@ typedef enum {
     BTJP_POT_2 = 1,
 } btjp_pot_id_t;
 
-// Encoder identifiers
+// Integrator identifiers
 typedef enum {
-    BTJP_ENC_1 = 0,
-    BTJP_ENC_2 = 1,
-} btjp_enc_id_t;
+    BTJP_INTG_1 = 0,
+    BTJP_INTG_2 = 1,
+} btjp_intg_id_t;
 
 // Device address (mac address + type)
 typedef struct {
@@ -141,17 +141,20 @@ typedef struct {
     uint32_t source;
     int16_t low;
     int16_t high;
-    int16_t int_speed;
 } btjp_req_set_pot_config_t;
 
 // --------------------------------------------------------------------------
 
 typedef struct {
     uint8_t profile;
-    uint8_t enc_id;
+    uint8_t intg_id;
     uint8_t _reserved[2];
     uint32_t source;
-} btjp_req_set_enc_config_t;
+    uint8_t mode;
+    uint8_t dead_zone;
+    int16_t gain;
+    int16_t max;
+} btjp_req_set_intg_config_t;
 
 // --------------------------------------------------------------------------
 
@@ -167,20 +170,23 @@ typedef struct {
     uint32_t source;
     int16_t low;
     int16_t high;
-    int16_t int_speed;
-    uint8_t _reserved[2];
 } btjp_pot_config_t;
 
 typedef struct {
     uint32_t source;
-} btjp_enc_config_t;
+    uint8_t mode;
+    uint8_t dead_zone;
+    int16_t gain;
+    int16_t max;
+    uint8_t _reserved[2];
+} btjp_intg_config_t;
 
 typedef struct {
     uint8_t profile;
     uint8_t _reserved[3];
     btjp_pin_config_t pins[5];
     btjp_pot_config_t pots[2];
-    btjp_enc_config_t encs[2];
+    btjp_intg_config_t intgs[2];
 } btjp_req_set_profile_t;
 
 // --------------------------------------------------------------------------
@@ -234,7 +240,7 @@ typedef struct {
     uint8_t _reserved;
     btjp_pin_config_t pins[5];
     btjp_pot_config_t pots[2];
-    btjp_enc_config_t encs[2];
+    btjp_intg_config_t intgs[2];
 } btjp_evt_profile_update_t;
 
 // --------------------------------------------------------------------------
@@ -254,7 +260,7 @@ typedef struct {
         btjp_req_set_dev_config_t set_dev_config;
         btjp_req_set_pin_config_t set_pin_config;
         btjp_req_set_pot_config_t set_pot_config;
-        btjp_req_set_enc_config_t set_enc_config;
+        btjp_req_set_intg_config_t set_intg_config;
         btjp_req_set_profile_t set_profile;
         btjp_req_set_mode_t set_mode;
         btjp_req_connect_device_t connect_device;

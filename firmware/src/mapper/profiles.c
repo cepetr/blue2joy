@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <io/joystick.h>
+#include <io/io_pin.h>
 
 #include "profiles.h"
 
@@ -70,8 +70,8 @@ const mapper_profile_t profile_cx77 = {
     .pin[IO_PIN_LEFT] = {.source = HRM_USAGE_BUTTON_5},
     .pin[IO_PIN_RIGHT] = {.source = HRM_USAGE_BUTTON_8},
     .pin[IO_PIN_TRIG] = {.source = HRM_USAGE_BUTTON_1},
-    .pot[0] = {.source = HRM_USAGE_X, .low = 1, .high = 228, .int_speed = 256},
-    .pot[1] = {.source = HRM_USAGE_Y, .low = 1, .high = 228, .int_speed = 256},
+    .pot[0] = {.source = HRM_USAGE_X, .low = 1, .high = 228},
+    .pot[1] = {.source = HRM_USAGE_Y, .low = 1, .high = 228},
 };
 
 // Mouse

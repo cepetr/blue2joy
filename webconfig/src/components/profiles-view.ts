@@ -5,7 +5,7 @@ import { autorun, IReactionDisposer } from "mobx";
 import { btj } from "../models/btj-model.js";
 
 
-import "./enc-editor.js";
+import "./intg-editor.js";
 import "./pin-editor.js";
 import "./pot-editor.js";
 
@@ -64,10 +64,10 @@ export class ProfilesView extends MobxLitElement {
                       </div>
                     </div>
                   `)}
-                  ${Array.from(profile.encs.entries()).map(([eid]) => html`
+                  ${Array.from(profile.intgs.entries()).map(([eid]) => html`
                     <div class="row mb-3">
                       <div class="col-12">
-                        <enc-editor .profileId=${this.profileId} .encId=${eid}></enc-editor>
+                        <intg-editor .profileId=${this.profileId} .intgId=${eid}></intg-editor>
                       </div>
                     </div>
                   `)}

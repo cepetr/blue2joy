@@ -22,16 +22,15 @@
 
 #include <bthid/report_map.h>
 
+#include <io/io_pin.h>
+#include <io/io_pot.h>
+
 #define HAT_SWITCH_UP    0x01
 #define HAT_SWITCH_DOWN  0x02
 #define HAT_SWITCH_LEFT  0x04
 #define HAT_SWITCH_RIGHT 0x08
 
-#define MAPPER_MAX_IO_PINS 5
-#define MAPPER_MAX_IO_POTS 2
-#define MAPPER_MAX_IO_ENCS 2
-
-// Configuration for digital inputs
+// Configuration of digital inputs
 typedef struct {
     // Source field in the HID report
     hrm_usage_t source;
@@ -46,7 +45,7 @@ typedef struct {
     uint8_t hysteresis;
 } mapper_pin_config_t;
 
-// Configuration for analog (potentiometer) inputs
+// Configuration of analog inputs (potentiometers)
 typedef struct {
     // Source field
     hrm_usage_t source;
@@ -54,22 +53,36 @@ typedef struct {
     int16_t low;
     // Pot value for logical max (1..228)
     int16_t high;
-    // Integration speed in Q8.8 format (can be negative for reverse direction)
-    // If set to 0, the input value is set directly
-    int16_t int_speed;
 } mapper_pot_config_t;
 
-// Configuration for quadrature encoder inputs
+typedef enum {
+    // Interpret source as relative value (i.e. change since last report)
+    MAPPER_INTG_MODE_REL = 0,
+    // Interpret source as absolute value (i.e. deviation from center)
+    MAPPER_INTG_MODE_ABS = 1,
+} mapper_intr_mode_t;
+
+// Configuration of integrators
 typedef struct {
     // Source field
     hrm_usage_t source;
-} mapper_enc_config_t;
+    // Source interpretation mode
+    mapper_intr_mode_t mode;
+    // Dead zone around 0 to prevent drift (in percent, 0..100)
+    // The dead zone is only applied in ABS mode
+    uint8_t dead_zone;
+    // Gain applied to integrated delta values (Q7.8 format)
+    // (may be negative for reverse direction)
+    int16_t gain;
+    // Maximum accumulated delta in steps
+    int16_t max;
+} mapper_intg_config_t;
 
 // Configuration for all inputs of joystick port
 typedef struct {
-    mapper_pin_config_t pin[MAPPER_MAX_IO_PINS];
-    mapper_pot_config_t pot[MAPPER_MAX_IO_POTS];
-    mapper_enc_config_t enc[MAPPER_MAX_IO_ENCS];
+    mapper_pin_config_t pin[IO_PIN_COUNT];
+    mapper_pot_config_t pot[IO_POT_COUNT];
+    mapper_intg_config_t intg[IO_ENC_COUNT];
 } mapper_profile_t;
 
 #define MAPPER_MAX_PROFILES 4

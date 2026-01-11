@@ -57,7 +57,7 @@ export namespace Btj {
     SET_DEV_CONFIG = 2,
     SET_PIN_CONFIG = 3,
     SET_POT_CONFIG = 4,
-    SET_ENC_CONFIG = 5,
+    SET_INTG_CONFIG = 5,
     SET_PROFILE = 6,
     SET_MODE = 7,
     START_SCANNING = 8,
@@ -296,7 +296,6 @@ export namespace Btj {
     source: number = 0;
     low: number = 0;
     high: number = 0;
-    intSpeed: number = 0;
 
     static default(): PotConfig {
       return new PotConfig();
@@ -308,14 +307,13 @@ export namespace Btj {
 
     constructor(private _profile: number, private _id: number, private _data: PotConfig) { }
     serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(4 + 12);
+      const buf = new ArrayBuffer(4 + 8);
       const view = new DataView(buf);
       view.setUint8(0, this._profile);
       view.setUint8(1, this._id);
       view.setUint32(4, this._data.source, true);
       view.setInt16(8, this._data.low, true);
       view.setInt16(10, this._data.high, true);
-      view.setInt16(12, this._data.intSpeed, true);
       return buf;
     }
 
@@ -336,25 +334,39 @@ export namespace Btj {
     }
   }
 
-  export class EncConfig {
-    source: number = 0;
+  export enum IntgMode {
+    RELATIVE = 0,
+    ABSOLUTE = 1,
+  }
 
-    static default(): EncConfig {
-      return new EncConfig();
+  export class IntgConfig {
+    source: number = 0;
+    mode: IntgMode = IntgMode.RELATIVE;
+    deadZone: number = 0;
+    gain: number = 0;
+    max: number = 0;
+
+    static default(): IntgConfig {
+      return new IntgConfig();
     }
   }
 
-  export class SetEncConfig implements Command {
-    readonly msgId = MsgId.SET_ENC_CONFIG;
+  export class SetIntgConfig implements Command {
+    readonly msgId = MsgId.SET_INTG_CONFIG;
 
-    constructor(private _profile: number, private _id: number, private _data: EncConfig) { }
+    constructor(private _profile: number, private _id: number, private _data: IntgConfig) { }
 
     serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(4 + 4);
+      const buf = new ArrayBuffer(16);
       const view = new DataView(buf);
       view.setUint8(0, this._profile);
       view.setUint8(1, this._id);
       view.setUint32(4, this._data.source, true);
+      view.setUint8(8, this._data.mode);
+      view.setUint8(9, this._data.deadZone);
+      const gainFixed = Math.round(this._data.gain * 256.0); // Convert float to Q7.8
+      view.setInt16(10, gainFixed, true);
+      view.setInt16(12, this._data.max, true);
       return buf;
     }
 
@@ -370,7 +382,7 @@ export namespace Btj {
       return this._id;
     }
 
-    get data(): EncConfig {
+    get data(): IntgConfig {
       return this._data;
     }
   }
@@ -566,10 +578,10 @@ export namespace Btj {
 
     private _pins: Map<number, PinConfig> = new Map();
     private _pots: Map<number, PotConfig> = new Map();
-    private _encs: Map<number, EncConfig> = new Map();
+    private _intgs: Map<number, IntgConfig> = new Map();
 
     parseMessage(view: DataView) {
-      assertPayloadLength(view, 4 + 5 * 8 + 2 * 12 + 2 * 4);
+      assertPayloadLength(view, 4 + 5 * 8 + 2 * 8 + 2 * 12);
       this._profile = view.getUint8(0);
 
       for (let i = 0; i < 5; i++) {
@@ -583,18 +595,22 @@ export namespace Btj {
       }
 
       for (let i = 0; i < 2; i++) {
-        const offset = 4 + 5 * 8 + i * 12;
+        const offset = 4 + 5 * 8 + i * 8;
         const source = view.getUint32(offset, true);
         const low = view.getInt16(offset + 4, true);
         const high = view.getInt16(offset + 6, true);
-        const intSpeed = view.getInt16(offset + 8, true);
-        this._pots.set(i, { source, low, high, intSpeed });
+        this._pots.set(i, { source, low, high });
       }
 
       for (let i = 0; i < 2; i++) {
-        const offset = 4 + 5 * 8 + 2 * 12 + i * 4;
+        const offset = 4 + 5 * 8 + 2 * 8 + i * 12;
         const source = view.getUint32(offset, true);
-        this._encs.set(i, { source });
+        const mode = view.getUint8(offset + 4);
+        const deadZone = view.getUint8(offset + 5);
+        const gainFixed = view.getInt16(offset + 6, true);
+        const gain = gainFixed / 256.0; // Convert Q7.8 to float
+        const max = view.getInt16(offset + 8, true);
+        this._intgs.set(i, { source, mode, deadZone, gain: gain, max: max });
       }
     }
 
@@ -610,8 +626,8 @@ export namespace Btj {
       return this._pots;
     }
 
-    get encs(): Map<number, EncConfig> {
-      return this._encs;
+    get intgs(): Map<number, IntgConfig> {
+      return this._intgs;
     }
   }
 

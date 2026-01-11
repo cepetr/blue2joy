@@ -94,10 +94,10 @@ static struct led_rgb interpolate(const struct led_rgb c0, const struct led_rgb 
 
     float brightness_factor = (float)CLAMP(brightness, 0, 10) / 10.0f;
 
-    float factor = (float)(t - t0) / (t1 - t0);
-    factor = CLAMP(factor, 0.0f, 1.0f);
+    float gain = (float)(t - t0) / (t1 - t0);
+    gain = CLAMP(gain, 0.0f, 1.0f);
 
-    factor = ease_in_out_quad(factor);
+    gain = ease_in_out_quad(gain);
 
     const float gamma = 2.2f;
     const float inv_gamma = 1.0f / gamma;
@@ -110,9 +110,9 @@ static struct led_rgb interpolate(const struct led_rgb c0, const struct led_rgb 
     float g1 = powf(c1.g / 255.0f, inv_gamma);
     float b1 = powf(c1.b / 255.0f, inv_gamma);
 
-    float r = (r0 + factor * (r1 - r0)) * brightness_factor;
-    float g = (g0 + factor * (g1 - g0)) * brightness_factor;
-    float b = (b0 + factor * (b1 - b0)) * brightness_factor;
+    float r = (r0 + gain * (r1 - r0)) * brightness_factor;
+    float g = (g0 + gain * (g1 - g0)) * brightness_factor;
+    float b = (b0 + gain * (b1 - b0)) * brightness_factor;
 
     r = powf(r, gamma);
     g = powf(g, gamma);

@@ -80,24 +80,6 @@ export class PotEditor extends LitElement {
     `;
   }
 
-  private renderIntegrationSpeed() {
-    const cfg = this._local;
-    return html`
-      <div class="mb-2">
-        <label class="form-label">Integration Speed</label>
-        <input
-          class="form-control"
-          .value=${String(cfg.intSpeed ?? '')}
-          @input=${(e: Event) => {
-        this._local = { ...this._local, intSpeed: Number((e.target as HTMLInputElement).value) };
-      }}
-          @change=${() => {
-        this.emitEdit();
-      }}        />
-      </div>
-    `;
-  }
-
   override render() {
     const usageType = HID_USAGE_TYPE[this._local.source];
     return html`
@@ -123,7 +105,6 @@ export class PotEditor extends LitElement {
                   ${usageType != '' ? this.renderMax() : ''}
                 </div>
                 <div class="col-12 col-xl-2">
-                  ${usageType != '' ? this.renderIntegrationSpeed() : ''}
                 </div>
               </div>
             </div>

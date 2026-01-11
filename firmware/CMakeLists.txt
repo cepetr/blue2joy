@@ -26,8 +26,8 @@ target_sources(app PRIVATE
   src/devmgr/devmgr_devlist.c
   src/devmgr/settings.c
   src/io/buttons.c
-  src/io/joystick.c
-  src/io/paddle.c
+  src/io/io_pin.c
+  src/io/io_pot.c
   src/io/rgbled.c
   src/io/rgbled_seq.c
   src/io/spislave.c

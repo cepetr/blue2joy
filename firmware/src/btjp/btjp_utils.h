@@ -32,4 +32,4 @@ mapper_pin_config_t *profile_pin(mapper_profile_t *profile, uint8_t pin_id);
 
 mapper_pot_config_t *profile_pot(mapper_profile_t *profile, uint8_t pin_id);
 
-mapper_enc_config_t *profile_enc(mapper_profile_t *profile, uint8_t enc_id);
+mapper_intg_config_t *profile_intg(mapper_profile_t *profile, uint8_t intg_id);

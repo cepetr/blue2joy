@@ -67,7 +67,24 @@ typedef enum {
     HRM_USAGE_BUTTON_PLAY = 0x0C00CD,
     HRM_USAGE_BUTTON_VOL_INC = 0x0C00E9,
     HRM_USAGE_BUTTON_VOL_DEC = 0x0C00EA,
+
+    // Custom usages internally used for mapping pins to integrators
+    HRM_USAGE_INTG0_QA = 0xFFF00000,  // Integrator 0, quadrature encoder, channel A
+    HRM_USAGE_INTG0_QB = 0xFFF00001,  // Integrator 0, quadrature encoder, channel B
+    HRM_USAGE_INTG0_ABS = 0xFFF00002, // Integrator 0, absolute value
+    HRM_USAGE_INTG0_ENC = 0xFFF00003, // Integrator 0, encoder value
+    HRM_USAGE_INTG1_QA = 0xFFF00100,  // Integrator 1, quadrature encoder, channel A
+    HRM_USAGE_INTG1_QB = 0xFFF00101,  // Integrator 1, quadrature encoder, channel B
+    HRM_USAGE_INTG1_ABS = 0xFFF00102, // Integrator 1, absolute value
+    HRM_USAGE_INTG1_ENC = 0xFFF00103, // Integrator 1, encoder value
+
 } hrm_usage_t;
+
+#define HRM_USAGE_IS_INTG(source)        ((source & 0xFFF00000) == 0xFFF00000)
+#define HRM_USAGE_GET_INTG_IDX(source)   ((source & 0x0000FF00) >> 8)
+#define HRM_USAGE_GET_INTG_PHASE(source) (source & 0x00000001)
+#define HRM_USAGE_IS_INTG_ABS(source)    ((source & 0x000000FF) == 0x02)
+#define HRM_USAGE_IS_INTG_ENC(source)    ((source & 0x000000FF) == 0x03)
 
 // HID report field definition
 typedef struct {

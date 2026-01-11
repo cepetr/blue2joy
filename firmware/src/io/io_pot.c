@@ -19,6 +19,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/irq.h>
 
 #include <nrfx_comp.h>
 #include <nrfx_timer.h>
@@ -27,7 +28,7 @@
 
 #include <zephyr/drivers/pwm.h>
 
-#include "paddle.h"
+#include "io_pot.h"
 
 LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -56,16 +57,18 @@ typedef struct {
     // Measured period in milliseconds
     atomic_t period;
 
-    atomic_t cc0_value;
-    atomic_t cc1_value;
+    atomic_t cc_value[IO_POT_COUNT];
 
-} paddle_drv_t;
+    // Encoder simulator position
+    int32_t enc_pos[IO_POT_COUNT];
 
-paddle_drv_t g_paddle_drv;
+} io_pot_drv_t;
+
+io_pot_drv_t g_io_pot_drv;
 
 static void comparator_handler(nrf_comp_event_t event)
 {
-    paddle_drv_t *drv = &g_paddle_drv;
+    io_pot_drv_t *drv = &g_io_pot_drv;
 
     uint32_t now = k_uptime_get_32();
 
@@ -86,24 +89,24 @@ static void comparator_handler(nrf_comp_event_t event)
 
 static void timer_handler(nrf_timer_event_t event_type, void *p_context)
 {
-    paddle_drv_t *drv = &g_paddle_drv;
+    io_pot_drv_t *drv = &g_io_pot_drv;
 
     // Since TIMER CC registers are not double buffered, we need to
     // update them in the timer interrupt handler - just after the
     // compare event has occurred.
 
     if (event_type == NRF_TIMER_EVENT_COMPARE0) {
-        uint32_t cc0_value = atomic_get(&drv->cc0_value);
-        nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL0, cc0_value, true);
+        uint32_t cc_value = atomic_get(&drv->cc_value[0]);
+        nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL0, cc_value, true);
     } else if (event_type == NRF_TIMER_EVENT_COMPARE1) {
-        uint32_t cc1_value = atomic_get(&drv->cc1_value);
-        nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL1, cc1_value, true);
+        uint32_t cc_value = atomic_get(&drv->cc_value[1]);
+        nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL1, cc_value, true);
     }
 }
 
-void paddle_init(void)
+int io_pot_init(void)
 {
-    paddle_drv_t *drv = &g_paddle_drv;
+    io_pot_drv_t *drv = &g_io_pot_drv;
 
     nrfx_gpiote_pin_t pin_p0_chg = NRF_GPIO_PIN_MAP(0, 15); // Pin for POT0 charging
     nrfx_gpiote_pin_t pin_p1_chg = NRF_GPIO_PIN_MAP(0, 19); // Pin for POT1 charging
@@ -140,7 +143,7 @@ void paddle_init(void)
     err = nrfx_comp_init(&comp_config, comparator_handler);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_comp_init error: %08x", err);
-        return;
+        return -EIO;
     }
 
     // Connect COMP_IRQ to nrfx_comp_irq_handler - TODO: do we need this??
@@ -171,15 +174,15 @@ void paddle_init(void)
     err = nrfx_timer_init(&timer, &timer_config, timer_handler);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_timer_init error: %08x", err);
-        return;
+        return -EIO;
     }
 
     IRQ_CONNECT(TIMER2_IRQn, IRQ_PRIO_LOWEST, nrfx_isr, nrfx_timer_2_irq_handler, 0)
 
     uint32_t initial_cc_value = 16000; // => 228
 
-    atomic_set(&drv->cc0_value, initial_cc_value);
-    atomic_set(&drv->cc1_value, initial_cc_value);
+    atomic_set(&drv->cc_value[0], initial_cc_value);
+    atomic_set(&drv->cc_value[1], initial_cc_value);
 
     nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL0, initial_cc_value, true);
     nrfx_timer_compare(&timer, NRF_TIMER_CC_CHANNEL1, initial_cc_value, true);
@@ -203,7 +206,7 @@ void paddle_init(void)
     err = nrfx_gpiote_channel_alloc(&gpiote, &drv->gpiote_p0_chg);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_gpiote_channel_alloc error: %08x", err);
-        return;
+        return -EIO;
     }
 
     nrfx_gpiote_output_config_t out_config = NRFX_GPIOTE_DEFAULT_OUTPUT_CONFIG;
@@ -217,7 +220,7 @@ void paddle_init(void)
     err = nrfx_gpiote_output_configure(&gpiote, pin_p0_chg, &out_config, &task_config);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_gpiote_out_init error: %08x", err);
-        return;
+        return -EIO;
     }
 
     nrfx_gpiote_out_task_enable(&gpiote, pin_p0_chg);
@@ -227,7 +230,7 @@ void paddle_init(void)
     err = nrfx_gpiote_channel_alloc(&gpiote, &drv->gpiote_p1_chg);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_gpiote_channel_alloc error: %08x", err);
-        return;
+        return -EIO;
     }
 
     nrfx_gpiote_output_config_t out_config2 = NRFX_GPIOTE_DEFAULT_OUTPUT_CONFIG;
@@ -241,7 +244,7 @@ void paddle_init(void)
     err = nrfx_gpiote_output_configure(&gpiote, pin_p1_chg, &out_config2, &task_config2);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_gpiote_out_init error: %08x", err);
-        return;
+        return -EIO;
     }
 
     nrfx_gpiote_out_task_enable(&gpiote, pin_p1_chg);
@@ -271,7 +274,7 @@ void paddle_init(void)
     err = nrfx_ppi_channel_alloc(&drv->ppi_start_cycle);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_alloc error: %08x", err);
-        return;
+        return -EIO;
     }
 
     eep = nrfx_comp_event_address_get(NRF_COMP_EVENT_UP);
@@ -280,20 +283,20 @@ void paddle_init(void)
     err = nrfx_ppi_channel_assign(drv->ppi_start_cycle, eep, tep);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_assign error: %08x", err);
-        return;
+        return -EIO;
     }
 
     tep = nrfx_gpiote_clr_task_address_get(&gpiote, pin_p0_chg);
     err = nrfx_ppi_channel_fork_assign(drv->ppi_start_cycle, tep);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_fork_assign error: %08x", err);
-        return;
+        return -EIO;
     }
 
     err = nrfx_ppi_channel_enable(drv->ppi_start_cycle);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("Failed enabling ppi channel: %08x", err);
-        return;
+        return -EIO;
     }
 
     // --------------------------------------------------------------------
@@ -305,7 +308,7 @@ void paddle_init(void)
     err = nrfx_ppi_channel_alloc(&drv->ppi_p0_charge);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_alloc error: %08x", err);
-        return;
+        return -EIO;
     }
 
     eep = nrfx_timer_event_address_get(&timer, NRF_TIMER_EVENT_COMPARE0);
@@ -314,13 +317,13 @@ void paddle_init(void)
     err = nrfx_ppi_channel_assign(drv->ppi_p0_charge, eep, tep);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_assign error: %08x", err);
-        return;
+        return -EIO;
     }
 
     err = nrfx_ppi_channel_enable(drv->ppi_p0_charge);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("Failed enabling ppi channel: %08x", err);
-        return;
+        return -EIO;
     }
 
     // --------------------------------------------------------------------
@@ -332,7 +335,7 @@ void paddle_init(void)
     err = nrfx_ppi_channel_alloc(&drv->ppi_p1_charge);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_alloc error: %08x", err);
-        return;
+        return -EIO;
     }
 
     eep = nrfx_timer_event_address_get(&timer, NRF_TIMER_EVENT_COMPARE1);
@@ -341,13 +344,13 @@ void paddle_init(void)
     err = nrfx_ppi_channel_assign(drv->ppi_p1_charge, eep, tep);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_assign error: %08x", err);
-        return;
+        return -EIO;
     }
 
     err = nrfx_ppi_channel_enable(drv->ppi_p1_charge);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("Failed enabling ppi channel: %08x", err);
-        return;
+        return -EIO;
     }
 
     // --------------------------------------------------------------------
@@ -360,7 +363,7 @@ void paddle_init(void)
     err = nrfx_ppi_channel_alloc(&drv->ppi_end_cycle);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_alloc error: %08x", err);
-        return;
+        return -EIO;
     }
 
     eep = nrfx_timer_event_address_get(&timer, NRF_TIMER_EVENT_COMPARE2);
@@ -369,28 +372,33 @@ void paddle_init(void)
     err = nrfx_ppi_channel_assign(drv->ppi_end_cycle, eep, tep);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_assign error: %08x", err);
-        return;
+        return -EIO;
     }
 
     tep = nrfx_gpiote_clr_task_address_get(&gpiote, pin_p1_chg);
     err = nrfx_ppi_channel_fork_assign(drv->ppi_end_cycle, tep);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("nrfx_ppi_channel_fork_assign error: %08x", err);
-        return;
+        return -EIO;
     }
 
     err = nrfx_ppi_channel_enable(drv->ppi_end_cycle);
     if (err != NRFX_SUCCESS) {
         LOG_ERR("Failed enabling ppi channel: %08x", err);
-        return;
+        return -EIO;
     }
 
-    LOG_INF("Paddle outputs initialized");
+    LOG_INF("io_pot initialized");
+    return 0;
 }
 
-void paddle_set(int pot_idx, int value)
+void io_pot_set(uint8_t pot_idx, int value)
 {
-    paddle_drv_t *drv = &g_paddle_drv;
+    io_pot_drv_t *drv = &g_io_pot_drv;
+
+    if (pot_idx >= ARRAY_SIZE(drv->cc_value)) {
+        return;
+    }
 
     if (value < 1) {
         value = 1;
@@ -398,9 +406,18 @@ void paddle_set(int pot_idx, int value)
         value = 228;
     }
 
-    if (pot_idx == 0) {
-        atomic_set(&drv->cc0_value, 64 * value);
-    } else if (pot_idx == 1) {
-        atomic_set(&drv->cc1_value, 64 * value);
+    atomic_set(&drv->cc_value[pot_idx], 64 * value);
+}
+
+void io_pot_update_encoder(uint8_t pot_idx, int32_t delta, int32_t max)
+{
+    io_pot_drv_t *drv = &g_io_pot_drv;
+
+    if (pot_idx >= ARRAY_SIZE(drv->enc_pos)) {
+        return;
     }
+
+    unsigned int key = irq_lock();
+    drv->enc_pos[pot_idx] = CLAMP(drv->enc_pos[pot_idx] + delta, -max << 14, max << 14);
+    irq_unlock(key);
 }
