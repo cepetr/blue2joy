@@ -32,7 +32,7 @@ Although designed for Atari 8-bit systems, Blue2Joy can be used with any device 
 
 ## 🚧 Project Status
 
-Blue2Joy is currently under active (but really slow) development. The hardware is stable and all core features have been successfully tested, but the software still needs months of work before it’s ready for general use.
+Blue2Joy is currently under active (but really slow) development. The hardware is stable and most of core features have been successfully tested, but the software still needs months of work before it’s ready for general use.
 
 ## Repository Structure
 
