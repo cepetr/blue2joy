@@ -9,5 +9,5 @@ Application communicates with Blue2Joy over Bluetooth, even while it is connecte
 # How to build
 
 You don't neeed to build anything. Just go to
-https://cepetr.github.io/blue2joy/v0.1
+https://cepetr.github.io/blue2joy/main
 
