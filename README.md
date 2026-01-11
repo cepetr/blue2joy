@@ -63,6 +63,8 @@ For more details, see the [firmware](/firmware/) folder.
 - Provides an easy way to configure the mapping of HID controls to joystick port digital and analog pins
 - Configure the device even while it is connected to HID devices (e.g., gamepads, mice)
 
+The application is available at https://cepetr.github.io/blue2joy/v0.1.
+
 For more details, see the [webconfig](/webconfig/) folder.
 
 ### Atari Application
