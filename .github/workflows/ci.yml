@@ -1,4 +1,4 @@
-name: Blue2Joy build
+name: Blue2Joy Firmware
 
 on:
   workflow_dispatch:

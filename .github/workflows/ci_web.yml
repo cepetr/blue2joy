@@ -1,0 +1,118 @@
+name: Blue2Joy Web
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - dev
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+
+############################
+#  Job 1 – Web application
+############################
+
+  build-webconfig:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: webconfig/package-lock.json
+
+      - name: Install dependencies
+        working-directory: webconfig
+        run: npm ci
+
+      - name: Build web app
+        working-directory: webconfig
+        run: npm run build
+
+      - name: Add SPA fallback
+        working-directory: webconfig
+        run: |
+          if [ -f dist/index.html ]; then
+            cp dist/index.html dist/404.html
+          fi
+
+      - name: Upload web dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: webconfig-dist
+          path: webconfig/dist
+          if-no-files-found: error
+
+############################
+#  Job 2 – Deploy GitHub Pages
+############################
+
+  deploy-pages:
+    needs: [build-webconfig]
+    runs-on: ubuntu-latest
+
+    # Run for tags and for main/dev branch pushes
+    if: |
+      startsWith(github.ref, 'refs/tags/') ||
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/dev'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download web dist
+        uses: actions/download-artifact@v4
+        with:
+          name: webconfig-dist
+          path: dist
+
+      - name: Determine deploy folder
+        id: target
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "folder=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "is_tag=true" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            echo "folder=main" >> "$GITHUB_OUTPUT"
+            echo "is_tag=false" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
+            echo "folder=dev" >> "$GITHUB_OUTPUT"
+            echo "is_tag=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Unsupported ref: ${GITHUB_REF}"
+            exit 1
+          fi
+
+      - name: Prepare site content
+        shell: bash
+        run: |
+          FOLDER="${{ steps.target.outputs.folder }}"
+
+          mkdir -p "public/${FOLDER}"
+          cp -r dist/* "public/${FOLDER}/"
+
+          if [[ "${{ steps.target.outputs.is_tag }}" == "true" ]]; then
+            rm -rf public/latest
+            mkdir -p public/latest
+            cp -r dist/* public/latest/
+          fi
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: public
+          keep_files: true
+          commit_message: "Deploy webconfig for ${{ github.ref }}"
