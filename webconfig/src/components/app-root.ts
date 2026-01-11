@@ -36,21 +36,30 @@ export class AppRoot extends MobxLitElement {
   @state() private busy = false;
 
   private router: Router;
+  private readonly basePath: string;
 
   constructor() {
     super();
+    // Use Vite's BASE_URL which is set at build time from the 'base' config
+    // Remove trailing slash for consistency in our route concatenation
+    const base = import.meta.env.BASE_URL;
+    this.basePath = base.endsWith('/') && base.length > 1 ? base.slice(0, -1) : (base === '/' ? '' : base);
+
     this.router = new Router(this, [
-      { path: '/', render: () => html`<devices-view></devices-view>` },
-      { path: '/devices', render: () => html`<devices-view></devices-view>` },
+      { path: this.basePath + '/', render: () => html`<devices-view></devices-view>` },
+      { path: this.basePath + '/devices', render: () => html`<devices-view></devices-view>` },
       {
-        path: '/profiles/:id', render: (params) => {
+        path: this.basePath + '/profiles/:id', render: (params) => {
           const profileId = parseInt(params.id as string, 10);
           return html`<profiles-view .profileId=${profileId}></profiles-view>`;
         }
       },
-      { path: '/profiles', render: () => html`<profiles-view .profileId=${0}></profiles-view>` },
-      { path: '/.*', render: () => html`<h2>Not found</h2>` },
+      { path: this.basePath + '/profiles', render: () => html`<profiles-view .profileId=${0}></profiles-view>` },
     ]);
+  }
+
+  private buildPath(path: string): string {
+    return this.basePath + path;
   }
 
   private async onScanClick() {
@@ -117,16 +126,16 @@ export class AppRoot extends MobxLitElement {
 
   private renderMenu(mode: 'navbar' | 'offcanvas' = 'navbar') {
     const currentPath = location.pathname;
-    const devicesActive = currentPath === '/' || currentPath.startsWith('/devices');
-    const profilesActive = currentPath.startsWith('/profiles');
-    const isProfileActive = (id: number) => currentPath === `/profiles/${id}`;
+    const devicesActive = currentPath === this.basePath + '/' || currentPath === this.basePath || currentPath.startsWith(this.basePath + '/devices');
+    const profilesActive = currentPath.startsWith(this.basePath + '/profiles');
+    const isProfileActive = (id: number) => currentPath === this.basePath + `/profiles/${id}`;
     const profileIds = Array.from(btj.profiles.keys());
     const profilesVisible = btj.connected && profileIds.length > 0;
     if (mode === 'navbar') {
       return html`
         <ul class="navbar-nav me-auto">
           <li class="nav-item ${btj.connected ? '' : 'd-none'}">
-            <a class="nav-link ${devicesActive ? 'active' : ''}" aria-current=${devicesActive ? 'page' : undefined} href="/devices">Devices</a>
+            <a class="nav-link ${devicesActive ? 'active' : ''}" aria-current=${devicesActive ? 'page' : undefined} href="${this.buildPath('/devices')}">Devices</a>
           </li>
           <li class="nav-item dropdown ${profilesVisible ? '' : 'd-none'}">
             <a class="nav-link dropdown-toggle ${profilesActive ? 'active' : ''}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -135,7 +144,7 @@ export class AppRoot extends MobxLitElement {
             <ul class="dropdown-menu">
               ${profileIds.map(id => html`
                 <li>
-                  <a class="dropdown-item ${isProfileActive(id) ? 'active' : ''}" href="/profiles/${id}">
+                  <a class="dropdown-item ${isProfileActive(id) ? 'active' : ''}" href="${this.buildPath(`/profiles/${id}`)}">
                     Profile ${id}
                   </a>
                 </li>
@@ -153,13 +162,13 @@ export class AppRoot extends MobxLitElement {
     return html`
       <nav class="nav nav-pills flex-column gap-1">
         <a class="nav-link ${btj.connected ? '' : 'disabled'} ${devicesActive ? 'active' : ''}"
-           href="/devices"
+           href="${this.buildPath('/devices')}"
            aria-current=${devicesActive ? 'page' : undefined}>Devices</a>
         ${profilesVisible ? html`
           <div class="mt-2 text-muted">Profiles</div>
           ${profileIds.map(id => html`
-            <a class="nav-link ${isProfileActive(id) ? 'active' : ''}"
-               href="/profiles/${id}"
+            <a class="nav-link ${isProfileActive(id) ? 'active' : ''}">
+               href="${this.buildPath(`/profiles/${id}`)}">
                aria-current=${isProfileActive(id) ? 'page' : undefined}>
               Profile ${id}
             </a>

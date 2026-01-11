@@ -34,8 +34,24 @@ jobs:
         working-directory: webconfig
         run: npm ci
 
+      - name: Determine deploy folder
+        id: target
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "folder=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            echo "folder=main" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
+            echo "folder=dev" >> "$GITHUB_OUTPUT"
+          else
+            echo "folder=unknown" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build web app
         working-directory: webconfig
+        env:
+          BASE_PATH: /blue2joy/${{ steps.target.outputs.folder }}/
         run: npm run build
 
       - name: Add SPA fallback
