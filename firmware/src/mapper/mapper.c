@@ -34,7 +34,7 @@ typedef struct {
 } mapper_pin_state_t;
 
 typedef struct {
-    // Last analog value 1..228
+    // Last analog value (IO_POT_MIN_VAL .. IO_POT_MAX_VAL)
     uint8_t last_value;
 } mapper_pot_state_t;
 
@@ -236,7 +236,7 @@ static void update_pot_state(mapper_pot_state_t *state, const mapper_pot_config_
 
     int32_t out = map_linear(in, field->logical_min, field->logical_max, config->low, config->high);
 
-    state->last_value = CLAMP(out, 1, 228);
+    state->last_value = CLAMP(out, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
 }
 
 // Requires mapper->mutex to be locked
@@ -274,7 +274,7 @@ static void mapper_integrate_delta(uint8_t intg_idx, int32_t delta)
             int32_t out = map_linear(intg_state->pos, -intg_config->max << 14,
                                      intg_config->max << 14, pot_config->low, pot_config->high);
 
-            pot_state->last_value = CLAMP(out, 1, 228);
+            pot_state->last_value = CLAMP(out, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
 
             io_pot_set(pot_idx, pot_state->last_value);
 

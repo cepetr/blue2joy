@@ -20,6 +20,9 @@
 
 #include <stdbool.h>
 
+#define IO_POT_MIN_VAL 1
+#define IO_POT_MAX_VAL 228
+
 // Number of emulated analog potentiometers
 #define IO_POT_COUNT 2
 
@@ -32,7 +35,7 @@ typedef enum {
 // Initializes joystick analog potentiometer outputs
 int io_pot_init(void);
 
-// Sets potentiometer value (1..228)
+// Sets potentiometer value (IO_POT_MIN_VAL .. IO_POT_MAX_VAL)
 void io_pot_set(uint8_t pot_idx, int value);
 
 // Adds or subtracts steps from the encoder position

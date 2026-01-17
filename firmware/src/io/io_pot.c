@@ -179,7 +179,7 @@ int io_pot_init(void)
 
     IRQ_CONNECT(TIMER2_IRQn, IRQ_PRIO_LOWEST, nrfx_isr, nrfx_timer_2_irq_handler, 0)
 
-    uint32_t initial_cc_value = 16000; // => 228
+    uint32_t initial_cc_value = 16000; // => IO_POT_MAX_VAL
 
     atomic_set(&drv->cc_value[0], initial_cc_value);
     atomic_set(&drv->cc_value[1], initial_cc_value);
@@ -400,11 +400,7 @@ void io_pot_set(uint8_t pot_idx, int value)
         return;
     }
 
-    if (value < 1) {
-        value = 1;
-    } else if (value > 228) {
-        value = 228;
-    }
+    value = CLAMP(value, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
 
     atomic_set(&drv->cc_value[pot_idx], 64 * value);
 }

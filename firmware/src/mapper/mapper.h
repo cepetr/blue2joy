@@ -49,9 +49,9 @@ typedef struct {
 typedef struct {
     // Source field
     hrm_usage_t source;
-    // Pot value for logical min (1..228)
+    // Pot value for logical min (IO_POT_MIN_VAL .. IO_POT_MAX_VAL)
     int16_t low;
-    // Pot value for logical max (1..228)
+    // Pot value for logical max (IO_POT_MIN_VAL .. IO_POT_MAX_VAL)
     int16_t high;
 } mapper_pot_config_t;
 
