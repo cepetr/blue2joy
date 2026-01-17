@@ -34,6 +34,7 @@ export class IntgEditor extends LitElement {
         <label class="form-label">Source</label>
         <hid-usage-select
           .value=${cfg.source}
+          .filter=${['analog']}
           @change=${(e: CustomEvent) => {
         this._local = { ...this._local, source: e.detail.value };
         this.emitEdit();

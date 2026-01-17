@@ -35,6 +35,7 @@ export class PinEditor extends LitElement {
         <label class="form-label">Source</label>
         <hid-usage-select
           .value=${cfg.source}
+          .filter=${['digital', 'analog', 'digital-intg']}
           @change=${(e: CustomEvent) => {
         this._local = { ...this._local, source: e.detail.value };
         this.emitEdit();
@@ -162,7 +163,7 @@ export class PinEditor extends LitElement {
                     ${this.renderSource()}
                   </div>
                   <div class="col-6 col-xl-2">
-                    ${usageType != '' ? this.renderInvert() : ''}
+                    ${usageType != '' && usageType != 'digital-intg' ? this.renderInvert() : ''}
                   </div>
 
                   ${usageType === 'hatswitch' ? html`

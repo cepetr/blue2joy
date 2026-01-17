@@ -108,7 +108,7 @@ export const HID_USAGE_LABELS: Record<number, string> = {
 };
 
 // Control type meta: classify HID usages as 'analog', 'digital', or 'hatswitch'
-export type HidControlType = '' | 'analog' | 'digital' | 'hatswitch';
+export type HidControlType = '' | 'analog' | 'digital' | 'hatswitch' | 'analog-intg' | 'digital-intg';
 
 export const HID_USAGE_TYPE: Record<number, HidControlType> = {
   [HidUsage.NOT_ASSIGNED]: '',
@@ -123,10 +123,10 @@ export const HID_USAGE_TYPE: Record<number, HidControlType> = {
   [HidUsage.ACCELL]: 'analog',
   [HidUsage.BRAKE]: 'analog',
 
-  [HidUsage.INTG0_ABS]: 'analog',
-  [HidUsage.INTG0_ENC]: 'analog',
-  [HidUsage.INTG1_ABS]: 'analog',
-  [HidUsage.INTG1_ENC]: 'analog',
+  [HidUsage.INTG0_ABS]: 'analog-intg',
+  [HidUsage.INTG0_ENC]: 'analog-intg',
+  [HidUsage.INTG1_ABS]: 'analog-intg',
+  [HidUsage.INTG1_ENC]: 'analog-intg',
 
   // Hat switch
   [HidUsage.HAT_SWITCH]: 'hatswitch',
@@ -165,8 +165,8 @@ export const HID_USAGE_TYPE: Record<number, HidControlType> = {
   [HidUsage.BUTTON_31]: 'digital',
   [HidUsage.BUTTON_32]: 'digital',
 
-  [HidUsage.INTG0_QA]: 'digital',
-  [HidUsage.INTG0_QB]: 'digital',
-  [HidUsage.INTG1_QA]: 'digital',
-  [HidUsage.INTG1_QB]: 'digital',
+  [HidUsage.INTG0_QA]: 'digital-intg',
+  [HidUsage.INTG0_QB]: 'digital-intg',
+  [HidUsage.INTG1_QA]: 'digital-intg',
+  [HidUsage.INTG1_QB]: 'digital-intg',
 };

@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { HID_USAGE_LABELS, HidUsage } from '../utils/hid-usage.js';
+import { HID_USAGE_LABELS, HID_USAGE_TYPE, HidControlType, HidUsage } from '../utils/hid-usage.js';
 
 // Get sorted list of all usages
 const ALL_USAGES = Object.values(HidUsage)
@@ -19,6 +19,9 @@ export class HidUsageSelect extends LitElement {
   @property({ type: Boolean })
   disabled = false;
 
+  @property({ type: Array })
+  filter: HidControlType[] = [];
+
   private handleChange(e: Event) {
     const select = e.target as HTMLSelectElement;
     const newValue = parseInt(select.value, 10);
@@ -34,6 +37,15 @@ export class HidUsageSelect extends LitElement {
     const isKnownValue = ALL_USAGES.includes(this.value);
     const hexValue = `0x${this.value.toString(16).toUpperCase().padStart(4, '0')}`;
 
+    // Filter usages based on the filter property
+    let filteredUsages = ALL_USAGES;
+    if (this.filter.length > 0) {
+      filteredUsages = ALL_USAGES.filter(usage =>
+        HID_USAGE_TYPE[usage] === '' ||
+        this.filter.includes(HID_USAGE_TYPE[usage] || '')
+      );
+    }
+
     return html`
       <select
         class="form-select"
@@ -46,7 +58,7 @@ export class HidUsageSelect extends LitElement {
             ${hexValue}
           </option>
         ` : ''}
-        ${ALL_USAGES.map(usage => html`
+        ${filteredUsages.map(usage => html`
           <option value=${String(usage)} ?selected=${usage === this.value}>
             ${HID_USAGE_LABELS[usage] || `0x${usage.toString(16).toUpperCase()}`}
           </option>
