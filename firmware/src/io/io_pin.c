@@ -166,7 +166,7 @@ static void timer_handler(nrf_timer_event_t event_type, void *p_context)
             const io_pin_config_t *cfg = &drv->config[i];
             if (cfg->mode == IO_PIN_MODE_ENCODER && cfg->enc_idx == enc_idx) {
                 const uint8_t map[4] = {0, 2, 3, 1};
-                io_pin_set(i, map[state] & (1 << cfg->enc_phase) ? true : false);
+                io_pin_set(i, map[state] & (1 << cfg->enc_phase) ? false : true);
             }
         }
     }

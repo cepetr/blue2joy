@@ -120,6 +120,24 @@ int mapper_get_profile(int idx, mapper_profile_t *profile)
     return 0;
 }
 
+static void reconfigure_io_pins(const mapper_profile_t *profile)
+{
+    for (int i = 0; i < ARRAY_SIZE(profile->pin); i++) {
+        const mapper_pin_config_t *pin_config = &profile->pin[i];
+
+        io_pin_config_t io_config = {
+            .mode = IO_PIN_MODE_NORMAL,
+        };
+
+        if (HRM_USAGE_IS_INTG(pin_config->source)) {
+            io_config.mode = IO_PIN_MODE_ENCODER;
+            io_config.enc_idx = HRM_USAGE_GET_INTG_IDX(pin_config->source);
+            io_config.enc_phase = HRM_USAGE_GET_INTG_PHASE(pin_config->source);
+        };
+        io_pin_configure(i, &io_config);
+    }
+}
+
 int mapper_set_profile(int idx, const mapper_profile_t *profile, bool save)
 {
     mapper_t *mapper = &g_mapper;
@@ -139,6 +157,10 @@ int mapper_set_profile(int idx, const mapper_profile_t *profile, bool save)
     }
 
     if (changed) {
+        if (idx == mapper->sync.active_profile) {
+            reconfigure_io_pins(profile);
+        }
+
         event_t ev = {
             .subject = EV_SUBJECT_PROFILE,
             .action = EV_ACTION_UPDATE,
@@ -366,25 +388,8 @@ static void mapper_set_active_profile(int profile_idx)
     k_mutex_lock(&mapper->mutex, K_FOREVER);
 
     if (mapper->sync.active_profile != profile_idx) {
-
         mapper->sync.active_profile = profile_idx;
-
-        const mapper_profile_t *profile = &mapper->sync.profiles[profile_idx];
-
-        for (int i = 0; i < ARRAY_SIZE(profile->pin); i++) {
-            const mapper_pin_config_t *pin_config = &profile->pin[i];
-
-            io_pin_config_t io_config = {
-                .mode = IO_PIN_MODE_NORMAL,
-            };
-
-            if (HRM_USAGE_IS_INTG(pin_config->source)) {
-                io_config.mode = IO_PIN_MODE_ENCODER;
-                io_config.enc_idx = HRM_USAGE_GET_INTG_IDX(pin_config->source);
-                io_config.enc_phase = HRM_USAGE_GET_INTG_PHASE(pin_config->source);
-            };
-            io_pin_configure(i, &io_config);
-        }
+        reconfigure_io_pins(&mapper->sync.profiles[profile_idx]);
     }
 
     k_mutex_unlock(&mapper->mutex);
