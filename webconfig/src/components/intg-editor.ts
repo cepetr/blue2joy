@@ -2,6 +2,7 @@ import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { btj } from '../models/btj-model.js';
 import { Btj } from '../services/btj-messages.js';
+import { HID_USAGE_TYPE } from '../utils/hid-usage.js';
 import './hid-usage-select.js';
 
 @customElement('intg-editor')
@@ -128,6 +129,7 @@ export class IntgEditor extends LitElement {
 
   override render() {
     const mode = this._local.mode;
+    const usageType = HID_USAGE_TYPE[this._local.source];
     return html`
       <div class="card">
         <div class="row g-0 align-items-stretch">
@@ -142,17 +144,19 @@ export class IntgEditor extends LitElement {
                 <div class="col-12 col-xl-2">
                   ${this.renderSource()}
                 </div>
+
+
                 <div class="col-6 col-xl-2">
-                  ${this.renderMode()}
+                  ${usageType != '' ? this.renderMode() : ''}
                 </div>
                 <div class="col-6 col-xl-2">
-                  ${mode === Btj.IntgMode.ABSOLUTE ? this.renderDeadZone() : ''}
+                  ${usageType != '' && mode === Btj.IntgMode.ABSOLUTE ? this.renderDeadZone() : ''}
                 </div>
                 <div class="col-6 col-xl-2">
-                  ${this.renderGain()}
+                  ${usageType != '' ? this.renderGain() : ''}
                 </div>
                 <div class="col-12 col-xl-2">
-                  ${this.renderMax()}
+                  ${usageType != '' ? this.renderMax() : ''}
                 </div>
               </div>
             </div>

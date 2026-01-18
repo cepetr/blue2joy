@@ -35,7 +35,7 @@ export class PinEditor extends LitElement {
         <label class="form-label">Source</label>
         <hid-usage-select
           .value=${cfg.source}
-          .filter=${['digital', 'analog', 'digital-intg']}
+          .filter=${['digital', 'analog', 'hatswitch', 'digital-intg']}
           @change=${(e: CustomEvent) => {
         this._local = { ...this._local, source: e.detail.value };
         this.emitEdit();
