@@ -1,4 +1,4 @@
-# Buttons function
+# Buttons Function
 
 There are two buttons on the device, labeled 1 (left) and 2 (right).
 

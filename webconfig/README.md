@@ -6,6 +6,11 @@ It provides an easy way to configure the mapping of HID controls to joystick por
 
 Application communicates with Blue2Joy over Bluetooth, even while it is connected to HID devices (e.g., gamepads, mice).
 
+<div>
+  <img width="49%" src="../doc/images/web/device-list.png">
+  <img width="49%" src="../doc/images/web/joy2b-with-gamepad.png">
+</div>
+
 # How to build
 
 You don't neeed to build anything. Just go to
