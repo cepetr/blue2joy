@@ -167,8 +167,8 @@ export class AppRoot extends MobxLitElement {
         ${profilesVisible ? html`
           <div class="mt-2 text-muted">Profiles</div>
           ${profileIds.map(id => html`
-            <a class="nav-link ${isProfileActive(id) ? 'active' : ''}">
-               href="${this.buildPath(`/profiles/${id}`)}">
+            <a class="nav-link ${isProfileActive(id) ? 'active' : ''}"
+               href="${this.buildPath(`/profiles/${id}`)}"
                aria-current=${isProfileActive(id) ? 'page' : undefined}>
               Profile ${id}
             </a>
