@@ -35,15 +35,16 @@ export class DevicesView extends MobxLitElement {
 
   private renderDeviceTable() {
     return html`
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>MAC Address</th>
-            <th>State</th>
-            <th>Profile</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th>MAC Address</th>
+              <th>State</th>
+              <th>Profile</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
         <tbody>
           ${btj.devices.length === 0 ? html`
             <tr>
@@ -53,21 +54,23 @@ export class DevicesView extends MobxLitElement {
       }
         </tbody>
       </table>
+      </div>
     `;
   }
 
 
   private renderScanTable() {
     return html`
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>Address</th>
-            <th>Name</th>
-            <th>RSSI</th>
-            <th></th>
-          </tr>
-        </thead>
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Name</th>
+              <th>RSSI</th>
+              <th></th>
+            </tr>
+          </thead>
         <tbody>
         ${btj.advDevices.length === 0 ? html`
           <tr>
@@ -86,6 +89,7 @@ export class DevicesView extends MobxLitElement {
           `)}
         </tbody>
       </table>
+      </div>
     `;
   }
 
