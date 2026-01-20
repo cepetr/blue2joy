@@ -10,6 +10,11 @@ export class DevicesView extends MobxLitElement {
     return this;
   }
 
+  private onProfileChange(dev: DeviceEntry, e: Event) {
+    const profileId = parseInt((e.target as HTMLSelectElement).value);
+    btj.setDeviceProfile(dev.addr, profileId);
+  }
+
   private renderDeviceRow(dev: DeviceEntry) {
     return html`
       <tr>
@@ -19,7 +24,7 @@ export class DevicesView extends MobxLitElement {
         <td>
           <select
             class="form-select form-select-sm"
-            @change=${(e: Event) => btj.setDeviceProfile(dev.addr, parseInt((e.target as HTMLSelectElement).value))}
+            @change=${(e: Event) => this.onProfileChange(dev, e)}
           >
             ${[0, 1, 2, 3, 4].map(p => html`
               <option

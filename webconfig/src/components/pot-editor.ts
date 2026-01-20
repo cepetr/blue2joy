@@ -28,6 +28,11 @@ export class PotEditor extends LitElement {
     btj.setPotConfig(this.profileId, this.potId, this._local);
   }
 
+  private onSourceChange(e: CustomEvent) {
+    this._local = { ...this._local, source: e.detail.value };
+    this.emitEdit();
+  }
+
   private renderSource() {
     const cfg = this._local;
     return html`
@@ -36,13 +41,16 @@ export class PotEditor extends LitElement {
         <hid-usage-select
           .value=${cfg.source}
           .filter=${['digital', 'analog', 'analog-intg']}
-          @change=${(e: CustomEvent) => {
-        this._local = { ...this._local, source: e.detail.value };
-        this.emitEdit();
-      }}
+          @change=${this.onSourceChange}
         ></hid-usage-select>
       </div>
     `;
+  }
+
+  private onMinChange(e: Event) {
+    const v = Number((e.target as HTMLInputElement).value);
+    this._local = { ...this._local, low: v };
+    this.emitEdit();
   }
 
   private renderMin() {
@@ -53,13 +61,17 @@ export class PotEditor extends LitElement {
         <input
           class="form-control"
           .value=${String(cfg.low ?? '')}
-          @input=${(e: Event) => {
-        this._local = { ...this._local, low: Number((e.target as HTMLInputElement).value) };
-      }}
-          @change=${() => { this.emitEdit(); }}
+          @input=${this.onMinChange}
+          @change=${this.emitEdit}
         />
       </div>
     `;
+  }
+
+  private onMaxChange(e: Event) {
+    const v = Number((e.target as HTMLInputElement).value);
+    this._local = { ...this._local, high: v };
+    this.emitEdit();
   }
 
   private renderMax() {
@@ -70,10 +82,9 @@ export class PotEditor extends LitElement {
         <input
           class="form-control"
           .value=${String(cfg.high ?? '')}
-          @input=${(e: Event) => {
-        this._local = { ...this._local, high: Number((e.target as HTMLInputElement).value) };
-      }}
-          @change=${() => { this.emitEdit(); }}/>
+          @input=${this.onMaxChange}
+          @change=${this.emitEdit}
+        />
       </div>
     `;
   }
@@ -83,11 +94,15 @@ export class PotEditor extends LitElement {
     return html`
       <div class="card">
         <div class="row g-0 align-items-stretch">
+
           <div class="col-auto">
             <div class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center">
-              <h5 class="card-title mb-0">Pot ${this.potId}</h5>
+              <h5 class="card-title mb-0">
+                Pot ${this.potId}
+              </h5>
             </div>
           </div>
+
           <div class="col">
             <div class="card-body">
               <div class="row g-4">
@@ -107,6 +122,7 @@ export class PotEditor extends LitElement {
               </div>
             </div>
           </div>
+
         </div>
       </div>
     `;

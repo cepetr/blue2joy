@@ -28,6 +28,11 @@ export class IntgEditor extends LitElement {
     btj.setIntgConfig(this.profileId, this.intgId, this._local);
   }
 
+  private onSourceChange(e: CustomEvent) {
+    this._local = { ...this._local, source: e.detail.value };
+    this.emitEdit();
+  }
+
   private renderSource() {
     const cfg = this._local;
     return html`
@@ -36,13 +41,17 @@ export class IntgEditor extends LitElement {
         <hid-usage-select
           .value=${cfg.source}
           .filter=${['analog']}
-          @change=${(e: CustomEvent) => {
-        this._local = { ...this._local, source: e.detail.value };
-        this.emitEdit();
-      }}
-        ></hid-usage-select>
+          @change=${this.onSourceChange}
+        >
+        </hid-usage-select>
       </div>
     `;
+  }
+
+  private onModeChange(e: Event) {
+    const v = Number((e.target as HTMLSelectElement).value);
+    this._local = { ...this._local, mode: v };
+    this.emitEdit();
   }
 
   private renderMode() {
@@ -53,17 +62,19 @@ export class IntgEditor extends LitElement {
         <select
           class="form-select"
           .value=${String(cfg.mode)}
-          @change=${(e: Event) => {
-        const select = e.target as HTMLSelectElement;
-        this._local = { ...this._local, mode: Number(select.value) };
-        this.emitEdit();
-      }}
+          @change=${this.onModeChange}
         >
           <option value="0" ?selected=${cfg.mode === Btj.IntgMode.RELATIVE}>Relative</option>
           <option value="1" ?selected=${cfg.mode === Btj.IntgMode.ABSOLUTE}>Absolute</option>
         </select>
       </div>
     `;
+  }
+
+  private onDeadZoneChange(e: Event) {
+    const v = Number((e.target as HTMLInputElement).value);
+    this._local = { ...this._local, deadZone: v };
+    this.emitEdit();
   }
 
   // Render dead zone as slide, 0-20%
@@ -78,11 +89,17 @@ export class IntgEditor extends LitElement {
           min="0"
           max="20"
           .value=${String(cfg.deadZone)}
-          @input=${(e: Event) => { const input = e.target as HTMLInputElement; this._local = { ...this._local, deadZone: Number(input.value) }; }}
-          @change=${() => { this.emitEdit(); }}
+          @input=${this.onDeadZoneChange}
+          @change=${this.emitEdit}
         />
       </div>
     `;
+  }
+
+  private onGainChange(e: Event) {
+    const v = Number((e.target as HTMLInputElement).value);
+    this._local = { ...this._local, gain: v };
+    this.emitEdit();
   }
 
   private renderGain() {
@@ -95,11 +112,16 @@ export class IntgEditor extends LitElement {
           step="0.001"
           class="form-control"
           .value=${String(cfg.gain ?? '')}
-          @input=${(e: Event) => { this._local = { ...this._local, gain: Number((e.target as HTMLInputElement).value) }; }}
-          @change=${() => { this.emitEdit(); }}
+          @input=${this.onGainChange}
+          @change=${this.emitEdit}
         />
       </div>
     `;
+  }
+
+  private onMaxInput(e: Event) {
+    const input = e.target as HTMLInputElement;
+    this._local = { ...this._local, max: Number(input.value) };
   }
 
   private renderMax() {
@@ -110,8 +132,8 @@ export class IntgEditor extends LitElement {
         <input
           class="form-control"
           .value=${String(cfg.max ?? '')}
-          @input=${(e: Event) => { this._local = { ...this._local, max: Number((e.target as HTMLInputElement).value) }; }}
-          @change=${() => { this.emitEdit(); }}
+          @input=${this.onMaxInput}
+          @change=${this.emitEdit}
         />
       </div>
     `;
@@ -123,11 +145,15 @@ export class IntgEditor extends LitElement {
     return html`
       <div class="card">
         <div class="row g-0 align-items-stretch">
+
           <div class="col-auto">
             <div class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center">
-              <h5 class="card-title mb-0">Int ${this.intgId}</h5>
+              <h5 class="card-title mb-0">
+                Int ${this.intgId}
+              </h5>
             </div>
           </div>
+
           <div class="col">
             <div class="card-body">
               <div class="row g-4" >
@@ -149,6 +175,7 @@ export class IntgEditor extends LitElement {
               </div>
             </div>
           </div>
+
         </div>
       </div>
     `;

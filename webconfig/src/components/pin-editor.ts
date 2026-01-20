@@ -28,6 +28,11 @@ export class PinEditor extends LitElement {
     btj.setPinConfig(this.profileId, this.pinId, this._local);
   }
 
+  private onSourceChange(e: CustomEvent) {
+    this._local = { ...this._local, source: e.detail.value };
+    this.emitEdit();
+  }
+
   private renderSource() {
     const cfg = this._local;
     return html`
@@ -36,14 +41,17 @@ export class PinEditor extends LitElement {
         <hid-usage-select
           .value=${cfg.source}
           .filter=${['digital', 'analog', 'hatswitch', 'digital-intg']}
-          @change=${(e: CustomEvent) => {
-        this._local = { ...this._local, source: e.detail.value };
-        this.emitEdit();
-      }}
+          @change=${this.onSourceChange}
         >
         </hid-usage-select>
       </div>
     `;
+  }
+
+  private onInvertChange(e: Event) {
+    const v = (e.target as HTMLSelectElement).value === 'inverted';
+    this._local = { ...this._local, invert: v };
+    this.emitEdit();
   }
 
   private renderInvert() {
@@ -54,17 +62,19 @@ export class PinEditor extends LitElement {
         <select
           class="form-select"
           aria-label="Invert"
-          @change=${(e: Event) => {
-        const v = (e.target as HTMLSelectElement).value === 'inverted';
-        this._local = { ...this._local, invert: v };
-        this.emitEdit();
-      }}
+          @change=${this.onInvertChange}
         >
           <option value="normal" ?selected=${!cfg.invert}>Normal</option>
           <option value="inverted" ?selected=${cfg.invert}>Inverted</option>
         </select>
       </div>
     `;
+  }
+
+  private onHatSwitchChange(e: Event) {
+    const v = Number((e.target as HTMLSelectElement).value);
+    this._local = { ...this._local, hatSwitch: v };
+    this.emitEdit();
   }
 
   private renderHatSwitch() {
@@ -77,11 +87,7 @@ export class PinEditor extends LitElement {
         <label class="form-label">Direction</label>
         <select
           class="form-select"
-          @change=${(e: Event) => {
-        const v = Number((e.target as HTMLSelectElement).value);
-        this._local = { ...this._local, hatSwitch: v };
-        this.emitEdit();
-      }}
+          @change=${this.onHatSwitchChange}
         >
           ${!isKnownHat
         ? html`<option value=${String(cfg.hatSwitch)} selected>
@@ -98,6 +104,12 @@ export class PinEditor extends LitElement {
     `;
   }
 
+  private onThresholdChange(e: Event) {
+    const v = Number((e.target as HTMLInputElement).value);
+    this._local = { ...this._local, threshold: v };
+    this.emitEdit();
+  }
+
   private renderThreshold() {
     const cfg = this._local;
     return html`
@@ -110,14 +122,17 @@ export class PinEditor extends LitElement {
           max="100"
           step="1"
           .value=${String(cfg.threshold ?? 0)}
-          @input=${(e: Event) => {
-        const v = Number((e.target as HTMLInputElement).value);
-        this._local = { ...this._local, threshold: v };
-      }}
-          @change=${() => { this.emitEdit(); }}
+          @input=${this.onThresholdChange}
+          @change=${this.emitEdit}
         />
       </div>
     `;
+  }
+
+  private onHysteresisChange(e: Event) {
+    const v = Number((e.target as HTMLInputElement).value);
+    this._local = { ...this._local, hysteresis: v };
+    this.emitEdit();
   }
 
   private renderHysteresis() {
@@ -132,11 +147,8 @@ export class PinEditor extends LitElement {
           max="30"
           step="1"
           .value=${String(cfg.hysteresis ?? 0)}
-          @input=${(e: Event) => {
-        const v = Number((e.target as HTMLInputElement).value);
-        this._local = { ...this._local, hysteresis: v };
-      }}
-          @change=${() => { this.emitEdit(); }}
+          @input=${this.onHysteresisChange}
+          @change=${this.emitEdit}
         />
       </div>
     `;
@@ -148,11 +160,15 @@ export class PinEditor extends LitElement {
     return html`
         <div class="card">
           <div class="row g-0 align-items-stretch">
+
             <div class="col-auto">
               <div class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center">
-                <h5 class="card-title mb-0">Pin ${this.pinId}</h5>
+                <h5 class="card-title mb-0">
+                  Pin ${this.pinId}
+                </h5>
               </div>
             </div>
+
             <div class="col">
               <div class="card-body">
                 <div class="row g-4">
@@ -179,6 +195,7 @@ export class PinEditor extends LitElement {
                   ` : ''}
                 </div>
             </div>
+
           </div>
         </div>
     `;
