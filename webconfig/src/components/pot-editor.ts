@@ -56,9 +56,8 @@ export class PotEditor extends LitElement {
           @input=${(e: Event) => {
         this._local = { ...this._local, low: Number((e.target as HTMLInputElement).value) };
       }}
-          @change=${() => {
-        this.emitEdit();
-      }}        />
+          @change=${() => { this.emitEdit(); }}
+        />
       </div>
     `;
   }
@@ -74,9 +73,7 @@ export class PotEditor extends LitElement {
           @input=${(e: Event) => {
         this._local = { ...this._local, high: Number((e.target as HTMLInputElement).value) };
       }}
-          @change=${() => {
-        this.emitEdit();
-      }}/>
+          @change=${() => { this.emitEdit(); }}/>
       </div>
     `;
   }

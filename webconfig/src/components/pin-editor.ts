@@ -40,7 +40,8 @@ export class PinEditor extends LitElement {
         this._local = { ...this._local, source: e.detail.value };
         this.emitEdit();
       }}
-        ></hid-usage-select>
+        >
+        </hid-usage-select>
       </div>
     `;
   }
@@ -113,9 +114,7 @@ export class PinEditor extends LitElement {
         const v = Number((e.target as HTMLInputElement).value);
         this._local = { ...this._local, threshold: v };
       }}
-          @change=${() => {
-        this.emitEdit();
-      }}
+          @change=${() => { this.emitEdit(); }}
         />
       </div>
     `;
@@ -137,9 +136,7 @@ export class PinEditor extends LitElement {
         const v = Number((e.target as HTMLInputElement).value);
         this._local = { ...this._local, hysteresis: v };
       }}
-          @change=${() => {
-        this.emitEdit();
-      }}
+          @change=${() => { this.emitEdit(); }}
         />
       </div>
     `;

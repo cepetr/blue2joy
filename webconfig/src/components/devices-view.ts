@@ -15,21 +15,32 @@ export class DevicesView extends MobxLitElement {
       <tr>
         <td>${dev.addr.toString()}</td>
         <td>${Btj.ConnState[dev.state?.connState]}</td>
+
         <td>
-          <select class="form-select form-select-sm"
+          <select
+            class="form-select form-select-sm"
             @change=${(e: Event) => btj.setDeviceProfile(dev.addr, parseInt((e.target as HTMLSelectElement).value))}
           >
             ${[0, 1, 2, 3, 4].map(p => html`
-              <option value=${String(p)} ?selected=${p === (dev.config?.profile ?? 0)}>${p}
+              <option
+                value=${String(p)}
+                ?selected=${p === (dev.config?.profile ?? 0)}
+              >
+                ${p}
               </option>
            `)}
           </select>
         </td>
+
         <td class="text-end">
-          <button type="button" class="btn btn-outline-danger btn-sm"
-            @click=${() => btj.deleteDevice(dev.addr)} title="Delete device">
-              <span class="d-none d-md-inline">Delete</span>
-              <i class="d-md-none bi bi-trash"></i>
+          <button
+            type="button"
+            class="btn btn-outline-danger btn-sm"
+            @click=${() => btj.deleteDevice(dev.addr)}
+            title="Delete device"
+          >
+            <span class="d-none d-md-inline">Delete</span>
+            <i class="d-md-none bi bi-trash"></i>
           </button>
         </td>
       </tr>
@@ -40,6 +51,7 @@ export class DevicesView extends MobxLitElement {
     return html`
       <div class="table-responsive">
         <table class="table table-striped table-sm">
+
           <thead>
             <tr>
               <th>MAC Address</th>
@@ -48,15 +60,16 @@ export class DevicesView extends MobxLitElement {
               <th class="text-end"><span class="d-none d-sm-inline">Actions</span></th>
             </tr>
           </thead>
-        <tbody>
-          ${btj.devices.length === 0 ? html`
-            <tr>
-              <td colspan="4">No devices found.</td>
-            </tr>
-          `: btj.devices.map(dev => this.renderDeviceRow(dev))
-      }
-        </tbody>
-      </table>
+
+          <tbody>
+            ${btj.devices.length === 0 ? html`
+              <tr>
+                <td colspan="4">No devices found.</td>
+              </tr>
+            `: btj.devices.map(dev => this.renderDeviceRow(dev))}
+          </tbody>
+
+        </table>
       </div>
     `;
   }
@@ -66,6 +79,7 @@ export class DevicesView extends MobxLitElement {
     return html`
       <div class="table-responsive">
         <table class="table table-striped table-sm">
+
           <thead>
             <tr>
               <th>Address</th>
@@ -74,24 +88,31 @@ export class DevicesView extends MobxLitElement {
               <th></th>
             </tr>
           </thead>
-        <tbody>
-        ${btj.advDevices.length === 0 ? html`
-          <tr>
-            <td colspan="4">No devices yet</td>
-          </tr>`
-        : btj.advDevices.map(a => html`
-          <tr>
-            <td>${a.addr.toString()}</td>
-            <td>${a.name}</td>
-            <td>${a.rssi}</td>
-            <td>
-              <button type="button" class="btn btn-primary btn-sm"
-                @click=${() => btj.connectDevice(a.addr)}>Connect</button>
-              </td>
-            </tr>
-          `)}
-        </tbody>
-      </table>
+
+          <tbody>
+            ${btj.advDevices.length === 0 ? html`
+              <tr>
+                <td colspan="4">No devices yet</td>
+              </tr>
+            `: btj.advDevices.map(a => html`
+              <tr>
+                <td>${a.addr.toString()}</td>
+                <td>${a.name}</td>
+                <td>${a.rssi}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    @click=${() => btj.connectDevice(a.addr)}
+                  >
+                    Connect
+                  </button>
+                </td>
+              </tr>
+            `)}
+          </tbody>
+
+        </table>
       </div>
     `;
   }
@@ -103,18 +124,27 @@ export class DevicesView extends MobxLitElement {
       ${this.renderDeviceTable()}
 
       ${!scanning ? html`
-        <button type="button" class="btn btn-primary"
-          @click=${() => { btj.startScanning() }}>Start scanning
+        <button
+          type="button"
+          class="btn btn-primary"
+          @click=${() => { btj.startScanning() }}
+        >
+          Start scanning
         </button>
+
         ` : html`
-        <button type="button" class="btn btn-danger"
-          @click=${() => { btj.stopScanning() }}>Stop scanning
+        <button
+          type="button"
+          class="btn btn-danger"
+          @click=${() => { btj.stopScanning() }}
+        >
+          Stop scanning
         </button>
         `
       }
 
       ${scanning ? this.renderScanTable() : ''}
-    `;
+`;
   }
 }
 

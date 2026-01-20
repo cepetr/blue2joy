@@ -78,13 +78,9 @@ export class IntgEditor extends LitElement {
           min="0"
           max="20"
           .value=${String(cfg.deadZone)}
-          @input=${(e: Event) => {
-        const input = e.target as HTMLInputElement;
-        this._local = { ...this._local, deadZone: Number(input.value) };
-      }}
-          @change=${() => {
-        this.emitEdit();
-      }}        />
+          @input=${(e: Event) => { const input = e.target as HTMLInputElement; this._local = { ...this._local, deadZone: Number(input.value) }; }}
+          @change=${() => { this.emitEdit(); }}
+        />
       </div>
     `;
   }
@@ -99,12 +95,9 @@ export class IntgEditor extends LitElement {
           step="0.001"
           class="form-control"
           .value=${String(cfg.gain ?? '')}
-          @input=${(e: Event) => {
-        this._local = { ...this._local, gain: Number((e.target as HTMLInputElement).value) };
-      }}
-          @change=${() => {
-        this.emitEdit();
-      }}/>
+          @input=${(e: Event) => { this._local = { ...this._local, gain: Number((e.target as HTMLInputElement).value) }; }}
+          @change=${() => { this.emitEdit(); }}
+        />
       </div>
     `;
   }
@@ -117,12 +110,9 @@ export class IntgEditor extends LitElement {
         <input
           class="form-control"
           .value=${String(cfg.max ?? '')}
-          @input=${(e: Event) => {
-        this._local = { ...this._local, max: Number((e.target as HTMLInputElement).value) };
-      }}
-          @change=${() => {
-        this.emitEdit();
-      }}/>
+          @input=${(e: Event) => { this._local = { ...this._local, max: Number((e.target as HTMLInputElement).value) }; }}
+          @change=${() => { this.emitEdit(); }}
+        />
       </div>
     `;
   }
@@ -144,8 +134,6 @@ export class IntgEditor extends LitElement {
                 <div class="col-12 col-xl-2">
                   ${this.renderSource()}
                 </div>
-
-
                 <div class="col-6 col-xl-2">
                   ${usageType != '' ? this.renderMode() : ''}
                 </div>

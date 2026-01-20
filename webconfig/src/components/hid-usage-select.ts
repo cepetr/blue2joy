@@ -57,7 +57,8 @@ export class HidUsageSelect extends LitElement {
           <option value=${String(this.value)} selected>
             ${hexValue}
           </option>
-        ` : ''}
+        ` : null}
+
         ${filteredUsages.map(usage => html`
           <option value=${String(usage)} ?selected=${usage === this.value}>
             ${HID_USAGE_LABELS[usage] || `0x${usage.toString(16).toUpperCase()}`}
