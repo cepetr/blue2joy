@@ -25,9 +25,12 @@ export class DevicesView extends MobxLitElement {
            `)}
           </select>
         </td>
-        <td>
+        <td class="text-end">
           <button type="button" class="btn btn-outline-danger btn-sm"
-            @click=${() => btj.deleteDevice(dev.addr)}>Delete</button>
+            @click=${() => btj.deleteDevice(dev.addr)} title="Delete device">
+              <span class="d-none d-md-inline">Delete</span>
+              <i class="d-md-none bi bi-trash"></i>
+          </button>
         </td>
       </tr>
     `;
@@ -42,7 +45,7 @@ export class DevicesView extends MobxLitElement {
               <th>MAC Address</th>
               <th>State</th>
               <th>Profile</th>
-              <th>Actions</th>
+              <th class="text-end"><span class="d-none d-sm-inline">Actions</span></th>
             </tr>
           </thead>
         <tbody>
