@@ -24,11 +24,11 @@ export class IntgEditor extends LitElement {
     }
   }
 
-  private emitEdit() {
+  private emitEdit = () => {
     btj.setIntgConfig(this.profileId, this.intgId, this._local);
   }
 
-  private onSourceChange(e: CustomEvent) {
+  private onSourceChange = (e: CustomEvent) => {
     this._local = { ...this._local, source: e.detail.value };
     this.emitEdit();
   }
@@ -48,7 +48,7 @@ export class IntgEditor extends LitElement {
     `;
   }
 
-  private onModeChange(e: Event) {
+  private onModeChange = (e: Event) => {
     const v = Number((e.target as HTMLSelectElement).value);
     this._local = { ...this._local, mode: v };
     this.emitEdit();
@@ -71,7 +71,7 @@ export class IntgEditor extends LitElement {
     `;
   }
 
-  private onDeadZoneChange(e: Event) {
+  private onDeadZoneChange = (e: Event) => {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, deadZone: v };
     this.emitEdit();
@@ -96,7 +96,7 @@ export class IntgEditor extends LitElement {
     `;
   }
 
-  private onGainChange(e: Event) {
+  private onGainChange = (e: Event) => {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, gain: v };
     this.emitEdit();
@@ -119,7 +119,7 @@ export class IntgEditor extends LitElement {
     `;
   }
 
-  private onMaxInput(e: Event) {
+  private onMaxInput = (e: Event) => {
     const input = e.target as HTMLInputElement;
     this._local = { ...this._local, max: Number(input.value) };
   }

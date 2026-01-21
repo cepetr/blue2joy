@@ -24,11 +24,11 @@ export class PinEditor extends LitElement {
     }
   }
 
-  private emitEdit() {
+  private emitEdit = () => {
     btj.setPinConfig(this.profileId, this.pinId, this._local);
   }
 
-  private onSourceChange(e: CustomEvent) {
+  private onSourceChange = (e: CustomEvent) => {
     this._local = { ...this._local, source: e.detail.value };
     this.emitEdit();
   }
@@ -48,7 +48,7 @@ export class PinEditor extends LitElement {
     `;
   }
 
-  private onInvertChange(e: Event) {
+  private onInvertChange = (e: Event) => {
     const v = (e.target as HTMLSelectElement).value === 'inverted';
     this._local = { ...this._local, invert: v };
     this.emitEdit();
@@ -71,7 +71,7 @@ export class PinEditor extends LitElement {
     `;
   }
 
-  private onHatSwitchChange(e: Event) {
+  private onHatSwitchChange = (e: Event) => {
     const v = Number((e.target as HTMLSelectElement).value);
     this._local = { ...this._local, hatSwitch: v };
     this.emitEdit();
@@ -104,7 +104,7 @@ export class PinEditor extends LitElement {
     `;
   }
 
-  private onThresholdChange(e: Event) {
+  private onThresholdChange = (e: Event) => {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, threshold: v };
     this.emitEdit();
@@ -129,7 +129,7 @@ export class PinEditor extends LitElement {
     `;
   }
 
-  private onHysteresisChange(e: Event) {
+  private onHysteresisChange = (e: Event) => {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, hysteresis: v };
     this.emitEdit();

@@ -24,11 +24,11 @@ export class PotEditor extends LitElement {
     }
   }
 
-  private emitEdit() {
+  private emitEdit = () => {
     btj.setPotConfig(this.profileId, this.potId, this._local);
   }
 
-  private onSourceChange(e: CustomEvent) {
+  private onSourceChange = (e: CustomEvent) => {
     this._local = { ...this._local, source: e.detail.value };
     this.emitEdit();
   }
@@ -47,7 +47,7 @@ export class PotEditor extends LitElement {
     `;
   }
 
-  private onMinChange(e: Event) {
+  private onMinChange = (e: Event) => {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, low: v };
     this.emitEdit();
@@ -68,7 +68,7 @@ export class PotEditor extends LitElement {
     `;
   }
 
-  private onMaxChange(e: Event) {
+  private onMaxChange = (e: Event) => {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, high: v };
     this.emitEdit();

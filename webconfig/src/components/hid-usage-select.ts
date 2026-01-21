@@ -22,7 +22,7 @@ export class HidUsageSelect extends LitElement {
   @property({ type: Array })
   filter: HidControlType[] = [];
 
-  private handleChange(e: Event) {
+  private handleChange = (e: Event) => {
     const select = e.target as HTMLSelectElement;
     const newValue = parseInt(select.value, 10);
     this.value = newValue;

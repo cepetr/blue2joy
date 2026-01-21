@@ -72,7 +72,7 @@ export class AppRoot extends MobxLitElement {
     return this.basePath + path;
   }
 
-  private async onScanClick() {
+  private onScanClick = async () => {
     try {
       this.busy = true;
       await btj.scanAndConnect();
@@ -81,7 +81,7 @@ export class AppRoot extends MobxLitElement {
     }
   }
 
-  private disconnect() {
+  private disconnect = () => {
     btj.disconnect();
   }
 
@@ -251,7 +251,7 @@ export class AppRoot extends MobxLitElement {
           <button
             class="btn btn-outline-secondary w-100"
             data-bs-dismiss="offcanvas"
-            @click=${() => this.disconnect()}
+            @click=${this.disconnect}
           >
             Disconnect
           </button>
