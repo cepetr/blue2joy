@@ -17,7 +17,6 @@
  */
 
 import { MobxLitElement } from '@adobe/lit-mobx';
-import { Router } from '@lit-labs/router';
 import { html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { btj } from '../models/btj-model.js';
@@ -34,43 +33,42 @@ export class AppRoot extends MobxLitElement {
   }
 
   @state() private busy = false;
-
-  private router: Router;
-  private readonly basePath: string;
-
-  constructor() {
-    super();
-    // Use Vite's BASE_URL which is set at build time from the 'base' config
-    // Remove trailing slash for consistency in our route concatenation
-    const base = import.meta.env.BASE_URL;
-    this.basePath = base.endsWith('/') && base.length > 1 ? base.slice(0, -1) : (base === '/' ? '' : base);
-
-    this.router = new Router(this, [
-      {
-        path: this.basePath + '/',
-        render: () => html`<devices-view></devices-view>`
-      },
-      {
-        path: this.basePath + '/devices',
-        render: () => html`<devices-view></devices-view>`
-      },
-      {
-        path: this.basePath + '/profiles/:id',
-        render: (params) => {
-          const profileId = parseInt(params.id as string, 10);
-          return html`<profiles-view .profileId=${profileId}></profiles-view>`;
-        }
-      },
-      {
-        path: this.basePath + '/profiles',
-        render: () => html`<profiles-view .profileId=${0}></profiles-view>`
-      },
-    ]);
-  }
+  @state() private currentHash = location.hash.slice(1) || '/';
 
   private buildPath(path: string): string {
-    return this.basePath + path;
+    return `#${path}`;
   }
+
+  private isCurrentPath(path: string): boolean {
+    return this.currentHash === path || this.currentHash.startsWith(path + '/');
+  }
+
+  override connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener('hashchange', this.handleHashChange);
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener('hashchange', this.handleHashChange);
+  }
+
+  private handleHashChange = () => {
+    this.currentHash = location.hash.slice(1) || '/';
+  }
+
+  private renderRoute() {
+    const hash = this.currentHash;
+
+    const profileMatch = hash.match(/^\/profiles\/(\d+)$/);
+    if (profileMatch) {
+      const profileId = parseInt(profileMatch[1], 10);
+      return html`<profiles-view .profileId=${profileId}></profiles-view>`;
+    }
+
+    return html`<devices-view></devices-view>`;
+  }
+
 
   private onScanClick = async () => {
     try {
@@ -172,11 +170,9 @@ export class AppRoot extends MobxLitElement {
   }
 
   private renderMenu(mode: 'navbar' | 'offcanvas' = 'navbar') {
-    const currentPath = location.pathname;
-    const devicesActive = currentPath === this.basePath + '/' ||
-      currentPath === this.basePath || currentPath.startsWith(this.basePath + '/devices');
-    const profilesActive = currentPath.startsWith(this.basePath + '/profiles');
-    const isProfileActive = (id: number) => currentPath === this.basePath + `/profiles/${id}`;
+    const devicesActive = this.isCurrentPath('/') || this.isCurrentPath('/devices');
+    const profilesActive = this.isCurrentPath('/profiles');
+    const isProfileActive = (id: number) => this.isCurrentPath(`/profiles/${id}`);
     const profileIds = Array.from(btj.profiles.keys());
     const profilesVisible = btj.connected && profileIds.length > 0;
     if (mode === 'navbar') {
@@ -264,7 +260,7 @@ export class AppRoot extends MobxLitElement {
     return html`
       <nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary">
         <div class="container-fluid">
-          <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+          <a class="navbar-brand d-flex align-items-center gap-2" href="${this.buildPath('/')}">
             <span>🕹️</span>
             <span>Blue2Joy</span>
           </a>
@@ -329,7 +325,7 @@ export class AppRoot extends MobxLitElement {
           ${this.renderNavbar()}
         </div>
         <div class="row">
-          ${btj.connected ? this.router.outlet() : this.renderNotConnected()}
+          ${btj.connected ? this.renderRoute() : this.renderNotConnected()}
         </div>
       </div>
     `;
