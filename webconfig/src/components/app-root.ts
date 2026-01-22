@@ -126,11 +126,9 @@ export class AppRoot extends MobxLitElement {
     `;
   }
 
-  private renderInfo(mode: 'navbar' | 'offcanvas' = 'navbar') {
+  private renderTopbarInfo() {
     if (!btj.sysInfo || !btj.sysState) return null;
-    const scanning = btj.sysState?.scanning ? 'SCANNING' : '';
-    if (mode === 'navbar') {
-      return html`
+    return html`
         <span class="vr mx-2"></span>
 
         <span class="navbar-text d-none d-sm-inline">
@@ -146,97 +144,108 @@ export class AppRoot extends MobxLitElement {
         </span>
 
         <span class="navbar-text">
-          ${scanning}
+          ${btj.sysState?.scanning ? 'SCANNING' : ''}
         </span>
       `;
-    }
+  }
+
+  private renderSidebarInfo() {
+    if (!btj.sysInfo || !btj.sysState) return null;
     return html`
       <ul class="list-unstyled mb-0">
         <li><strong>Device:</strong>
           ${btj.sysInfo.hw_id}
         </li>
-
         <li>
           <strong>Firmware:</strong>
           ${btj.sysInfo.sw_version}
         </li>
-
         <li>
           <strong>Current Mode:</strong>
-          ${Btj.SysMode[btj.sysState.mode]} ${scanning}
+          ${Btj.SysMode[btj.sysState.mode]}
+          ${btj.sysState?.scanning ? 'SCANNING' : ''}
         </li>
       </ul>
     `;
   }
 
-  private renderMenu(mode: 'navbar' | 'offcanvas' = 'navbar') {
-    const devicesActive = this.isCurrentPath('/') || this.isCurrentPath('/devices');
-    const profilesActive = this.isCurrentPath('/profiles');
-    const isProfileActive = (id: number) => this.isCurrentPath(`/profiles/${id}`);
+
+  private getNavState() {
+    const isDevices = this.isCurrentPath('/') || this.isCurrentPath('/devices');
+    const isProfile = (id: number) => this.isCurrentPath(`/profiles/${id}`);
     const profileIds = Array.from(btj.profiles.keys());
-    const profilesVisible = btj.connected && profileIds.length > 0;
-    if (mode === 'navbar') {
-      return html`
-        <ul class="navbar-nav me-auto">
+    const hasProfiles = btj.connected && profileIds.length > 0;
 
-          <li class="nav-item ${btj.connected ? '' : 'd-none'}">
-            <a class="nav-link ${devicesActive ? 'active' : ''}"
-              aria-current=${devicesActive ? 'page' : undefined}
-              href="${this.buildPath('/devices')}"
-            >
-              Devices
-            </a>
-          </li>
+    return { isDevices, isProfile, profileIds, hasProfiles };
+  }
 
-          <li class="nav-item dropdown ${profilesVisible ? '' : 'd-none'}">
-            <a class="nav-link dropdown-toggle ${profilesActive ? 'active' : ''}"
-              href="#" role="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Profiles
-            </a>
-            <ul class="dropdown-menu">
-              ${profileIds.map(id => html`
-                <li>
-                  <a class="dropdown-item ${isProfileActive(id) ? 'active' : ''}"
-                    href="${this.buildPath(`/profiles/${id}`)}"
-                  >
-                    Profile ${id}
-                  </a>
-                </li>
-              `)}
-            </ul>
-          </li>
-        </ul>
-        ${btj.connected ? html`
-          <button class="btn btn-outline-secondary ms-3"
-            @click=${this.disconnect}
+  private renderTopbarMenu() {
+    const { isDevices, isProfile, profileIds, hasProfiles } = this.getNavState();
+    return html`
+      <ul class="nav nav-tabs">
+
+        <li class="nav-item ${btj.connected ? '' : 'd-none'}">
+          <a class="nav-link ${isDevices ? 'active' : ''}"
+            aria-current=${isDevices ? 'page' : undefined}
+            href="${this.buildPath('/devices')}"
           >
-            Disconnect
-          </button>
-        ` : html`
-          <span class="navbar-text ms-3">NOT CONNECTED</span>
-        `}
-      `;
-    }
+            Devices
+          </a>
+        </li>
+
+        <li class="nav-item dropdown ${hasProfiles ? '' : 'd-none'}">
+          <a class="nav-link dropdown-toggle ${profileIds.some(id => isProfile(id)) ? 'active' : ''}"
+            href="#" role="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            Profiles
+          </a>
+          <ul class="dropdown-menu">
+            ${profileIds.map(id => html`
+              <li>
+                <a class="dropdown-item ${isProfile(id) ? 'active' : ''}"
+                  href="${this.buildPath(`/profiles/${id}`)}"
+                >
+                  Profile ${id}
+                </a>
+              </li>
+            `)}
+          </ul>
+        </li>
+
+      </ul>
+
+      ${btj.connected ? html`
+        <button
+          class="btn btn-outline-secondary ms-3"
+          @click=${this.disconnect}
+        >
+          Disconnect
+        </button>
+      ` : html`
+        <span class="navbar-text ms-3">NOT CONNECTED</span>
+      `}
+    `;
+  }
+
+  private renderSidebarMenu() {
+    const { isDevices, isProfile, profileIds, hasProfiles } = this.getNavState();
     return html`
       <nav class="nav nav-pills flex-column gap-1">
         <a
-          class="nav-link ${btj.connected ? '' : 'disabled'} ${devicesActive ? 'active' : ''}"
+          class="nav-link ${btj.connected ? '' : 'disabled'} ${isDevices ? 'active' : ''}"
           href="${this.buildPath('/devices')}"
-          aria-current=${devicesActive ? 'page' : undefined}
         >
           Devices
         </a>
 
-        ${profilesVisible ? html`
+        ${hasProfiles ? html`
           <div class="mt-2 text-muted">Profiles</div>
           ${profileIds.map(id => html`
             <a
-              class="nav-link ${isProfileActive(id) ? 'active' : ''}"
+              class="nav-link ${isProfile(id) ? 'active' : ''}"
               href="${this.buildPath(`/profiles/${id}`)}"
-              aria-current=${isProfileActive(id) ? 'page' : undefined}
             >
               Profile ${id}
             </a>
@@ -260,22 +269,22 @@ export class AppRoot extends MobxLitElement {
     return html`
       <nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary">
         <div class="container-fluid">
-          <a class="navbar-brand d-flex align-items-center gap-2" href="${this.buildPath('/')}">
+          <a class="navbar-brand d-flex gap-2" href="${this.buildPath('/')}">
             <span>🕹️</span>
             <span>Blue2Joy</span>
           </a>
 
-          <div class="d-none d-lg-flex w-100 align-items-center gap-3">
-            <div class="d-flex align-items-center gap-3">
-              ${this.renderInfo('navbar')}
+          <div class="d-none d-lg-flex w-100">
+            <div class="d-flex gap-3">
+              ${this.renderTopbarInfo()}
             </div>
-            <div class="d-flex align-items-center ms-auto gap-3">
-              ${this.renderMenu('navbar')}
+            <div class="d-flex ms-auto gap-3">
+              ${this.renderTopbarMenu()}
             </div>
           </div>
 
           ${btj.connected ? html`
-            <button
+            <a
               class="navbar-toggler d-lg-none"
               type="button" data-bs-toggle="offcanvas"
               data-bs-target="#appNavOffcanvas"
@@ -284,7 +293,7 @@ export class AppRoot extends MobxLitElement {
               aria-label="Toggle navigation"
             >
               <span class="navbar-toggler-icon"></span>
-            </button>
+            </a>
 
             <div
               class="offcanvas offcanvas-end d-lg-none"
@@ -293,9 +302,7 @@ export class AppRoot extends MobxLitElement {
               aria-labelledby="appNavOffcanvasLabel"
             >
               <div class="offcanvas-header">
-                <h5 class="offcanvas-title" id="appNavOffcanvasLabel">
-                  Blue2Joy
-                </h5>
+                ${this.renderSidebarInfo()}
                 <button
                   type="button"
                   class="btn-close"
@@ -305,11 +312,7 @@ export class AppRoot extends MobxLitElement {
               </div>
 
               <div class="offcanvas-body">
-                <div class="mb-3">
-                  ${this.renderInfo('offcanvas')}
-                </div>
-                <hr class="my-3">
-                ${this.renderMenu('offcanvas')}
+                ${this.renderSidebarMenu()}
               </div>
             </div>
           ` : null}
