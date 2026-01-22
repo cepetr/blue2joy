@@ -51,8 +51,8 @@ export class ProfilesView extends MobxLitElement {
               <form>
                 <div class="row g-3">
                   ${Array.from(profile.pins.entries()).map(([pid]) => html`
-                    <div class="row mb-3">
-                      <div class="col-12">
+                    <div class="row mb-3 g-0">
+                      <div class="col-12 g-0">
                         <pin-editor
                           .profileId=${this.profileId}
                           .pinId=${pid}
@@ -62,8 +62,8 @@ export class ProfilesView extends MobxLitElement {
                     </div>
                   `)}
                   ${Array.from(profile.pots.entries()).map(([pid]) => html`
-                    <div class="row mb-3">
-                      <div class="col-12">
+                    <div class="row mb-3 g-0">
+                      <div class="col-12 g-0">
                         <pot-editor
                           .profileId=${this.profileId}
                           .potId=${pid}
@@ -73,8 +73,8 @@ export class ProfilesView extends MobxLitElement {
                     </div>
                   `)}
                   ${Array.from(profile.intgs.entries()).map(([eid]) => html`
-                    <div class="row mb-3">
-                      <div class="col-12">
+                    <div class="row mb-3 g-0">
+                      <div class="col-12 g-0">
                         <intg-editor
                           .profileId=${this.profileId}
                           .intgId=${eid}

@@ -170,7 +170,7 @@ export class PinEditor extends LitElement {
             </div>
 
             <div class="col">
-              <div class="card-body">
+              <div class="card-body py-2">
                 <div class="row g-4">
                   <div class="col-6 col-xl-2">
                     ${this.renderSource()}
