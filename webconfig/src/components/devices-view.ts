@@ -1,8 +1,16 @@
 import { MobxLitElement } from "@adobe/lit-mobx";
-import { html } from "lit";
+import { html, nothing } from "lit";
 import { customElement } from "lit/decorators.js";
 import { btj, DeviceEntry } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
+
+export const STATE_ICONS: Record<number, string> = {
+  [Btj.ConnState.DISCONNECTED]: 'bi bi-x-circle text-secondary',
+  [Btj.ConnState.CONNECTING]: 'bi bi-arrow-clockwise text-warning',
+  [Btj.ConnState.CONNECTED]: 'bi bi-check-circle text-primary',
+  [Btj.ConnState.ERROR]: 'bi bi-exclamation-triangle text-danger',
+  [Btj.ConnState.READY]: 'bi bi-check-circle-fill text-success',
+};
 
 @customElement("devices-view")
 export class DevicesView extends MobxLitElement {
@@ -19,8 +27,10 @@ export class DevicesView extends MobxLitElement {
     return html`
       <tr>
         <td>${dev.addr.toString()}</td>
-        <td>${Btj.ConnState[dev.state?.connState]}</td>
-
+        <td>
+          <i class="${STATE_ICONS[dev.state?.connState]}"></i>
+          <span class="px-1 d-none d-md-inline">${Btj.ConnState[dev.state?.connState]}</span>
+        </td>
         <td>
           <select
             class="form-select form-select-sm"
@@ -62,7 +72,7 @@ export class DevicesView extends MobxLitElement {
               <th>MAC Address</th>
               <th>State</th>
               <th>Profile</th>
-              <th class="text-end"><span class="d-none d-sm-inline">Actions</span></th>
+               <th class="text-end"><span class="d-none d-sm-inline">Actions</span></th>
             </tr>
           </thead>
 
@@ -79,8 +89,9 @@ export class DevicesView extends MobxLitElement {
     `;
   }
 
-
   private renderScanTable() {
+    const devices = btj.advDevices;
+
     return html`
       <div class="table-responsive">
         <table class="table table-striped table-sm">
@@ -95,11 +106,11 @@ export class DevicesView extends MobxLitElement {
           </thead>
 
           <tbody>
-            ${btj.advDevices.length === 0 ? html`
+            ${devices.length === 0 ? html`
               <tr>
                 <td colspan="4">No devices yet</td>
               </tr>
-            `: btj.advDevices.map(a => html`
+            `: devices.map(a => html`
               <tr>
                 <td>${a.addr.toString()}</td>
                 <td>${a.name}</td>
@@ -122,34 +133,30 @@ export class DevicesView extends MobxLitElement {
     `;
   }
 
+  private onStartScanning = () => {
+    btj.startScanning();
+  }
+
+  private onStopScanning = () => {
+    btj.stopScanning();
+  }
+
   override render() {
     const scanning = btj.sysState?.scanning && (btj.sysState?.mode === Btj.SysMode.MANUAL);
+
+    const btnClass = scanning ? 'btn btn-danger' : 'btn btn-primary';
+    const btnLabel = scanning ? 'Stop scanning' : 'Start scanning';
+    const btnHandler = scanning ? this.onStopScanning : this.onStartScanning;
 
     return html`
       ${this.renderDeviceTable()}
 
-      ${!scanning ? html`
-        <button
-          type="button"
-          class="btn btn-primary"
-          @click=${() => { btj.startScanning() }}
-        >
-          Start scanning
-        </button>
+      <button type="button" class=${btnClass} @click=${btnHandler}>
+        ${btnLabel}
+      </button>
 
-        ` : html`
-        <button
-          type="button"
-          class="btn btn-danger"
-          @click=${() => { btj.stopScanning() }}
-        >
-          Stop scanning
-        </button>
-        `
-      }
-
-      ${scanning ? this.renderScanTable() : ''}
-`;
+      ${scanning ? this.renderScanTable() : nothing}
+    `;
   }
 }
 
