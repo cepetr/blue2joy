@@ -5,8 +5,6 @@ Unsorted list of missing features and known bugs:
 - Try to reduce jitter on pot inputs, either through better timing or
   calibration (manual or possibly automatic)
 
-- Close the off-canvas navbar automatically when a menu item is selected
-
 - Read and display the HID device name and type (gamepad, mouse, etc.)
 
 - Enable switching between two or three predefined device profiles using

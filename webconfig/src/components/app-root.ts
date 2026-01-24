@@ -83,6 +83,10 @@ export class AppRoot extends MobxLitElement {
     btj.disconnect();
   }
 
+  private onNavLinkClick = (path: string) => {
+    window.location.hash = path;
+  }
+
   private renderNotConnected() {
     return html`
       <div class="text-center pt-4">
@@ -235,7 +239,8 @@ export class AppRoot extends MobxLitElement {
       <nav class="nav nav-pills flex-column gap-1">
         <a
           class="nav-link ${btj.connected ? '' : 'disabled'} ${isDevices ? 'active' : ''}"
-          href="${this.buildPath('/devices')}"
+          data-bs-dismiss="offcanvas"
+          @click=${() => this.onNavLinkClick(this.buildPath('/devices'))}
         >
           Devices
         </a>
@@ -245,7 +250,8 @@ export class AppRoot extends MobxLitElement {
           ${profileIds.map(id => html`
             <a
               class="nav-link ${isProfile(id) ? 'active' : ''}"
-              href="${this.buildPath(`/profiles/${id}`)}"
+              data-bs-dismiss="offcanvas"
+              @click=${() => this.onNavLinkClick(this.buildPath(`/profiles/${id}`))}
             >
               Profile ${id}
             </a>
