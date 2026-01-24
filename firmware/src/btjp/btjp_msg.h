@@ -246,6 +246,13 @@ typedef struct {
 // --------------------------------------------------------------------------
 
 typedef struct {
+    uint8_t pins;
+    uint8_t pots[2];
+} btjp_evt_io_port_update_t;
+
+// --------------------------------------------------------------------------
+
+typedef struct {
     btjp_msg_header_t hdr;
     union {
         btjp_rsp_error_t error;
@@ -275,6 +282,7 @@ typedef struct {
         btjp_evt_adv_list_update_t adv_list_update;
         btjp_evt_dev_list_update_t dev_list_update;
         btjp_evt_profile_update_t profile_update;
+        btjp_evt_io_port_update_t io_port_update;
     };
 
 } btjp_evt_t;

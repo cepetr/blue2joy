@@ -40,6 +40,12 @@ typedef enum {
     EV_SUBJECT_CONN_ERROR,  // A connection-related error occurred
 } event_subject_t;
 
+// State of an IO port (pins and pots)
+typedef struct {
+    uint8_t pins;
+    uint8_t pots[2];
+} event_io_t;
+
 typedef struct {
     // What the event is about
     event_subject_t subject;
@@ -51,5 +57,6 @@ typedef struct {
     union {
         bt_addr_le_t addr;
         uint8_t idx;
+        event_io_t io;
     };
 } event_t;

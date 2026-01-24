@@ -113,6 +113,19 @@ static size_t btjp_build_evt_profile_update(btjp_evt_t *evt, uint8_t idx)
     return sizeof(btjp_msg_header_t) + evt->hdr.size;
 }
 
+static size_t btjp_build_evt_io_port_update(btjp_evt_t *evt, const event_io_t *io)
+{
+    evt->hdr.msg_id = BTJP_MSG_EVT_IO_PORT_UPDATE;
+    evt->hdr.size = sizeof(evt->io_port_update);
+
+    evt->io_port_update.pins = io->pins;
+    for (int i = 0; i < ARRAY_SIZE(evt->io_port_update.pots); i++) {
+        evt->io_port_update.pots[i] = io->pots[i];
+    }
+
+    return sizeof(btjp_msg_header_t) + evt->hdr.size;
+}
+
 size_t btjp_build_evt_message(void *outbuff, size_t outsize, event_queue_t *evq)
 {
     event_t ev;
@@ -139,6 +152,8 @@ size_t btjp_build_evt_message(void *outbuff, size_t outsize, event_queue_t *evq)
             return btjp_build_evt_dev_list_update(evt, &ev.addr);
         case EV_SUBJECT_PROFILE:
             return btjp_build_evt_profile_update(evt, ev.idx);
+        case EV_SUBJECT_IO_STATE:
+            return btjp_build_evt_io_port_update(evt, &ev.io);
         default:
             LOG_ERR("Unhandled event subject %d", ev.subject);
         }

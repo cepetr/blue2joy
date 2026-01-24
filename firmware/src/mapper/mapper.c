@@ -30,12 +30,13 @@
 LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
 
 typedef struct {
-    bool last_value;
+    // Last pin value
+    bool value;
 } mapper_pin_state_t;
 
 typedef struct {
-    // Last analog value (IO_POT_MIN_VAL .. IO_POT_MAX_VAL)
-    uint8_t last_value;
+    // Last pot value (IO_POT_MIN_VAL .. IO_POT_MAX_VAL)
+    uint8_t value;
 } mapper_pot_state_t;
 
 typedef struct {
@@ -120,6 +121,36 @@ int mapper_get_profile(int idx, mapper_profile_t *profile)
     return 0;
 }
 
+static void mapper_publish_io_state(void)
+{
+    mapper_t *mapper = &g_mapper;
+
+    k_mutex_lock(&mapper->mutex, K_FOREVER);
+
+    mapper_state_t *state = &mapper->state;
+
+    event_t ev = {
+        .subject = EV_SUBJECT_IO_STATE,
+        .action = EV_ACTION_UPDATE,
+    };
+
+    // Gather pin states
+    for (int i = 0; i < IO_PIN_COUNT; i++) {
+        if (state->pin[i].value) {
+            ev.io.pins |= (1 << i);
+        }
+    }
+
+    // Gather pot states
+    for (int i = 0; i < IO_POT_COUNT; i++) {
+        ev.io.pots[i] = state->pot[i].value;
+    }
+
+    k_mutex_unlock(&mapper->mutex);
+
+    event_bus_publish(&ev);
+}
+
 static void reconfigure_io_pins(const mapper_profile_t *profile)
 {
     for (int i = 0; i < ARRAY_SIZE(profile->pin); i++) {
@@ -189,17 +220,17 @@ static int32_t map_linear(int32_t value, int32_t in_min, int32_t in_max, int32_t
     return out_min + (value - in_min) * (out_max - out_min) / (in_max - in_min);
 }
 
-static void update_pin_state(mapper_pin_state_t *state, const mapper_pin_config_t *config,
+static bool update_pin_state(mapper_pin_state_t *state, const mapper_pin_config_t *config,
                              const hrm_report_t *report, const uint8_t *data)
 {
     const hrm_field_t *field = hrm_report_find_field(report, config->source);
 
     if (field == NULL) {
-        return;
+        return false;
     }
 
     int32_t in = hrm_field_extract(field, data);
-    bool out = config->invert ? !state->last_value : state->last_value;
+    bool out = config->invert ? !state->value : state->value;
 
     if (field->logical_min == 0 && field->logical_max == 1) {
         // Boolean field, logical min is 0 and max is 1
@@ -240,16 +271,19 @@ static void update_pin_state(mapper_pin_state_t *state, const mapper_pin_config_
         }
     }
 
-    state->last_value = config->invert ? !out : out;
+    bool prev_value = state->value;
+    state->value = config->invert ? !out : out;
+
+    return prev_value != state->value;
 }
 
-static void update_pot_state(mapper_pot_state_t *state, const mapper_pot_config_t *config,
+static bool update_pot_state(mapper_pot_state_t *state, const mapper_pot_config_t *config,
                              const hrm_report_t *report, const uint8_t *data)
 {
     const hrm_field_t *field = hrm_report_find_field(report, config->source);
 
     if (field == NULL) {
-        return;
+        return false;
     }
 
     int32_t in = hrm_field_extract(field, data);
@@ -258,19 +292,24 @@ static void update_pot_state(mapper_pot_state_t *state, const mapper_pot_config_
 
     int32_t out = map_linear(in, field->logical_min, field->logical_max, config->low, config->high);
 
-    state->last_value = CLAMP(out, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
+    uint8_t prev_value = state->value;
+    state->value = CLAMP(out, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
+
+    return prev_value != state->value;
 }
 
 // Requires mapper->mutex to be locked
-static void mapper_integrate_delta(uint8_t intg_idx, int32_t delta)
+static bool mapper_integrate_delta(uint8_t intg_idx, int32_t delta)
 {
     mapper_t *mapper = &g_mapper;
 
     assert(intg_idx < ARRAY_SIZE(mapper->state.intg));
 
     if (mapper->sync.active_profile < 0 || mapper->sync.active_profile >= MAPPER_MAX_PROFILES) {
-        return;
+        return false;
     }
+
+    bool state_changed = false;
 
     const mapper_profile_t *profile = &mapper->sync.profiles[mapper->sync.active_profile];
     const mapper_intg_config_t *intg_config = &profile->intg[intg_idx];
@@ -296,14 +335,19 @@ static void mapper_integrate_delta(uint8_t intg_idx, int32_t delta)
             int32_t out = map_linear(intg_state->pos, -intg_config->max << 14,
                                      intg_config->max << 14, pot_config->low, pot_config->high);
 
-            pot_state->last_value = CLAMP(out, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
+            int32_t new_value = CLAMP(out, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
 
-            io_pot_set(pot_idx, pot_state->last_value);
+            if (new_value != pot_state->value) {
+                pot_state->value = new_value;
+                state_changed = true;
+            }
 
         } else if (HRM_USAGE_IS_INTG_ENC(source)) {
             io_pot_update_encoder(pot_idx, delta, intg_config->max);
         }
     }
+
+    return state_changed;
 }
 
 static int32_t update_intg_state(mapper_intg_state_t *state, const mapper_intg_config_t *config,
@@ -362,15 +406,23 @@ static void mapper_tick_cb(struct k_work *work)
 {
     mapper_t *mapper = &g_mapper;
 
+    bool state_changed = false;
+
     k_mutex_lock(&mapper->mutex, K_FOREVER);
 
     // Do periodic accumulation
     for (int i = 0; i < ARRAY_SIZE(mapper->state.intg); i++) {
         mapper_intg_state_t *state = &mapper->state.intg[i];
-        mapper_integrate_delta(i, state->delta);
+        if (mapper_integrate_delta(i, state->delta)) {
+            state_changed = true;
+        }
     }
 
     k_mutex_unlock(&mapper->mutex);
+
+    if (state_changed) {
+        mapper_publish_io_state();
+    }
 }
 
 // Timer callback every 10ms (interrupt context)
@@ -404,6 +456,8 @@ void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_repor
         return;
     }
 
+    bool state_changed = false;
+
     mapper_set_active_profile(profile_idx);
 
     mapper_state_t *state = &mapper->state;
@@ -414,23 +468,33 @@ void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_repor
     for (int i = 0; i < ARRAY_SIZE(state->pin); i++) {
         mapper_pin_state_t *pin_state = &state->pin[i];
         const mapper_pin_config_t *pin_config = &profile->pin[i];
-        update_pin_state(pin_state, pin_config, report, data);
-        io_pin_set(i, pin_state->last_value);
+        if (update_pin_state(pin_state, pin_config, report, data)) {
+            io_pin_set(i, pin_state->value);
+            state_changed = true;
+        }
     }
 
     for (int i = 0; i < ARRAY_SIZE(state->pot); i++) {
         mapper_pot_state_t *pot_state = &state->pot[i];
         const mapper_pot_config_t *pot_config = &profile->pot[i];
-        update_pot_state(pot_state, pot_config, report, data);
-        io_pot_set(i, pot_state->last_value);
+        if (update_pot_state(pot_state, pot_config, report, data)) {
+            io_pot_set(i, pot_state->value);
+            state_changed = true;
+        }
     }
 
     for (int i = 0; i < ARRAY_SIZE(state->intg); i++) {
         mapper_intg_state_t *intg_state = &state->intg[i];
         const mapper_intg_config_t *intg_config = &profile->intg[i];
         int32_t delta = update_intg_state(intg_state, intg_config, report, data);
-        mapper_integrate_delta(i, delta);
+        if (mapper_integrate_delta(i, delta)) {
+            state_changed = true;
+        }
     }
 
     k_mutex_unlock(&mapper->mutex);
+
+    if (state_changed) {
+        mapper_publish_io_state();
+    }
 }

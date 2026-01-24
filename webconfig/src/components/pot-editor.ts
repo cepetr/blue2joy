@@ -13,6 +13,7 @@ export class PotEditor extends LitElement {
 
   @property({ type: Number }) profileId!: number;
   @property({ type: Number }) potId!: number;
+  @property({ type: Number }) potState?: number;
 
   @state() private _local: Btj.PotConfig = Btj.PotConfig.default();
 
@@ -97,9 +98,15 @@ export class PotEditor extends LitElement {
 
           <div class="col-auto">
             <div class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center">
-              <h5 class="card-title mb-0">
-                Pot ${this.potId}
-              </h5>
+
+              <div class="card-title mb-0">
+                <div><h5>Pot${this.potId}</h5></div>
+                <div>
+                  <span class="badge bg-secondary">
+                    ${String(this.potState)}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

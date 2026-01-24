@@ -60,6 +60,9 @@ export class BtjModel {
   sysState: Btj.SysState | null = null;
 
   @observable
+  ioPort: Btj.IoPortState | null = null;
+
+  @observable
   devices: DeviceEntry[] = [];
 
   @observable
@@ -172,6 +175,14 @@ export class BtjModel {
     this.profiles.set(evt.profile, entry);
   }
 
+  @action
+  private processIoPortUpdateEvent(payload: DataView) {
+    const evt = new Btj.IoPortUpdateEvent();
+    evt.parseMessage(payload);
+    // Update ioPorts
+    this.ioPort = evt.data;
+  }
+
   // Handler forwarded to BtjConnection to receive async events from the device
   private processEvent = (msgId: number, payload: DataView) => {
     try {
@@ -185,9 +196,11 @@ export class BtjModel {
         case Btj.MsgId.EVT_DEV_LIST_UPDATE:
           this.processDevListUpdateEvent(payload);
           break;
-
         case Btj.MsgId.EVT_PROFILE_UPDATE:
           this.processProfileUpdateEvent(payload);
+          break;
+        case Btj.MsgId.EVT_IO_PORT_UPDATE:
+          this.processIoPortUpdateEvent(payload);
           break;
       }
     } catch (err) {

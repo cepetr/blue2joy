@@ -2,9 +2,6 @@
 
 Unsorted list of missing features and known bugs:
 
-- Display I/O port state in the web interface (current state of digital pins,
-  pots, and possibly also the state of virtual integrators)
-
 - Try to reduce jitter on pot inputs, either through better timing or
   calibration (manual or possibly automatic)
 

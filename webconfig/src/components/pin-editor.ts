@@ -13,6 +13,7 @@ export class PinEditor extends LitElement {
 
   @property({ type: Number }) profileId!: number;
   @property({ type: Number }) pinId!: number;
+  @property({ type: Boolean }) pinState?: boolean;
 
   @state() private _local: Btj.PinConfig = Btj.PinConfig.default();
 
@@ -163,9 +164,14 @@ export class PinEditor extends LitElement {
 
             <div class="col-auto">
               <div class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center">
-                <h5 class="card-title mb-0">
-                  Pin ${this.pinId}
-                </h5>
+                <div class="card-title mb-0">
+                  <div><h5>Pin ${this.pinId}</h5></div>
+                  <div>
+                    <span class="badge ${this.pinState ? 'bg-success' : 'bg-secondary'}">
+                      ${this.pinState ? 'HIGH' : 'LOW'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 

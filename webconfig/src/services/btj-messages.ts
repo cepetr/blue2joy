@@ -148,7 +148,7 @@ export namespace Btj {
   };
 
   export type IoPortState = {
-    pins: number;
+    pins: Array<boolean>;
     pots: Array<number>;
   };
 
@@ -628,6 +628,29 @@ export namespace Btj {
 
     get intgs(): Map<number, IntgConfig> {
       return this._intgs;
+    }
+  }
+
+  export class IoPortUpdateEvent {
+    readonly msgId = Btj.MsgId.EVT_IO_PORT_UPDATE;
+
+    private _data?: Btj.IoPortState;
+
+    parseMessage(view: DataView) {
+      assertPayloadLength(view, 1 + 2);
+      const pins: Array<boolean> = [];
+      const pots: Array<number> = [];
+      const pinMask = view.getUint8(0);
+      for (let i = 0; i < 5; i++) {
+        pins.push((pinMask & (1 << i)) !== 0);
+      }
+      pots.push(view.getUint8(1));
+      pots.push(view.getUint8(2));
+      this._data = { pins, pots };
+    }
+
+    get data(): Btj.IoPortState {
+      return assertPresent(this._data);
     }
   }
 
