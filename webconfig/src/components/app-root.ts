@@ -273,7 +273,7 @@ export class AppRoot extends MobxLitElement {
 
   private renderNavbar() {
     return html`
-      <nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary">
+      <nav class="navbar navbar-expand-lg fixed-top bg-body-tertiary">
         <div class="container-fluid">
           <a class="navbar-brand d-flex gap-2" href="${this.buildPath('/')}">
             <span>🕹️</span>
@@ -329,10 +329,18 @@ export class AppRoot extends MobxLitElement {
 
   override render() {
     return html`
-      <div class="container-xl">
-        <div class="row">
-          ${this.renderNavbar()}
-        </div>
+      <style>
+        :root {
+          --app-navbar-height: 72px;
+        }
+        .content-with-offset {
+          padding-top: var(--app-navbar-height);
+        }
+      </style>
+
+      ${this.renderNavbar()}
+
+      <div class="container-fluid content-with-offset">
         <div class="row">
           ${btj.connected ? this.renderRoute() : this.renderNotConnected()}
         </div>
