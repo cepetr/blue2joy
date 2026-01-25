@@ -402,7 +402,17 @@ void io_pot_set(uint8_t pot_idx, int value)
 
     value = CLAMP(value, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
 
-    atomic_set(&drv->cc_value[pot_idx], 64 * value);
+    if (value == IO_POT_MAX_VAL) {
+        // Ensure the CC value is long enough so Pokey reads 228 safely
+        value = IO_POT_MAX_VAL + 5;
+    }
+
+    // Ideally, we should calculate cc_value as 64 * (value - IO_POT_MIN_VAL),
+    // but due to inaccuracies between the Atari and nRF crystals, I adjusted the
+    // formula experimentally to get more accurate results (works well on my HW).
+    uint32_t us = (642 * (value - IO_POT_MIN_VAL)) / 10 + 32;
+
+    atomic_set(&drv->cc_value[pot_idx], us);
 }
 
 void io_pot_update_encoder(uint8_t pot_idx, int32_t delta, int32_t max)

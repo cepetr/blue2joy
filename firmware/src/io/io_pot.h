@@ -20,7 +20,7 @@
 
 #include <stdbool.h>
 
-#define IO_POT_MIN_VAL 1
+#define IO_POT_MIN_VAL 2
 #define IO_POT_MAX_VAL 228
 
 // Number of emulated analog potentiometers
