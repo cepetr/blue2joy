@@ -339,6 +339,7 @@ static bool mapper_integrate_delta(uint8_t intg_idx, int32_t delta)
 
             if (new_value != pot_state->value) {
                 pot_state->value = new_value;
+                io_pot_set(pot_idx, pot_state->value);
                 state_changed = true;
             }
 
