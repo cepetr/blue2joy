@@ -15,6 +15,10 @@ While primarily intended for gamepads, the device is not limited to them - in pr
   <img width="24%" src="doc/images/blue2joy-set.jpg">
 </div>
 
+Have a look at the potentiometer emulation demo:
+
+[![](https://img.youtube.com/vi/nXR6tCQPxGU/0.jpg)](https://youtu.be/nXR6tCQPxGU)
+
 ## Use Cases
 While there are other adapters that let Bluetooth controllers act as digital joysticks, Blue2Joy goes further. Besides standard and expected use cases, there are a few new possible ones that utilize analog input emulation or bidirectional communication:
 
