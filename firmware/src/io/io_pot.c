@@ -26,8 +26,6 @@
 #include <nrfx_ppi.h>
 #include <nrfx_gpiote.h>
 
-#include <zephyr/drivers/pwm.h>
-
 #include "io_pot.h"
 
 LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);

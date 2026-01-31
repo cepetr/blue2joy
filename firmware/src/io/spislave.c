@@ -44,7 +44,7 @@ int spi_slave_init(void)
     return spi_slave_continue();
 }
 
-void spi_slave_deinit(void)
+void spi_slave_uninit(void)
 {
 }
 

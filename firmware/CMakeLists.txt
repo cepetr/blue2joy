@@ -32,6 +32,7 @@ target_sources(app PRIVATE
   src/io/rgbled.c
   src/io/rgbled_seq.c
   src/io/spislave.c
+  src/io/xep80_uart.c
 
   src/main.c
 
