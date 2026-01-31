@@ -415,6 +415,22 @@ void io_pot_set(uint8_t pot_idx, int value)
     atomic_set(&drv->cc_value[pot_idx], us);
 }
 
+int io_pot_get(uint8_t pot_idx)
+{
+    io_pot_drv_t *drv = &g_io_pot_drv;
+
+    if (pot_idx >= ARRAY_SIZE(drv->cc_value)) {
+        return IO_POT_MAX_VAL;
+    }
+
+    uint32_t us = atomic_get(&drv->cc_value[pot_idx]);
+
+    // Reverse of the formula in io_pot_set()
+    int value = ((us - 32) * 10) / 642 + IO_POT_MIN_VAL;
+
+    return CLAMP(value, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
+}
+
 void io_pot_update_encoder(uint8_t pot_idx, int32_t delta, int32_t max)
 {
     io_pot_drv_t *drv = &g_io_pot_drv;

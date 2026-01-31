@@ -60,7 +60,7 @@ export class BtjModel {
   sysState: Btj.SysState | null = null;
 
   @observable
-  ioPort: Btj.IoPortState | null = null;
+  joyPort: Btj.JoyPortState | null = null;
 
   @observable
   devices: DeviceEntry[] = [];
@@ -176,11 +176,10 @@ export class BtjModel {
   }
 
   @action
-  private processIoPortUpdateEvent(payload: DataView) {
-    const evt = new Btj.IoPortUpdateEvent();
+  private processJoyPortUpdateEvent(payload: DataView) {
+    const evt = new Btj.JoyPortUpdateEvent();
     evt.parseMessage(payload);
-    // Update ioPorts
-    this.ioPort = evt.data;
+    this.joyPort = evt.data;
   }
 
   // Handler forwarded to BtjConnection to receive async events from the device
@@ -199,8 +198,8 @@ export class BtjModel {
         case Btj.MsgId.EVT_PROFILE_UPDATE:
           this.processProfileUpdateEvent(payload);
           break;
-        case Btj.MsgId.EVT_IO_PORT_UPDATE:
-          this.processIoPortUpdateEvent(payload);
+        case Btj.MsgId.EVT_JOY_PORT_UPDATE:
+          this.processJoyPortUpdateEvent(payload);
           break;
       }
     } catch (err) {
@@ -366,6 +365,16 @@ export class BtjModel {
       await this.conn.invoke(new Btj.ConnectDevice(addr));
     } catch (err: any) {
       this.logError(err, 'device');
+    }
+  }
+
+  @action
+  async setJoyPortMode(mode: Btj.JoyPortMode) {
+    if (!this.conn) throw new Error('Not connected');
+    try {
+      await this.conn.invoke(new Btj.SetJoyPortMode(mode));
+    } catch (err: any) {
+      this.logError(err, 'joyport');
     }
   }
 }

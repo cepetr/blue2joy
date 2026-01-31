@@ -65,9 +65,10 @@ export namespace Btj {
     CONNECT_DEVICE = 10,
     DELETE_DEVICE = 11,
     FACTORY_RESET = 12,
+    SET_JOY_PORT_MODE = 13,
 
     EVT_SYS_STATE_UPDATE = 64,
-    EVT_IO_PORT_UPDATE = 65,
+    EVT_JOY_PORT_UPDATE = 65,
     EVT_ADV_LIST_UPDATE = 66,
     EVT_DEV_LIST_UPDATE = 67,
     EVT_PROFILE_UPDATE = 68,
@@ -147,7 +148,14 @@ export namespace Btj {
     mode: SysMode;
   };
 
-  export type IoPortState = {
+  export enum JoyPortMode {
+    NORMAL = 0,
+    SPI = 1,
+    UART = 2,
+  }
+
+  export type JoyPortState = {
+    mode: JoyPortMode;
     pins: Array<boolean>;
     pots: Array<number>;
   };
@@ -493,6 +501,27 @@ export namespace Btj {
     }
   }
 
+  export class SetJoyPortMode implements Command {
+    readonly msgId = MsgId.SET_JOY_PORT_MODE;
+
+    constructor(private _mode: JoyPortMode) { }
+
+    serializeRequest(): ArrayBuffer {
+      const buf = new ArrayBuffer(1);
+      const view = new DataView(buf);
+      view.setUint8(0, this._mode);
+      return buf;
+    }
+
+    parseResponse(view: DataView) {
+      assertPayloadLength(view, 0);
+    }
+
+    get mode(): JoyPortMode {
+      return this._mode;
+    }
+  }
+
   export class SysStateUpdateEvent {
     readonly msgId = MsgId.EVT_SYS_STATE_UPDATE;
 
@@ -631,25 +660,26 @@ export namespace Btj {
     }
   }
 
-  export class IoPortUpdateEvent {
-    readonly msgId = Btj.MsgId.EVT_IO_PORT_UPDATE;
+  export class JoyPortUpdateEvent {
+    readonly msgId = Btj.MsgId.EVT_JOY_PORT_UPDATE;
 
-    private _data?: Btj.IoPortState;
+    private _data?: Btj.JoyPortState;
 
     parseMessage(view: DataView) {
-      assertPayloadLength(view, 1 + 2);
+      assertPayloadLength(view, 1 + 1 + 2);
       const pins: Array<boolean> = [];
       const pots: Array<number> = [];
-      const pinMask = view.getUint8(0);
+      const mode = view.getUint8(0);
+      const pinMask = view.getUint8(1);
       for (let i = 0; i < 5; i++) {
         pins.push((pinMask & (1 << i)) !== 0);
       }
-      pots.push(view.getUint8(1));
       pots.push(view.getUint8(2));
-      this._data = { pins, pots };
+      pots.push(view.getUint8(3));
+      this._data = { mode, pins, pots };
     }
 
-    get data(): Btj.IoPortState {
+    get data(): Btj.JoyPortState {
       return assertPresent(this._data);
     }
   }

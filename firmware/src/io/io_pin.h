@@ -51,8 +51,11 @@ typedef enum {
     IO_PIN_TRIG,
 } io_pin_t;
 
-// Sets joystick direction buttons
+// Sets joystick digital pin
 void io_pin_set(io_pin_t pin, bool active);
+
+// Gets joystick digital pin state
+bool io_pin_get(io_pin_t pin);
 
 // Sets pin configuration
 void io_pin_configure(io_pin_t pin, const io_pin_config_t *config);

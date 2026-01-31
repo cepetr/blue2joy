@@ -27,6 +27,7 @@
 
 #include <devmgr/devmgr.h>
 #include <mapper/mapper.h>
+#include <mapper/joy_port.h>
 
 #include "btjp.h"
 #include "btjp_utils.h"
@@ -231,6 +232,31 @@ static btjp_status_t btjp_handle_request(const btjp_req_t *req, btjp_rsp_t *rsp)
     }
 
     case BTJP_MSG_FACTORY_RESET: {
+    } break;
+
+    case BTJP_MSG_SET_JOY_PORT_MODE: {
+        CHECK_REQ_SIZE(req, sizeof(req->set_joy_port_mode));
+
+        joy_port_mode_t mode = JOY_PORT_MODE_NORMAL;
+
+        switch (req->set_joy_port_mode.mode) {
+        case BTJP_JOY_PORT_MODE_NORMAL:
+            mode = JOY_PORT_MODE_NORMAL;
+            break;
+        case BTJP_JOY_PORT_MODE_SPI:
+            mode = JOY_PORT_MODE_SPI;
+            break;
+        case BTJP_JOY_PORT_MODE_UART:
+            mode = JOY_PORT_MODE_UART;
+            break;
+        default:
+            return BTJP_ERR_INVALID_ARG;
+        }
+
+        int err = joy_port_set_mode(mode);
+        if (err != 0) {
+            return BTJP_ERR_INVALID_ARG;
+        }
     } break;
 
     case BTJP_MSG_START_SCANNING: {

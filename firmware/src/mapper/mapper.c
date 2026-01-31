@@ -22,6 +22,7 @@
 #include <event/event_bus.h>
 
 #include "mapper.h"
+#include "joy_port.h"
 #include "settings.h"
 
 #include <stdlib.h>
@@ -94,6 +95,12 @@ int mapper_init(void)
         return err;
     }
 
+    err = joy_port_init();
+    if (err) {
+        LOG_ERR("Failed to initialize joy port {err: %d}", err);
+        return err;
+    }
+
     k_work_init(&mapper->tick_work, mapper_tick_cb);
 
     k_timer_init(&mapper->timer, mapper_timer_cb, NULL);
@@ -121,36 +128,6 @@ int mapper_get_profile(int idx, mapper_profile_t *profile)
     return 0;
 }
 
-static void mapper_publish_io_state(void)
-{
-    mapper_t *mapper = &g_mapper;
-
-    k_mutex_lock(&mapper->mutex, K_FOREVER);
-
-    mapper_state_t *state = &mapper->state;
-
-    event_t ev = {
-        .subject = EV_SUBJECT_IO_STATE,
-        .action = EV_ACTION_UPDATE,
-    };
-
-    // Gather pin states
-    for (int i = 0; i < IO_PIN_COUNT; i++) {
-        if (state->pin[i].value) {
-            ev.io.pins |= (1 << i);
-        }
-    }
-
-    // Gather pot states
-    for (int i = 0; i < IO_POT_COUNT; i++) {
-        ev.io.pots[i] = state->pot[i].value;
-    }
-
-    k_mutex_unlock(&mapper->mutex);
-
-    event_bus_publish(&ev);
-}
-
 static void reconfigure_io_pins(const mapper_profile_t *profile)
 {
     for (int i = 0; i < ARRAY_SIZE(profile->pin); i++) {
@@ -165,7 +142,7 @@ static void reconfigure_io_pins(const mapper_profile_t *profile)
             io_config.enc_idx = HRM_USAGE_GET_INTG_IDX(pin_config->source);
             io_config.enc_phase = HRM_USAGE_GET_INTG_PHASE(pin_config->source);
         };
-        io_pin_configure(i, &io_config);
+        joy_port_configure_pin(i, &io_config);
     }
 }
 
@@ -315,7 +292,7 @@ static bool mapper_integrate_delta(uint8_t intg_idx, int32_t delta)
     const mapper_intg_config_t *intg_config = &profile->intg[intg_idx];
     mapper_intg_state_t *intg_state = &mapper->state.intg[intg_idx];
 
-    io_pin_update_encoder(intg_idx, delta, intg_config->max);
+    joy_port_update_pin_encoder(intg_idx, delta, intg_config->max);
 
     intg_state->pos =
         CLAMP(intg_state->pos + delta, -intg_config->max << 14, intg_config->max << 14);
@@ -339,12 +316,12 @@ static bool mapper_integrate_delta(uint8_t intg_idx, int32_t delta)
 
             if (new_value != pot_state->value) {
                 pot_state->value = new_value;
-                io_pot_set(pot_idx, pot_state->value);
+                joy_port_set_pot(pot_idx, pot_state->value);
                 state_changed = true;
             }
 
         } else if (HRM_USAGE_IS_INTG_ENC(source)) {
-            io_pot_update_encoder(pot_idx, delta, intg_config->max);
+            joy_port_update_pot_encoder(pot_idx, delta, intg_config->max);
         }
     }
 
@@ -407,23 +384,15 @@ static void mapper_tick_cb(struct k_work *work)
 {
     mapper_t *mapper = &g_mapper;
 
-    bool state_changed = false;
-
     k_mutex_lock(&mapper->mutex, K_FOREVER);
 
     // Do periodic accumulation
     for (int i = 0; i < ARRAY_SIZE(mapper->state.intg); i++) {
         mapper_intg_state_t *state = &mapper->state.intg[i];
-        if (mapper_integrate_delta(i, state->delta)) {
-            state_changed = true;
-        }
+        mapper_integrate_delta(i, state->delta);
     }
 
     k_mutex_unlock(&mapper->mutex);
-
-    if (state_changed) {
-        mapper_publish_io_state();
-    }
 }
 
 // Timer callback every 10ms (interrupt context)
@@ -457,8 +426,6 @@ void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_repor
         return;
     }
 
-    bool state_changed = false;
-
     mapper_set_active_profile(profile_idx);
 
     mapper_state_t *state = &mapper->state;
@@ -470,8 +437,7 @@ void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_repor
         mapper_pin_state_t *pin_state = &state->pin[i];
         const mapper_pin_config_t *pin_config = &profile->pin[i];
         if (update_pin_state(pin_state, pin_config, report, data)) {
-            io_pin_set(i, pin_state->value);
-            state_changed = true;
+            joy_port_set_pin(i, pin_state->value);
         }
     }
 
@@ -479,8 +445,7 @@ void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_repor
         mapper_pot_state_t *pot_state = &state->pot[i];
         const mapper_pot_config_t *pot_config = &profile->pot[i];
         if (update_pot_state(pot_state, pot_config, report, data)) {
-            io_pot_set(i, pot_state->value);
-            state_changed = true;
+            joy_port_set_pot(i, pot_state->value);
         }
     }
 
@@ -488,14 +453,8 @@ void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_repor
         mapper_intg_state_t *intg_state = &state->intg[i];
         const mapper_intg_config_t *intg_config = &profile->intg[i];
         int32_t delta = update_intg_state(intg_state, intg_config, report, data);
-        if (mapper_integrate_delta(i, delta)) {
-            state_changed = true;
-        }
+        mapper_integrate_delta(i, delta);
     }
 
     k_mutex_unlock(&mapper->mutex);
-
-    if (state_changed) {
-        mapper_publish_io_state();
-    }
 }

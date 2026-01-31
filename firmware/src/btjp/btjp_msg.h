@@ -61,10 +61,11 @@ typedef enum {
     BTJP_MSG_CONNECT_DEVICE = 10,
     BTJP_MSG_DELETE_DEVICE = 11,
     BTJP_MSG_FACTORY_RESET = 12,
+    BTJP_MSG_SET_JOY_PORT_MODE = 13,
 
     // Events
     BTJP_MSG_EVT_SYS_STATE_UPDATE = 64,
-    BTJP_MSG_EVT_IO_PORT_UPDATE = 65,
+    BTJP_MSG_EVT_JOY_PORT_UPDATE = 65,
     BTJP_MSG_EVT_ADV_LIST_UPDATE = 66,
     BTJP_MSG_EVT_DEV_LIST_UPDATE = 67,
     BTJP_MSG_EVT_PROFILE_UPDATE = 68,
@@ -91,6 +92,13 @@ typedef enum {
     BTJP_INTG_1 = 0,
     BTJP_INTG_2 = 1,
 } btjp_intg_id_t;
+
+// Joystick port modes
+typedef enum {
+    BTJP_JOY_PORT_MODE_NORMAL = 0,
+    BTJP_JOY_PORT_MODE_SPI = 1,
+    BTJP_JOY_PORT_MODE_UART = 2,
+} btjp_joy_port_mode_t;
 
 // Device address (mac address + type)
 typedef struct {
@@ -211,6 +219,12 @@ typedef struct {
 // --------------------------------------------------------------------------
 
 typedef struct {
+    uint8_t mode; // btjp_joy_port_mode_t
+} btjp_req_set_joy_port_mode_t;
+
+// --------------------------------------------------------------------------
+
+typedef struct {
     uint8_t scanning;
     uint8_t mode;
 } btjp_evt_sys_state_update_t;
@@ -246,9 +260,10 @@ typedef struct {
 // --------------------------------------------------------------------------
 
 typedef struct {
+    uint8_t mode; // btjp_joy_port_mode_t
     uint8_t pins;
     uint8_t pots[2];
-} btjp_evt_io_port_update_t;
+} btjp_evt_joy_port_update_t;
 
 // --------------------------------------------------------------------------
 
@@ -272,6 +287,7 @@ typedef struct {
         btjp_req_set_mode_t set_mode;
         btjp_req_connect_device_t connect_device;
         btjp_req_delete_device_t delete_device;
+        btjp_req_set_joy_port_mode_t set_joy_port_mode;
     };
 } btjp_req_t;
 
@@ -282,7 +298,7 @@ typedef struct {
         btjp_evt_adv_list_update_t adv_list_update;
         btjp_evt_dev_list_update_t dev_list_update;
         btjp_evt_profile_update_t profile_update;
-        btjp_evt_io_port_update_t io_port_update;
+        btjp_evt_joy_port_update_t joy_port_update;
     };
 
 } btjp_evt_t;

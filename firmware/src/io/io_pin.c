@@ -46,8 +46,10 @@ typedef struct {
 typedef struct {
     nrfx_timer_t timer;
 
+    // Pin configurations
     io_pin_config_t config[IO_PIN_COUNT];
-
+    // Last pin set state
+    bool pin_state[IO_PIN_COUNT];
     // Quadrature encoders state
     io_pin_encoder_t enc[IO_ENC_COUNT];
 
@@ -112,25 +114,46 @@ void io_pin_configure(io_pin_t pin, const io_pin_config_t *config)
 
 void io_pin_set(io_pin_t pin, bool active)
 {
+    io_pin_driver_t *drv = &g_io_pin_drv;
+
+    if (pin >= IO_PIN_COUNT) {
+        return;
+    }
+
+    drv->pin_state[pin] = active;
+
+    bool value = active ? 0 : 1;
+
     switch (pin) {
     case IO_PIN_UP:
-        gpio_pin_set_dt(&joy_d0, active ? 0 : 1);
+        gpio_pin_set_dt(&joy_d0, value);
         break;
     case IO_PIN_DOWN:
-        gpio_pin_set_dt(&joy_d1, active ? 0 : 1);
+        gpio_pin_set_dt(&joy_d1, value);
         break;
     case IO_PIN_LEFT:
-        gpio_pin_set_dt(&joy_d2, active ? 0 : 1);
+        gpio_pin_set_dt(&joy_d2, value);
         break;
     case IO_PIN_RIGHT:
-        gpio_pin_set_dt(&joy_d3, active ? 0 : 1);
+        gpio_pin_set_dt(&joy_d3, value);
         break;
     case IO_PIN_TRIG:
-        gpio_pin_set_dt(&joy_trig, active ? 0 : 1);
+        gpio_pin_set_dt(&joy_trig, value);
         break;
     default:
         break;
     }
+}
+
+bool io_pin_get(io_pin_t pin)
+{
+    io_pin_driver_t *drv = &g_io_pin_drv;
+
+    if (pin >= IO_PIN_COUNT) {
+        return false;
+    }
+
+    return drv->pin_state[pin];
 }
 
 static void timer_handler(nrf_timer_event_t event_type, void *p_context)

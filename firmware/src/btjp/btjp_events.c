@@ -2,6 +2,7 @@
 
 #include <devmgr/devmgr.h>
 #include <mapper/mapper.h>
+#include <mapper/joy_port.h>
 
 #include "btjp.h"
 #include "btjp_utils.h"
@@ -113,14 +114,29 @@ static size_t btjp_build_evt_profile_update(btjp_evt_t *evt, uint8_t idx)
     return sizeof(btjp_msg_header_t) + evt->hdr.size;
 }
 
-static size_t btjp_build_evt_io_port_update(btjp_evt_t *evt, const event_io_t *io)
+static size_t btjp_build_evt_joy_port_update(btjp_evt_t *evt, const event_joy_port_t *joy_port)
 {
-    evt->hdr.msg_id = BTJP_MSG_EVT_IO_PORT_UPDATE;
-    evt->hdr.size = sizeof(evt->io_port_update);
+    evt->hdr.msg_id = BTJP_MSG_EVT_JOY_PORT_UPDATE;
+    evt->hdr.size = sizeof(evt->joy_port_update);
 
-    evt->io_port_update.pins = io->pins;
-    for (int i = 0; i < ARRAY_SIZE(evt->io_port_update.pots); i++) {
-        evt->io_port_update.pots[i] = io->pots[i];
+    btjp_joy_port_mode_t mode = BTJP_JOY_PORT_MODE_NORMAL;
+
+    switch (joy_port->mode) {
+    case JOY_PORT_MODE_NORMAL:
+        mode = BTJP_JOY_PORT_MODE_NORMAL;
+        break;
+    case JOY_PORT_MODE_SPI:
+        mode = BTJP_JOY_PORT_MODE_SPI;
+        break;
+    case JOY_PORT_MODE_UART:
+        mode = BTJP_JOY_PORT_MODE_UART;
+        break;
+    }
+
+    evt->joy_port_update.mode = mode;
+    evt->joy_port_update.pins = joy_port->pins;
+    for (int i = 0; i < ARRAY_SIZE(evt->joy_port_update.pots); i++) {
+        evt->joy_port_update.pots[i] = joy_port->pots[i];
     }
 
     return sizeof(btjp_msg_header_t) + evt->hdr.size;
@@ -152,8 +168,8 @@ size_t btjp_build_evt_message(void *outbuff, size_t outsize, event_queue_t *evq)
             return btjp_build_evt_dev_list_update(evt, &ev.addr);
         case EV_SUBJECT_PROFILE:
             return btjp_build_evt_profile_update(evt, ev.idx);
-        case EV_SUBJECT_IO_STATE:
-            return btjp_build_evt_io_port_update(evt, &ev.io);
+        case EV_SUBJECT_JOY_PORT_STATE:
+            return btjp_build_evt_joy_port_update(evt, &ev.joy_port);
         default:
             LOG_ERR("Unhandled event subject %d", ev.subject);
         }
@@ -188,4 +204,10 @@ void btjp_populate_event_queue(event_queue_t *evq)
         ev.idx = i;
         event_queue_push(evq, &ev);
     }
+
+    // Joy port state update
+    ev.subject = EV_SUBJECT_JOY_PORT_STATE;
+    ev.action = EV_ACTION_UPDATE;
+    joy_port_get_state(&ev.joy_port);
+    event_queue_push(evq, &ev);
 }

@@ -38,6 +38,9 @@ int io_pot_init(void);
 // Sets potentiometer value (IO_POT_MIN_VAL .. IO_POT_MAX_VAL)
 void io_pot_set(uint8_t pot_idx, int value);
 
+// Gets current potentiometer value (IO_POT_MIN_VAL .. IO_POT_MAX_VAL)
+int io_pot_get(uint8_t pot_idx);
+
 // Adds or subtracts steps from the encoder position
 // delta - change in steps in Q17.14 format
 // max - maximum absolute value

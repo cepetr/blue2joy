@@ -56,7 +56,7 @@ export class ProfilesView extends MobxLitElement {
                         <pin-editor
                           .profileId=${this.profileId}
                           .pinId=${pid}
-                          .pinState=${btj.ioPort?.pins[pid] ?? false}
+                          .pinActive=${btj.joyPort?.pins[pid] ?? false}
                         >
                         </pin-editor>
                       </div>
@@ -68,7 +68,7 @@ export class ProfilesView extends MobxLitElement {
                         <pot-editor
                           .profileId=${this.profileId}
                           .potId=${pid}
-                          .potState=${btj.ioPort?.pots[pid] ?? 0}
+                          .potValue=${btj.joyPort?.pots[pid] ?? 0}
                         >
                         </pot-editor>
                       </div>

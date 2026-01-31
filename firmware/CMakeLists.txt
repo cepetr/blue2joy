@@ -21,6 +21,7 @@ target_sources(app PRIVATE
   src/mapper/mapper.c
   src/mapper/settings.c
   src/mapper/profiles.c
+  src/mapper/joy_port.c
   src/devmgr/devmgr.c
   src/devmgr/devmgr_advlist.c
   src/devmgr/devmgr_devlist.c
