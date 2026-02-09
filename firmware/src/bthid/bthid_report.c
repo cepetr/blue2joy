@@ -105,7 +105,7 @@ int bthid_device_subscribe(bthid_device_t *dev)
         .value = BT_GATT_CCC_NOTIFY,
         .value_handle = report_char->value_handle,
         .ccc_handle = report_char->ccc_handle,
-        .flags = BIT(BT_GATT_SUBSCRIBE_FLAG_VOLATILE) | BIT(BT_GATT_SUBSCRIBE_FLAG_NO_RESUB),
+        .flags = {BIT(BT_GATT_SUBSCRIBE_FLAG_VOLATILE) | BIT(BT_GATT_SUBSCRIBE_FLAG_NO_RESUB)},
     };
 
     err = bt_gatt_subscribe(dev->conn, &subscribe_params);
