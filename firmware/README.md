@@ -1,6 +1,6 @@
 # Blue2Joy — nRF52 Firmware
 
-For more information about firmware, see [documentation](/doc/fw-architecture.md).
+For more information about the firmware, see [documentation](/doc/fw-architecture.md).
 
 ## 🗲 How to Flash
 
@@ -52,7 +52,7 @@ If you just want to flash your device and don’t feel like building from source
     └── zephyr/      <- Zephyr RTOS & modules
     ```
 
-4. Launch shell
+5. Launch shell
 
     ```shell
     nrfutil toolchain-manager launch --shell
