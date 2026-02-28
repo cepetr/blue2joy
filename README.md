@@ -5,8 +5,6 @@
 While primarily intended for gamepads, the device is not limited to them - in principle, any BLE HID device, such as a keyboard or mouse, can be connected.
 
 > Only devices that fully support the BLE HID over GATT Profile (HOGP) are supported. For this reason many older devices (especially gamepads) are unfortunately are not usable with Blue2Joy. See [compatible devices](/doc/compatible-devices.md).
->
-> I was not aware of this limitation at the beginning of the project. Had I known, I might have chosen a different approach or possibly not started the project at all. Even so, working on this project has been enjoyable and highly educational, and I learned a great deal in the process. I am also considering a future hardware revision that would either support Bluetooth Classic devices or implement a USB host interface, which could remove some of the current limitations. Despite these issues, I ultimately decided to publish the project, as I see future potential in it and believe it may still be useful or inspiring to others.
 
 <div>
   <img width="24%" src="doc/images/blue2joy-case-top.jpg">
@@ -30,7 +28,7 @@ While there are other adapters that let Bluetooth controllers act as digital joy
 - Connect a mouse in an analog way - using analog inputs for deltas, with up to 5 buttons
 - Configure Blue2Joy via SPI-like communication over the joystick port
 - Emulate the Y-axis of a light pen (conceptual idea, not sure if possible)
-- Emulate an XEP-80 terminal (feasible in principle, but not started yet)
+- Emulate an XEP80 terminal (work in progress)
 
 Although designed for Atari 8-bit systems, Blue2Joy can be used with any device that follows the same joystick port pinout - with paddle functionality available only on Atari computers (see [details](/doc/paddle-emulation.md)).
 

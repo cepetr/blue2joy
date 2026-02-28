@@ -25,6 +25,7 @@ import '../styles/bootstrap';
 
 import './devices-view.js';
 import './profiles-view.js';
+import './xep80-view.js';
 
 @customElement('app-root')
 export class AppRoot extends MobxLitElement {
@@ -66,6 +67,10 @@ export class AppRoot extends MobxLitElement {
       return html`<profiles-view .profileId=${profileId}></profiles-view>`;
     }
 
+    if (hash === '/xep80') {
+      return html`<xep80-view></xep80-view>`;
+    }
+
     return html`<devices-view></devices-view>`;
   }
 
@@ -81,6 +86,10 @@ export class AppRoot extends MobxLitElement {
 
   private disconnect = () => {
     btj.disconnect();
+  }
+
+  private onDisableXep80 = async () => {
+    await btj.setJoyPortMode(Btj.JoyPortMode.NORMAL);
   }
 
   private onNavLinkClick = (path: string) => {
@@ -177,14 +186,15 @@ export class AppRoot extends MobxLitElement {
   private getNavState() {
     const isDevices = this.isCurrentPath('/') || this.isCurrentPath('/devices');
     const isProfile = (id: number) => this.isCurrentPath(`/profiles/${id}`);
+    const isXep80 = this.isCurrentPath('/xep80');
     const profileIds = Array.from(btj.profiles.keys());
     const hasProfiles = btj.connected && profileIds.length > 0;
 
-    return { isDevices, isProfile, profileIds, hasProfiles };
+    return { isDevices, isProfile, isXep80, profileIds, hasProfiles };
   }
 
   private renderTopbarMenu() {
-    const { isDevices, isProfile, profileIds, hasProfiles } = this.getNavState();
+    const { isDevices, isProfile, isXep80, profileIds, hasProfiles } = this.getNavState();
     return html`
       <ul class="nav nav-tabs">
 
@@ -218,7 +228,25 @@ export class AppRoot extends MobxLitElement {
           </ul>
         </li>
 
+        <li class="nav-item ${btj.connected ? '' : 'd-none'}">
+          <a class="nav-link ${isXep80 ? 'active' : ''}"
+            aria-current=${isXep80 ? 'page' : undefined}
+            href="${this.buildPath('/xep80')}"
+          >
+            XEP80
+          </a>
+        </li>
+
       </ul>
+
+      ${btj.connected && btj.joyPort?.mode === Btj.JoyPortMode.UART ? html`
+        <button
+          class="btn btn-outline-danger ms-3"
+          @click=${this.onDisableXep80}
+        >
+          Disable XEP80
+        </button>
+      ` : ''}
 
       ${btj.connected ? html`
         <button
@@ -234,7 +262,7 @@ export class AppRoot extends MobxLitElement {
   }
 
   private renderSidebarMenu() {
-    const { isDevices, isProfile, profileIds, hasProfiles } = this.getNavState();
+    const { isDevices, isProfile, isXep80, profileIds, hasProfiles } = this.getNavState();
     return html`
       <nav class="nav nav-pills flex-column gap-1">
         <a
@@ -243,6 +271,14 @@ export class AppRoot extends MobxLitElement {
           @click=${() => this.onNavLinkClick(this.buildPath('/devices'))}
         >
           Devices
+        </a>
+
+        <a
+          class="nav-link ${btj.connected ? '' : 'disabled'} ${isXep80 ? 'active' : ''}"
+          data-bs-dismiss="offcanvas"
+          @click=${() => this.onNavLinkClick(this.buildPath('/xep80'))}
+        >
+          XEP80
         </a>
 
         ${hasProfiles ? html`
@@ -257,6 +293,16 @@ export class AppRoot extends MobxLitElement {
             </a>
           `)}
         ` : null}
+
+        ${btj.connected && btj.joyPort?.mode === Btj.JoyPortMode.UART ? html`
+          <button
+            class="btn btn-outline-danger w-100 mt-2"
+            data-bs-dismiss="offcanvas"
+            @click=${this.onDisableXep80}
+          >
+            Disable XEP80
+          </button>
+        ` : ''}
 
         <div class="mt-3">
           <button

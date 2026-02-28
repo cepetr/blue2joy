@@ -72,6 +72,7 @@ export namespace Btj {
     EVT_ADV_LIST_UPDATE = 66,
     EVT_DEV_LIST_UPDATE = 67,
     EVT_PROFILE_UPDATE = 68,
+    EVT_XEP80_UPDATE = 69,
   }
 
   export interface Command {

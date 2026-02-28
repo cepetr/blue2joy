@@ -33,6 +33,11 @@ target_sources(app PRIVATE
   src/io/rgbled_seq.c
   src/io/spislave.c
   src/io/xep80_uart.c
+  src/xep80/xep80.c
+  src/xep80/xep80_cmd.c
+  src/xep80/xep80_char.c
+  src/xep80/xep80_misc.c
+  src/xep80/xep80_update.c
 
   src/main.c
 

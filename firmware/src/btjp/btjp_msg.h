@@ -69,6 +69,7 @@ typedef enum {
     BTJP_MSG_EVT_ADV_LIST_UPDATE = 66,
     BTJP_MSG_EVT_DEV_LIST_UPDATE = 67,
     BTJP_MSG_EVT_PROFILE_UPDATE = 68,
+    BTJP_MSG_EVT_XEP80_UPDATE = 69,
 
 } btjp_msg_id_t;
 

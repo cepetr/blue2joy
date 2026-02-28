@@ -32,8 +32,10 @@
 #include <io/spislave.h>
 #include <mapper/mapper.h>
 #include <mapper/profiles.h>
+#include <mapper/joy_port.h>
 #include <devmgr/devmgr.h>
 #include <event/event_bus.h>
+#include <xep80/xep80.h>
 
 LOG_MODULE_REGISTER(blue2joy);
 
@@ -132,6 +134,12 @@ int main(void)
         return 0;
     }
 
+    err = xep80_init();
+    if (err) {
+        LOG_ERR("XEP80 init failed {err: %d}", err);
+        return 0;
+    }
+
     mapper_set_profile(0, &profile_joy_analog, false);
     // mapper_set_profile(0, &profile_mouse, false);
 
@@ -157,6 +165,8 @@ int main(void)
         LOG_ERR("Bluetooth service init failed {err: %d}", err);
         return 0;
     }
+
+    // joy_port_set_mode(JOY_PORT_MODE_UART);
 
     devmgr_set_mode(DEVMGR_MODE_AUTO, true);
 

@@ -20,6 +20,8 @@
 
 #include <event/event_bus.h>
 
+#include <xep80/xep80.h>
+
 #include "joy_port.h"
 
 typedef struct {
@@ -77,9 +79,33 @@ int joy_port_set_mode(uint8_t mode)
     }
 
     if (mode != port->mode) {
+
+        switch (port->mode) {
+        case JOY_PORT_MODE_SPI:
+            // Disable SPI slave
+            // TODO
+            break;
+        case JOY_PORT_MODE_UART:
+            // Disable XEP80 UART
+            xep80_deactivate();
+            break;
+        default:
+            break;
+        }
+
         port->mode = mode;
 
-        // !@# todo
+        switch (port->mode) {
+        case JOY_PORT_MODE_SPI:
+            // Enable SPI slave
+            // TODO
+            break;
+        case JOY_PORT_MODE_UART:
+            // Enable XEP80 UART
+            xep80_activate();
+        default:
+            break;
+        }
 
         joy_port_publish_state();
     }

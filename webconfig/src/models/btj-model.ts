@@ -19,6 +19,7 @@
 import { action, computed, makeAutoObservable, observable } from "mobx";
 import { BtjConnection, scanAndSelect } from "../services/btj-connection";
 import { Btj } from "../services/btj-messages";
+import { XEP80_STATE_SIZE, decodeXep80Update } from "../workers/xep80-worker";
 
 export interface DeviceEntry {
   addr: Btj.DevAddr;
@@ -70,6 +71,9 @@ export class BtjModel {
 
   @observable
   profiles: Map<number, ProfileEntry> = new Map();
+
+  @observable
+  xep80State: Uint8Array = new Uint8Array(XEP80_STATE_SIZE);
 
 
   @computed
@@ -182,6 +186,18 @@ export class BtjModel {
     this.joyPort = evt.data;
   }
 
+  @action
+  private processXep80UpdateEvent(payload: DataView) {
+    const data = new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength);
+    decodeXep80Update(data, this.xep80State);
+
+    // Update the XEP80 view with the new state
+    const view = document.querySelector('xep80-view') as any;
+    if (view?.renderFramebuffer) {
+      view.renderFramebuffer(this.xep80State);
+    }
+  }
+
   // Handler forwarded to BtjConnection to receive async events from the device
   private processEvent = (msgId: number, payload: DataView) => {
     try {
@@ -201,6 +217,9 @@ export class BtjModel {
         case Btj.MsgId.EVT_JOY_PORT_UPDATE:
           this.processJoyPortUpdateEvent(payload);
           break;
+        case Btj.MsgId.EVT_XEP80_UPDATE:
+          this.processXep80UpdateEvent(payload);
+          break;
       }
     } catch (err) {
       console.error('Failed to handle event', err);
@@ -211,6 +230,7 @@ export class BtjModel {
   async connect(device: BluetoothDevice): Promise<void> {
     this.removeAllDevices();
     this.removeAllProfiles();
+    this.resetXep80State();
 
     device.addEventListener('gattserverdisconnected', () => {
       this.disconnect();
@@ -240,6 +260,12 @@ export class BtjModel {
     this.conn = null;
     this.sysInfo = null;
     this.sysState = null;
+    this.resetXep80State();
+  }
+
+  @action
+  private resetXep80State() {
+    this.xep80State = new Uint8Array(XEP80_STATE_SIZE);
   }
 
   getProfile(id: number): ProfileEntry | undefined {
@@ -372,6 +398,9 @@ export class BtjModel {
   async setJoyPortMode(mode: Btj.JoyPortMode) {
     if (!this.conn) throw new Error('Not connected');
     try {
+      if (mode === Btj.JoyPortMode.UART) {
+        this.resetXep80State();
+      }
       await this.conn.invoke(new Btj.SetJoyPortMode(mode));
     } catch (err: any) {
       this.logError(err, 'joyport');
