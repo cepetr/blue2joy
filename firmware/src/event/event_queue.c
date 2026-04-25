@@ -116,7 +116,7 @@ void event_queue_remove(event_queue_t *q, const event_t *ev)
     size_t write_pos = q->head;
 
     while (read_pos != q->tail) {
-        if (events_matches(&q->items[read_pos], ev)) {
+        if (!events_matches(&q->items[read_pos], ev)) {
             // keep this item
             if (write_pos != read_pos) {
                 q->items[write_pos] = q->items[read_pos];
