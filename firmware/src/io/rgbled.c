@@ -61,6 +61,7 @@ int rgbled_init(void)
     rgbled_drv_t *drv = &g_rgbled_drv;
 
     memset(drv, 0, sizeof(rgbled_drv_t));
+    k_mutex_init(&drv->mutex);
 
     drv->sync.brightness = 5; // Default brightness
 
