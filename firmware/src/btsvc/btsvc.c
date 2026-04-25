@@ -98,7 +98,7 @@ static ssize_t btjp_rxq_write(struct bt_conn *conn, const struct bt_gatt_attr *a
         return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
     }
 
-    if (offset + len >= sizeof(session->rx_buf)) {
+    if (offset + len > sizeof(session->rx_buf)) {
         LOG_ERR("Invalid attribute length");
         return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
     }
