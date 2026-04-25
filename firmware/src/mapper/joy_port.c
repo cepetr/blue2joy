@@ -43,6 +43,7 @@ void joy_port_get_state(event_joy_port_t *state)
 {
     joy_port_t *port = &g_joy_port;
 
+    memset(state, 0, sizeof(*state));
     state->mode = port->mode;
 
     // Gather pin states
