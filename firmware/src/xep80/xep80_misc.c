@@ -24,6 +24,7 @@
 
 void xep80_reset(xep80_t *xep)
 {
+    memset(xep->state.vram, 0, sizeof(xep->state.vram));
     memset(xep->state.vram, 0x9B, XEP80_ROW_COUNT * XEP80_ROW_SIZE);
 
     xep->cur.x = 0;
@@ -34,6 +35,7 @@ void xep80_reset(xep80_t *xep)
     xep->escape = false;
     xep->burst_mode = false;
     xep->printer_mode = false;
+    xep->escape_mode = false;
 
     xep->state.vcr = 0x00;
     xep->state.attr0 = 0xFF;

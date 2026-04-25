@@ -384,7 +384,7 @@ void xep80_process_char(xep80_t *xep, char ch)
         return;
     }
 
-    if (!xep->escape || xep->escape_mode) {
+    if (!(xep->escape || xep->escape_mode)) {
         if (xep80_process_special_char(xep, ch)) {
             return;
         }
@@ -393,5 +393,5 @@ void xep80_process_char(xep80_t *xep, char ch)
     xep->escape = false;
     write_char(xep, ch);
 
-    xep80_sync_cursor(xep);
+    //xep80_sync_cursor(xep);
 }

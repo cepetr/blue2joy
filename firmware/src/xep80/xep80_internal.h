@@ -79,7 +79,7 @@ typedef struct {
 
     // the next char will be printed and not processed as special char
     bool escape;
-    // all subsequent chars will be printed and not processed as special chars
+    // all subsequent chars will be printed and not be processed as special chars
     bool escape_mode;
 
     bool printer_mode;
