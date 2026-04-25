@@ -26,7 +26,9 @@ static uint8_t hid_report_received(struct bt_conn *conn, struct bt_gatt_subscrib
                                    const void *data, uint16_t length)
 {
     bthid_device_t *dev = bthid_device_find(conn);
-    assert(dev != NULL);
+    if (dev == NULL) {
+        return BT_GATT_ITER_STOP;
+    }
 
     bthid.cb->report_received(dev, data, length);
 
@@ -37,7 +39,9 @@ static void hid_report_subscribed(struct bt_conn *conn, uint8_t err,
                                   struct bt_gatt_subscribe_params *params)
 {
     bthid_device_t *dev = bthid_device_find(conn);
-    assert(dev != NULL);
+    if (dev == NULL) {
+        return;
+    }
 
     if (err) {
         LOG_ERR("HID report subscription failed {err: %d}", err);

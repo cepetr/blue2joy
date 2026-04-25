@@ -27,7 +27,9 @@ static uint8_t report_map_read_cb(struct bt_conn *conn, uint8_t err,
                                   uint16_t length)
 {
     bthid_device_t *dev = bthid_device_find(conn);
-    assert(dev != NULL);
+    if (dev == NULL) {
+        return BT_GATT_ITER_STOP;
+    }
 
     if (err) {
         LOG_ERR("Report map read failed {err: %d}", err);
@@ -92,7 +94,9 @@ static uint8_t report_ref_read_cb(struct bt_conn *conn, uint8_t err,
                                   uint16_t length)
 {
     bthid_device_t *dev = bthid_device_find(conn);
-    assert(dev);
+    if (dev == NULL) {
+        return BT_GATT_ITER_STOP;
+    }
 
     if (err || data == NULL || length < 2) {
         LOG_ERR("  ReportRef read failed {err: %u len: %u}", err, length);
@@ -127,7 +131,9 @@ static uint8_t report_ref_read_cb(struct bt_conn *conn, uint8_t err,
 static int start_read_report_ref(struct bt_conn *conn, const struct bt_gatt_attr *attr)
 {
     bthid_device_t *dev = bthid_device_find(conn);
-    assert(dev);
+    if (dev == NULL) {
+        return BT_GATT_ITER_STOP;
+    }
 
     static struct bt_gatt_read_params rp;
     rp = (struct bt_gatt_read_params){
@@ -151,7 +157,9 @@ static uint8_t on_report_desc(struct bt_conn *conn, const struct bt_gatt_attr *a
                               struct bt_gatt_discover_params *params)
 {
     bthid_device_t *dev = bthid_device_find(conn);
-    assert(dev);
+    if (dev == NULL) {
+        return BT_GATT_ITER_STOP;
+    }
 
     if (attr == NULL) {
         /* Move to next report characteristic */
@@ -247,7 +255,9 @@ static uint8_t on_hid_characteristic(struct bt_conn *conn, const struct bt_gatt_
                                      struct bt_gatt_discover_params *params)
 {
     bthid_device_t *dev = bthid_device_find(conn);
-    assert(dev != NULL);
+    if (dev == NULL) {
+        return BT_GATT_ITER_STOP;
+    }
 
     if (attr == NULL) {
         if (dev->handles.report_count > 0) {
@@ -329,7 +339,9 @@ static uint8_t on_primary_service(struct bt_conn *conn, const struct bt_gatt_att
                                   struct bt_gatt_discover_params *params)
 {
     bthid_device_t *dev = bthid_device_find(conn);
-    assert(dev != NULL);
+    if (dev == NULL) {
+        return BT_GATT_ITER_STOP;
+    }
 
     if (attr == NULL) {
         LOG_INF("HID service not found");
