@@ -23,8 +23,11 @@ import {
   observable,
   runInAction,
 } from "mobx";
-import { BtjConnection, scanAndSelect } from "../services/btj-connection";
+import { BtjConnection } from "../services/btj-connection";
 import { Btj } from "../services/btj-messages";
+import type { BtjTransport } from "../services/btj-transport";
+import { createDemoTransport } from "../services/virtual-transport";
+import { scanAndSelectBluetoothTransport } from "../services/web-bluetooth-transport";
 import { XEP80_STATE_SIZE, decodeXep80Update } from "../workers/xep80-worker";
 
 export interface DeviceEntry {
@@ -123,13 +126,22 @@ export class BtjModel {
   @action
   async scanAndConnect(): Promise<void> {
     try {
-      const device = await scanAndSelect();
-      await this.connect(device);
+      const transport = await scanAndSelectBluetoothTransport();
+      await this.connect(transport);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "NotFoundError") {
         // User canceled the chooser - not an error
         return;
       }
+      this.logError(err, "connection");
+    }
+  }
+
+  @action
+  async connectDemo(): Promise<void> {
+    try {
+      await this.connect(createDemoTransport());
+    } catch (err: unknown) {
       this.logError(err, "connection");
     }
   }
@@ -250,21 +262,17 @@ export class BtjModel {
   };
 
   @action
-  async connect(device: BluetoothDevice): Promise<void> {
+  async connect(transport: BtjTransport): Promise<void> {
     this.removeAllDevices();
     this.removeAllProfiles();
     this.resetXep80State();
 
-    device.addEventListener("gattserverdisconnected", () => {
-      this.disconnect();
-    });
-
     this.clearErrors();
 
-    // create connection with event handler
-    this.conn = new BtjConnection(device, this.processEvent);
+    this.conn = new BtjConnection(transport, this.processEvent, () => {
+      this.disconnect();
+    });
     try {
-      // Wait for the connection to be fully initialized
       await this.conn.connect();
       const sysInfo = (await this.conn.invoke(new Btj.GetSysInfo())).data;
       runInAction(() => {

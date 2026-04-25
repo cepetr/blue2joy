@@ -17,22 +17,12 @@
  */
 
 import { Btj } from "./btj-messages";
-
-const SERVICE_UUID = "1c3b0000-03f0-5b46-7a5a-10a4d8eb5964";
-const REQUEST_CHAR_UUID = "1c3b0002-03f0-5b46-7a5a-10a4d8eb5964";
-const RESPONSE_CHAR_UUID = "1c3b0003-03f0-5b46-7a5a-10a4d8eb5964";
-
-const MSG_TYPE_MASK = 0x03;
-const MSG_TYPE_REQUEST = 0;
-const MSG_TYPE_EVENT = 1;
-const MSG_TYPE_RESPONSE = 2;
-const MSG_TYPE_ERROR = 3;
-
-const OFFSET_FLAGS = 0;
-const OFFSET_MSGID = 1;
-const OFFSET_SEQ = 2;
-const OFFSET_SIZE = 3;
-const HEADER_SIZE = 4;
+import {
+  BtjFrameType,
+  decodeBtjFrame,
+  encodeBtjFrame,
+  type BtjTransport,
+} from "./btj-transport";
 
 type PendingRequest = {
   seq: number;
@@ -45,14 +35,11 @@ type PendingRequest = {
 };
 
 export class BtjConnection {
-  private device: BluetoothDevice;
-  private requestChar: BluetoothRemoteGATTCharacteristic | null = null;
-  private notifyChar: BluetoothRemoteGATTCharacteristic | null = null;
   private readyPromise: Promise<void> | null = null;
-
-  private notifyHandler: ((e: Event) => void) | null = null;
   private eventHandler: ((msgId: number, payload: DataView) => void) | null =
     null;
+  private disconnectHandler: (() => void) | null = null;
+  private isDisconnecting = false;
 
   private reqSeq = 1;
   private reqQueue: Array<() => void> = [];
@@ -60,49 +47,30 @@ export class BtjConnection {
   private timeoutMs = 3000;
 
   constructor(
-    device: BluetoothDevice,
+    private transport: BtjTransport,
     eventHandler?: (msgId: number, payload: DataView) => void,
+    disconnectHandler?: () => void,
   ) {
-    this.device = device;
     this.eventHandler = eventHandler ?? null;
+    this.disconnectHandler = disconnectHandler ?? null;
   }
 
   async connect(): Promise<void> {
-    // Already initialized ?
-    if (this.requestChar && this.notifyChar) return;
-
-    // Connecting in progress?
     if (this.readyPromise) return this.readyPromise;
 
     this.readyPromise = (async () => {
-      const server = await this.device.gatt?.connect();
-      if (!server) throw new Error("Device is not connected");
-
-      const service = await server.getPrimaryService(SERVICE_UUID);
-      if (!service) throw new Error("Failed to get primary service");
-
-      this.requestChar = await service.getCharacteristic(REQUEST_CHAR_UUID);
-      if (!this.requestChar)
-        throw new Error("Failed to get request characteristic");
-
-      this.notifyChar = await service.getCharacteristic(RESPONSE_CHAR_UUID);
-      if (!this.notifyChar)
-        throw new Error("Failed to get notify characteristic");
-
-      // Store handler so we can remove it when disconnecting
-      this.notifyHandler = (e: Event) => {
-        const value = (e.target as BluetoothRemoteGATTCharacteristic).value;
-        if (value) {
-          this.processMessage(new Uint8Array(value.buffer));
+      this.transport.setFrameHandler((frame) => this.processMessage(frame));
+      this.transport.setDisconnectHandler(() => {
+        if (this.isDisconnecting) {
+          return;
         }
-      };
-      this.notifyChar.addEventListener(
-        "characteristicvaluechanged",
-        this.notifyHandler,
-      );
-      await this.notifyChar.startNotifications();
+        this.resetConnectionState(new Error("Connection closed"));
+        this.disconnectHandler?.();
+      });
+      await this.transport.open();
     })().catch((err) => {
-      // Reset so a future connect() can retry
+      this.transport.setFrameHandler(null);
+      this.transport.setDisconnectHandler(null);
       this.readyPromise = null;
       throw err;
     });
@@ -113,54 +81,15 @@ export class BtjConnection {
   // Physically disconnect the GATT connection and stop notifications.
   // Safe to call multiple times.
   async disconnect(): Promise<void> {
-    // Reject any pending command
-    if (this.reqPending) {
-      try {
-        clearTimeout(this.reqPending.timeout);
-        this.reqPending.reject(new Error("Connection closed"));
-      } catch {
-        // Ignore errors
-      }
-      this.reqPending = null;
-    }
-
-    // Clear queued commands
-    this.reqQueue = [];
-
-    // Stop notifications and remove handler
+    this.isDisconnecting = true;
     try {
-      if (this.notifyChar) {
-        try {
-          await this.notifyChar.stopNotifications();
-        } catch {
-          // Ignore stop errors
-        }
-        if (this.notifyHandler) {
-          this.notifyChar.removeEventListener(
-            "characteristicvaluechanged",
-            this.notifyHandler,
-          );
-        }
-        this.notifyChar = null;
-        this.notifyHandler = null;
-      }
-    } catch {
-      // Ignore errors
+      await this.transport.close();
+    } finally {
+      this.transport.setFrameHandler(null);
+      this.transport.setDisconnectHandler(null);
+      this.resetConnectionState(new Error("Connection closed"));
+      this.isDisconnecting = false;
     }
-
-    // Disconnect GATT server if connected
-    try {
-      const server = this.device.gatt;
-      if (server && server.connected) {
-        server.disconnect();
-      }
-    } catch {
-      // Ignore errors
-    }
-
-    // Reset cached state
-    this.requestChar = null;
-    this.readyPromise = null;
   }
 
   async invoke<T extends Btj.Command>(cmd: T): Promise<T> {
@@ -236,40 +165,30 @@ export class BtjConnection {
   }
 
   private processMessage(buf: Uint8Array) {
-    if (!(buf instanceof Uint8Array) || buf.length < HEADER_SIZE) return;
-    const flags = buf[OFFSET_FLAGS];
-    const msgId = buf[OFFSET_MSGID];
-    const seq = buf[OFFSET_SEQ];
-    const size = buf[OFFSET_SIZE];
+    const frame = decodeBtjFrame(buf);
+    if (!frame) return;
 
-    const type = flags & MSG_TYPE_MASK;
-    const payload = new DataView(
-      buf.buffer,
-      buf.byteOffset + HEADER_SIZE,
-      size,
-    );
-
-    switch (type) {
-      case MSG_TYPE_REQUEST:
+    switch (frame.type) {
+      case BtjFrameType.REQUEST:
         // Ignore incoming request from device
         break;
-      case MSG_TYPE_EVENT:
+      case BtjFrameType.EVENT:
         // Handle incoming event from device
-        this.handleEvent(msgId, payload);
+        this.handleEvent(frame.msgId, frame.payload);
         break;
 
-      case MSG_TYPE_RESPONSE:
-      case MSG_TYPE_ERROR:
+      case BtjFrameType.RESPONSE:
+      case BtjFrameType.ERROR:
         if (
           this.reqPending &&
-          seq === this.reqPending.seq &&
-          msgId === this.reqPending.msgId
+          frame.seq === this.reqPending.seq &&
+          frame.msgId === this.reqPending.msgId
         ) {
           clearTimeout(this.reqPending.timeout);
 
-          if (type == MSG_TYPE_RESPONSE) {
+          if (frame.type === BtjFrameType.RESPONSE) {
             try {
-              this.reqPending.parseResponse(payload);
+              this.reqPending.parseResponse(frame.payload);
               this.reqPending.resolve(this.reqPending.cmd);
             } catch (err) {
               this.reqPending.reject(err);
@@ -283,56 +202,41 @@ export class BtjConnection {
           this.nextCommand();
         } else {
           // Unmatched response
-          console.warn("Unmatched response seq", seq, "msgId", msgId);
+          console.warn(
+            "Unmatched response seq",
+            frame.seq,
+            "msgId",
+            frame.msgId,
+          );
         }
         break;
     }
   }
 
   private async sendRawRequest(request: Uint8Array): Promise<void> {
-    // Ensure we are connected and notifications are ready to receive responses
     await this.connect();
-    const safeRequest = new Uint8Array(Array.from(request));
-    return await this.requestChar!.writeValue(safeRequest);
+    await this.transport.sendFrame(new Uint8Array(Array.from(request)));
   }
 
   private serializeRequest(
     req: { msgId: Btj.MsgId; data: { serialize(): Uint8Array } },
     seq: number,
   ): Uint8Array {
-    const payload = req.data.serialize();
-    const buf = new Uint8Array(HEADER_SIZE + payload.length);
-    buf[OFFSET_FLAGS] = MSG_TYPE_REQUEST;
-    buf[OFFSET_MSGID] = req.msgId;
-    buf[OFFSET_SEQ] = seq;
-    buf[OFFSET_SIZE] = payload.length;
-    if (payload.length > 0) buf.set(payload, HEADER_SIZE);
-    return buf;
-  }
-}
-
-export async function scanAndSelect(): Promise<BluetoothDevice> {
-  if (!("bluetooth" in navigator)) {
-    throw new Error("Web Bluetooth is not supported in this browser.");
-  }
-
-  const isSecureContext =
-    window.isSecureContext ||
-    location.hostname === "localhost" ||
-    location.hostname === "127.0.0.1";
-
-  if (!isSecureContext) {
-    throw new Error(
-      "Web Bluetooth requires a secure context (https or localhost).",
+    return encodeBtjFrame(
+      BtjFrameType.REQUEST,
+      req.msgId,
+      seq,
+      req.data.serialize(),
     );
   }
 
-  return await navigator.bluetooth.requestDevice({
-    filters: [
-      {
-        services: [SERVICE_UUID],
-      },
-    ],
-    optionalServices: [],
-  });
+  private resetConnectionState(reason: Error): void {
+    if (this.reqPending) {
+      clearTimeout(this.reqPending.timeout);
+      this.reqPending.reject(reason);
+      this.reqPending = null;
+    }
+    this.reqQueue = [];
+    this.readyPromise = null;
+  }
 }

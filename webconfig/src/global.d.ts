@@ -1,3 +1,5 @@
+/// <reference types="web-bluetooth" />
+
 // Global type helpers for compatibility with some library type definitions
 // Define ReadonlySetLike which some versions of mobx reference.
 // This is a minimal compatible alias to avoid TypeScript errors.
