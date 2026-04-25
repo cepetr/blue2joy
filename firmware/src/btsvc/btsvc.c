@@ -18,6 +18,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <stdint.h>
 #include <hw_id.h>
 
 #include <zephyr/bluetooth/bluetooth.h>
@@ -62,6 +63,8 @@ typedef struct {
 typedef struct {
     // Session contexts for each possible connection
     btjp_session_t session[CONFIG_BT_MAX_CONN];
+    // Protects session connection pointers
+    struct k_mutex session_mutex;
     // Indicates if advertising is currently enabled
     atomic_t is_advertising;
     // Work item to stop advertising after timeout
@@ -69,6 +72,67 @@ typedef struct {
 } btsvc_t;
 
 static btsvc_t g_btsvc;
+
+static struct bt_conn *session_conn_ref(btjp_session_t *session)
+{
+    struct bt_conn *conn = NULL;
+
+    k_mutex_lock(&g_btsvc.session_mutex, K_FOREVER);
+    if (session->conn != NULL) {
+        conn = bt_conn_ref(session->conn);
+    }
+    k_mutex_unlock(&g_btsvc.session_mutex);
+
+    return conn;
+}
+
+static bool session_has_conn(btjp_session_t *session, struct bt_conn *conn)
+{
+    bool match = false;
+
+    k_mutex_lock(&g_btsvc.session_mutex, K_FOREVER);
+    match = (session->conn == conn);
+    k_mutex_unlock(&g_btsvc.session_mutex);
+
+    return match;
+}
+
+static bool session_is_connected(btjp_session_t *session)
+{
+    bool connected = false;
+
+    k_mutex_lock(&g_btsvc.session_mutex, K_FOREVER);
+    connected = (session->conn != NULL);
+    k_mutex_unlock(&g_btsvc.session_mutex);
+
+    return connected;
+}
+
+static bool session_set_conn(btjp_session_t *session, struct bt_conn *conn)
+{
+    bool assigned = false;
+
+    k_mutex_lock(&g_btsvc.session_mutex, K_FOREVER);
+    if (session->conn == NULL) {
+        session->conn = bt_conn_ref(conn);
+        assigned = true;
+    }
+    k_mutex_unlock(&g_btsvc.session_mutex);
+
+    return assigned;
+}
+
+static struct bt_conn *session_take_conn(btjp_session_t *session)
+{
+    struct bt_conn *conn = NULL;
+
+    k_mutex_lock(&g_btsvc.session_mutex, K_FOREVER);
+    conn = session->conn;
+    session->conn = NULL;
+    k_mutex_unlock(&g_btsvc.session_mutex);
+
+    return conn;
+}
 
 // ------------------------------------------------------------------
 // btjp service UUIDs
@@ -149,6 +213,11 @@ static void request_work_handler(struct k_work *work)
     btjp_session_t *session = CONTAINER_OF(work, btjp_session_t, request_work);
 
     uint8_t tx_buf[CONFIG_BT_L2CAP_TX_MTU];
+    struct bt_conn *conn = session_conn_ref(session);
+
+    if (conn == NULL) {
+        return;
+    }
 
     if (!atomic_set(&session->txq_ready, true)) {
         k_work_reschedule(&session->event_work, K_MSEC(0));
@@ -162,10 +231,12 @@ static void request_work_handler(struct k_work *work)
 
     if (tx_size == 0) {
         // Nothing to send
+        bt_conn_unref(conn);
         return;
     }
 
-    int err = bt_gatt_notify(session->conn, btjp_svc_txq_attr, tx_buf, tx_size);
+    int err = bt_gatt_notify(conn, btjp_svc_txq_attr, tx_buf, tx_size);
+    bt_conn_unref(conn);
     if (err) {
         LOG_ERR("Failed to notify response: %d", err);
     }
@@ -175,7 +246,13 @@ static void request_work_handler(struct k_work *work)
 // (it used to schedule sending next event if any)
 static void notify_sent_cb(struct bt_conn *conn, void *user_data)
 {
-    btjp_session_t *session = (btjp_session_t *)user_data;
+    ARG_UNUSED(user_data);
+
+    btjp_session_t *session = &g_btsvc.session[bt_conn_index(conn)];
+
+    if (!session_has_conn(session, conn)) {
+        return;
+    }
 
     if (!event_queue_is_empty(&session->evq)) {
         // Schedule sending next event
@@ -184,7 +261,7 @@ static void notify_sent_cb(struct bt_conn *conn, void *user_data)
 }
 
 // Wrapper for sending notification with the callback
-static int send_notify(btjp_session_t *session, const void *data, size_t len)
+static int send_notify(struct bt_conn *conn, const void *data, size_t len)
 {
     struct bt_gatt_notify_params params;
 
@@ -194,9 +271,8 @@ static int send_notify(btjp_session_t *session, const void *data, size_t len)
     params.data = data;
     params.len = len;
     params.func = notify_sent_cb;
-    params.user_data = session;
 
-    return bt_gatt_notify_cb(session->conn, &params);
+    return bt_gatt_notify_cb(conn, &params);
 }
 
 // Work handler for sending event notifications
@@ -207,6 +283,11 @@ static void event_work_handler(struct k_work *work_)
     btjp_session_t *session = CONTAINER_OF(work, btjp_session_t, event_work);
 
     uint8_t tx_buf[CONFIG_BT_L2CAP_TX_MTU];
+    struct bt_conn *conn = session_conn_ref(session);
+
+    if (conn == NULL) {
+        return;
+    }
 
     size_t tx_size = btjp_build_evt_message(tx_buf, sizeof(tx_buf), &session->evq);
 
@@ -214,10 +295,12 @@ static void event_work_handler(struct k_work *work_)
 
     if (tx_size == 0) {
         // Nothing to send
+        bt_conn_unref(conn);
         return;
     }
 
-    int err = send_notify(session, tx_buf, tx_size);
+    int err = send_notify(conn, tx_buf, tx_size);
+    bt_conn_unref(conn);
     if (err) {
         LOG_ERR("Failed to notify event: %d", err);
     }
@@ -248,7 +331,13 @@ static void event_callback(void *context, const event_t *ev)
 // (it used to schedule sending next event if any)
 static void xep80_update_sent_cb(struct bt_conn *conn, void *user_data)
 {
-    btjp_session_t *session = (btjp_session_t *)user_data;
+    ARG_UNUSED(user_data);
+
+    btjp_session_t *session = &g_btsvc.session[bt_conn_index(conn)];
+
+    if (!session_has_conn(session, conn)) {
+        return;
+    }
 
     k_work_submit(&session->xep80_update_work);
 }
@@ -256,6 +345,12 @@ static void xep80_update_sent_cb(struct bt_conn *conn, void *user_data)
 static void xep80_update_work_handler(struct k_work *work)
 {
     btjp_session_t *session = CONTAINER_OF(work, btjp_session_t, xep80_update_work);
+    struct bt_conn *conn = session_conn_ref(session);
+
+    if (conn == NULL) {
+        atomic_set(&session->xep80_update_pending, false);
+        return;
+    }
 
     // Build and send XEP80 update notification
     struct {
@@ -263,12 +358,13 @@ static void xep80_update_work_handler(struct k_work *work)
         uint8_t buf[CONFIG_BT_L2CAP_TX_MTU - sizeof(btjp_msg_header_t)];
     } tx_msg;
 
-    size_t tx_max_size = MIN(bt_gatt_get_mtu(session->conn) - 4 - 3, sizeof(tx_msg.buf));
+    size_t tx_max_size = MIN(bt_gatt_get_mtu(conn) - 4 - 3, sizeof(tx_msg.buf));
     size_t tx_size = xep80_build_update_message(tx_msg.buf, tx_max_size);
 
     if (tx_size == 0) {
         // Nothing to send
         atomic_set(&session->xep80_update_pending, false);
+        bt_conn_unref(conn);
         return;
     }
 
@@ -287,9 +383,9 @@ static void xep80_update_work_handler(struct k_work *work)
     params.data = &tx_msg;
     params.len = tx_size + sizeof(btjp_msg_header_t);
     params.func = xep80_update_sent_cb;
-    params.user_data = session;
 
-    int err = bt_gatt_notify_cb(session->conn, &params);
+    int err = bt_gatt_notify_cb(conn, &params);
+    bt_conn_unref(conn);
     if (err) {
         LOG_ERR("Failed to notify XEP80 update: %d", err);
         atomic_set(&session->xep80_update_pending, false);
@@ -299,6 +395,11 @@ static void xep80_update_work_handler(struct k_work *work)
 static void btsvc_xep80_update_cb(void *context)
 {
     btjp_session_t *session = (btjp_session_t *)context;
+
+    if (!session_is_connected(session)) {
+        return;
+    }
+
     if (!atomic_set(&session->xep80_update_pending, true)) {
         k_work_submit(&session->xep80_update_work);
     }
@@ -353,18 +454,22 @@ static void connected(struct bt_conn *conn, uint8_t err)
     }
 
     btjp_session_t *session = &g_btsvc.session[bt_conn_index(conn)];
-    if (session->conn != NULL) {
+    if (session_is_connected(session)) {
         LOG_ERR("Connection already exists {peer: %s}", addr_str);
         session = NULL;
         goto error;
     }
 
     memset(session, 0, sizeof(btjp_session_t));
-    session->conn = bt_conn_ref(conn);
 
     k_work_init(&session->request_work, request_work_handler);
     k_work_init_delayable(&session->event_work, event_work_handler);
     k_work_init(&session->xep80_update_work, xep80_update_work_handler);
+
+    if (!session_set_conn(session, conn)) {
+        LOG_ERR("Failed to store connection {peer: %s}", addr_str);
+        goto error;
+    }
 
     if (event_queue_init(&session->evq) != 0) {
         LOG_ERR("Failed to create event queue");
@@ -397,8 +502,9 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 error:
     if (session != NULL) {
-        if (session->conn != NULL) {
-            bt_conn_unref(session->conn);
+        struct bt_conn *session_conn = session_take_conn(session);
+        if (session_conn != NULL) {
+            bt_conn_unref(session_conn);
         }
         memset(session, 0, sizeof(btjp_session_t));
     }
@@ -410,7 +516,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
     btjp_session_t *session = &g_btsvc.session[bt_conn_index(conn)];
 
-    if (session->conn != conn) {
+    if (!session_has_conn(session, conn)) {
         return;
     }
 
@@ -421,13 +527,21 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
     event_bus_unsubscribe(event_callback, session);
 
-    k_work_cancel(&session->request_work);         // !@# sync???
-    k_work_cancel_delayable(&session->event_work); // !@# sync???
-    k_work_cancel(&session->xep80_update_work);    // !@# sync???
-
     xep80_set_update_callback(NULL, NULL);
 
-    bt_conn_unref(session->conn);
+    struct k_work_sync request_work_sync;
+    struct k_work_sync event_work_sync;
+    struct k_work_sync xep80_update_work_sync;
+
+    k_work_cancel_sync(&session->request_work, &request_work_sync);
+    k_work_cancel_delayable_sync(&session->event_work, &event_work_sync);
+    k_work_cancel_sync(&session->xep80_update_work, &xep80_update_work_sync);
+
+    struct bt_conn *session_conn = session_take_conn(session);
+    if (session_conn != NULL) {
+        bt_conn_unref(session_conn);
+    }
+
     memset(session, 0, sizeof(btjp_session_t));
 
     btsvc_start_advertising();
@@ -546,6 +660,11 @@ int btsvc_init(void)
     }
 
     int err;
+
+    err = k_mutex_init(&svc->session_mutex);
+    if (err) {
+        return err;
+    }
 
     err = btsvc_set_name();
     if (err) {
