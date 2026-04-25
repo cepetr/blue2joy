@@ -16,11 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { Btj } from './btj-messages';
+import { Btj } from "./btj-messages";
 
-const SERVICE_UUID = '1c3b0000-03f0-5b46-7a5a-10a4d8eb5964';
-const REQUEST_CHAR_UUID = '1c3b0002-03f0-5b46-7a5a-10a4d8eb5964';
-const RESPONSE_CHAR_UUID = '1c3b0003-03f0-5b46-7a5a-10a4d8eb5964';
+const SERVICE_UUID = "1c3b0000-03f0-5b46-7a5a-10a4d8eb5964";
+const REQUEST_CHAR_UUID = "1c3b0002-03f0-5b46-7a5a-10a4d8eb5964";
+const RESPONSE_CHAR_UUID = "1c3b0003-03f0-5b46-7a5a-10a4d8eb5964";
 
 const MSG_TYPE_MASK = 0x03;
 const MSG_TYPE_REQUEST = 0;
@@ -41,14 +41,18 @@ export class BtjConnection {
   private readyPromise: Promise<void> | null = null;
 
   private notifyHandler: ((e: Event) => void) | null = null;
-  private eventHandler: ((msgId: number, payload: DataView) => void) | null = null;
+  private eventHandler: ((msgId: number, payload: DataView) => void) | null =
+    null;
 
   private reqSeq = 1;
   private reqQueue: Array<() => void> = [];
   private reqPending: any = null;
   private timeoutMs = 3000;
 
-  constructor(device: BluetoothDevice, eventHandler?: (msgId: number, payload: DataView) => void) {
+  constructor(
+    device: BluetoothDevice,
+    eventHandler?: (msgId: number, payload: DataView) => void,
+  ) {
     this.device = device;
     this.eventHandler = eventHandler ?? null;
   }
@@ -62,16 +66,18 @@ export class BtjConnection {
 
     this.readyPromise = (async () => {
       const server = await this.device.gatt?.connect();
-      if (!server) throw new Error('Device is not connected');
+      if (!server) throw new Error("Device is not connected");
 
       const service = await server.getPrimaryService(SERVICE_UUID);
-      if (!service) throw new Error('Failed to get primary service');
+      if (!service) throw new Error("Failed to get primary service");
 
       this.requestChar = await service.getCharacteristic(REQUEST_CHAR_UUID);
-      if (!this.requestChar) throw new Error('Failed to get request characteristic');
+      if (!this.requestChar)
+        throw new Error("Failed to get request characteristic");
 
       this.notifyChar = await service.getCharacteristic(RESPONSE_CHAR_UUID);
-      if (!this.notifyChar) throw new Error('Failed to get notify characteristic');
+      if (!this.notifyChar)
+        throw new Error("Failed to get notify characteristic");
 
       // Store handler so we can remove it when disconnecting
       this.notifyHandler = (e: Event) => {
@@ -80,9 +86,12 @@ export class BtjConnection {
           this.processMessage(new Uint8Array(value.buffer));
         }
       };
-      this.notifyChar.addEventListener('characteristicvaluechanged', this.notifyHandler);
+      this.notifyChar.addEventListener(
+        "characteristicvaluechanged",
+        this.notifyHandler,
+      );
       await this.notifyChar.startNotifications();
-    })().catch(err => {
+    })().catch((err) => {
       // Reset so a future connect() can retry
       this.readyPromise = null;
       throw err;
@@ -98,7 +107,7 @@ export class BtjConnection {
     if (this.reqPending) {
       try {
         clearTimeout(this.reqPending.timeout);
-        this.reqPending.reject(new Error('Connection closed'));
+        this.reqPending.reject(new Error("Connection closed"));
       } catch (_) {
         // Ignore errors
       }
@@ -117,7 +126,10 @@ export class BtjConnection {
           // Ignore stop errors
         }
         if (this.notifyHandler) {
-          this.notifyChar.removeEventListener('characteristicvaluechanged', this.notifyHandler);
+          this.notifyChar.removeEventListener(
+            "characteristicvaluechanged",
+            this.notifyHandler,
+          );
         }
         this.notifyChar = null;
         this.notifyHandler = null;
@@ -155,10 +167,13 @@ export class BtjConnection {
   private async _invoke<T extends Btj.Command>(
     cmd: T,
     resolve: (value: T) => void,
-    reject: (reason?: any) => void
+    reject: (reason?: any) => void,
   ) {
     const seq = this.reqSeq++ & 0xff;
-    const reqBuf = this.serializeRequest({ msgId: cmd.msgId, data: { serialize: () => cmd.serializeRequest() } }, seq);
+    const reqBuf = this.serializeRequest(
+      { msgId: cmd.msgId, data: { serialize: () => cmd.serializeRequest() } },
+      seq,
+    );
     this.reqPending = {
       seq,
       msgId: cmd.msgId,
@@ -166,7 +181,7 @@ export class BtjConnection {
       reject,
       timeout: setTimeout(() => this.handleTimeout(), this.timeoutMs),
       parseResponse: cmd.parseResponse.bind(cmd),
-      cmd
+      cmd,
     };
     try {
       await this.sendRawRequest(reqBuf);
@@ -177,7 +192,7 @@ export class BtjConnection {
 
   private handleTimeout() {
     if (this.reqPending) {
-      this.reqPending.reject(new Error('Command timeout'));
+      this.reqPending.reject(new Error("Command timeout"));
       this.reqPending = null;
       this.nextCommand();
     }
@@ -200,13 +215,13 @@ export class BtjConnection {
   }
 
   private handleEvent(msgId: number, payload: DataView) {
-    globalThis.console.log('Received event from device', msgId);
+    globalThis.console.log("Received event from device", msgId);
     try {
       if (this.eventHandler) {
         this.eventHandler(msgId, payload);
       }
     } catch (err) {
-      console.error('Event handler threw', err);
+      console.error("Event handler threw", err);
     }
   }
 
@@ -218,7 +233,11 @@ export class BtjConnection {
     const size = buf[OFFSET_SIZE];
 
     const type = flags & MSG_TYPE_MASK;
-    const payload = new DataView(buf.buffer, buf.byteOffset + HEADER_SIZE, size);
+    const payload = new DataView(
+      buf.buffer,
+      buf.byteOffset + HEADER_SIZE,
+      size,
+    );
 
     switch (type) {
       case MSG_TYPE_REQUEST:
@@ -231,7 +250,11 @@ export class BtjConnection {
 
       case MSG_TYPE_RESPONSE:
       case MSG_TYPE_ERROR:
-        if (this.reqPending && seq === this.reqPending.seq && msgId === this.reqPending.msgId) {
+        if (
+          this.reqPending &&
+          seq === this.reqPending.seq &&
+          msgId === this.reqPending.msgId
+        ) {
           clearTimeout(this.reqPending.timeout);
 
           if (type == MSG_TYPE_RESPONSE) {
@@ -244,13 +267,15 @@ export class BtjConnection {
               this.reqPending.reject(err);
             }
           } else {
-            this.reqPending.reject(new Error('Received error response from device'));
+            this.reqPending.reject(
+              new Error("Received error response from device"),
+            );
           }
           this.reqPending = null;
           this.nextCommand();
         } else {
           // Unmatched response
-          console.warn('Unmatched response seq', seq, 'msgId', msgId);
+          console.warn("Unmatched response seq", seq, "msgId", msgId);
         }
         break;
     }
@@ -263,7 +288,10 @@ export class BtjConnection {
     return await this.requestChar!.writeValue(safeRequest);
   }
 
-  private serializeRequest(req: { msgId: Btj.MsgId; data: { serialize(): Uint8Array } }, seq: number): Uint8Array {
+  private serializeRequest(
+    req: { msgId: Btj.MsgId; data: { serialize(): Uint8Array } },
+    seq: number,
+  ): Uint8Array {
     const payload = req.data.serialize();
     const buf = new Uint8Array(HEADER_SIZE + payload.length);
     buf[OFFSET_FLAGS] = MSG_TYPE_REQUEST;
@@ -276,20 +304,27 @@ export class BtjConnection {
 }
 
 export async function scanAndSelect(): Promise<BluetoothDevice> {
-  if (!('bluetooth' in navigator)) {
-    throw new Error('Web Bluetooth is not supported in this browser.');
+  if (!("bluetooth" in navigator)) {
+    throw new Error("Web Bluetooth is not supported in this browser.");
   }
 
-  const isSecureContext = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const isSecureContext =
+    window.isSecureContext ||
+    location.hostname === "localhost" ||
+    location.hostname === "127.0.0.1";
 
   if (!isSecureContext) {
-    throw new Error('Web Bluetooth requires a secure context (https or localhost).');
+    throw new Error(
+      "Web Bluetooth requires a secure context (https or localhost).",
+    );
   }
 
   return await navigator.bluetooth.requestDevice({
-    filters: [{
-      services: [SERVICE_UUID]
-    }],
+    filters: [
+      {
+        services: [SERVICE_UUID],
+      },
+    ],
     optionalServices: [],
   });
 }

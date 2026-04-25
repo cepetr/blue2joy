@@ -46,7 +46,7 @@ export class Xep80View extends MobxLitElement {
 
   private onEnableXep80 = async () => {
     await btj.setJoyPortMode(Btj.JoyPortMode.UART);
-  }
+  };
 
   override connectedCallback() {
     super.connectedCallback();
@@ -69,7 +69,7 @@ export class Xep80View extends MobxLitElement {
     try {
       this.worker = new Worker(
         new URL("../workers/xep80-worker.ts", import.meta.url),
-        { type: "module" }
+        { type: "module" },
       );
     } catch (err) {
       console.error("Failed to start XEP80 worker:", err);
@@ -96,7 +96,7 @@ export class Xep80View extends MobxLitElement {
 
   private handleResize = () => {
     this.resizeCanvasToFit();
-  }
+  };
 
   private resizeCanvasToFit() {
     if (!this.canvasElement || !this.canvasWrap) return;
@@ -110,7 +110,10 @@ export class Xep80View extends MobxLitElement {
 
     if (availableWidth <= 0 || availableHeight <= 0) return;
 
-    const scale = Math.min(availableWidth / baseWidth, availableHeight / baseHeight);
+    const scale = Math.min(
+      availableWidth / baseWidth,
+      availableHeight / baseHeight,
+    );
     const renderWidth = Math.floor(baseWidth * scale);
     const renderHeight = Math.floor(baseHeight * scale);
 
@@ -151,24 +154,25 @@ export class Xep80View extends MobxLitElement {
         }
       </style>
       <div class="col-12 xep80-view">
-        ${!isXep80Enabled ? html`
-          <div class="alert alert-info mt-3">
-            <p class="mb-3">Joystick port is currently not in XEP80 mode. Press the button to activate XEP80 emulation.</p>
-            <button
-              type="button"
-              class="btn btn-primary"
-              @click=${this.onEnableXep80}
-            >
-              Activate XEP80
-            </button>
-          </div>
-        ` : ''}
+        ${!isXep80Enabled
+          ? html`
+              <div class="alert alert-info mt-3">
+                <p class="mb-3">
+                  Joystick port is currently not in XEP80 mode. Press the button
+                  to activate XEP80 emulation.
+                </p>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  @click=${this.onEnableXep80}
+                >
+                  Activate XEP80
+                </button>
+              </div>
+            `
+          : ""}
         <div class="mt-3 xep80-canvas-wrap">
-          <canvas
-            width="560"
-            height="250"
-            class="xep80-canvas"
-          ></canvas>
+          <canvas width="560" height="250" class="xep80-canvas"></canvas>
         </div>
       </div>
     `;

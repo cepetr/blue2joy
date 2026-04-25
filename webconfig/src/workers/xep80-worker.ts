@@ -16,7 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 import fontInternalUrl from "../assets/font_internal.png?url";
 import fontInternationalUrl from "../assets/font_international.png?url";
 import fontNormalUrl from "../assets/font_normal.png?url";
@@ -49,22 +48,23 @@ export function decodeXep80Update(data: Uint8Array, state: Uint8Array): void {
 
   const writeByte = (value: number) => {
     if (addr >= 0 && addr < XEP80_STATE_SIZE) {
-      state[addr] = value & 0xFF;
+      state[addr] = value & 0xff;
     }
     addr += 1;
   };
 
   while (idx < data.length) {
     const cmd = data[idx++];
-    if (cmd === 0xFF) {
+    if (cmd === 0xff) {
       break;
     }
 
-    const op = cmd & 0xF0;
-    const low = cmd & 0x0F;
+    const op = cmd & 0xf0;
+    const low = cmd & 0x0f;
 
     switch (op) {
-      case 0x80: { // 8X YY - repeat byte YY for X + 1 times
+      case 0x80: {
+        // 8X YY - repeat byte YY for X + 1 times
         if (idx >= data.length) return;
         const value = data[idx++];
         const count = low + 1;
@@ -73,7 +73,8 @@ export function decodeXep80Update(data: Uint8Array, state: Uint8Array): void {
         }
         break;
       }
-      case 0x90: { // 9X XX YY - repeat byte YY for XXX + 1 times
+      case 0x90: {
+        // 9X XX YY - repeat byte YY for XXX + 1 times
         if (idx + 1 >= data.length) return;
         const count = ((low << 8) | data[idx++]) + 1;
         const value = data[idx++];
@@ -82,7 +83,8 @@ export function decodeXep80Update(data: Uint8Array, state: Uint8Array): void {
         }
         break;
       }
-      case 0xA0: { // AX - literal copy next X + 1 bytes
+      case 0xa0: {
+        // AX - literal copy next X + 1 bytes
         const count = low + 1;
         for (let i = 0; i < count; i++) {
           if (idx >= data.length) return;
@@ -90,7 +92,8 @@ export function decodeXep80Update(data: Uint8Array, state: Uint8Array): void {
         }
         break;
       }
-      case 0xB0: { // BX XX - literal copy next XXX + 1 bytes
+      case 0xb0: {
+        // BX XX - literal copy next XXX + 1 bytes
         if (idx >= data.length) return;
         const count = ((low << 8) | data[idx++]) + 1;
         for (let i = 0; i < count; i++) {
@@ -149,9 +152,15 @@ type CharAttr = {
   doubleHeight: boolean;
   bottomHalf?: boolean;
   font: ImageBitmap;
-}
+};
 
-function drawCharacter(ctx: OffscreenCanvasRenderingContext2D, charCode: number, x: number, y: number, attr: CharAttr) {
+function drawCharacter(
+  ctx: OffscreenCanvasRenderingContext2D,
+  charCode: number,
+  x: number,
+  y: number,
+  attr: CharAttr,
+) {
   // Calculate source position in font bitmap
   const col = charCode % FONT_COLS;
   const row = Math.floor(charCode / FONT_COLS);
@@ -175,28 +184,35 @@ function drawCharacter(ctx: OffscreenCanvasRenderingContext2D, charCode: number,
 
   // Draw character from font bitmap to canvas
   ctx.save();
-  ctx.filter = attr.inverted ? 'invert(1)' : 'none';
+  ctx.filter = attr.inverted ? "invert(1)" : "none";
   ctx.imageSmoothingEnabled = false;
 
   ctx.drawImage(
     attr.font,
-    sx, sy, DISP_CHAR_WIDTH, sh,   // source rect
-    x, y, w, DISP_CHAR_HEIGHT      // dest rect
+    sx,
+    sy,
+    DISP_CHAR_WIDTH,
+    sh, // source rect
+    x,
+    y,
+    w,
+    DISP_CHAR_HEIGHT, // dest rect
   );
 
   ctx.restore();
 }
 
-
-function drawCursor(ctx: OffscreenCanvasRenderingContext2D, x: number, y: number) {
+function drawCursor(
+  ctx: OffscreenCanvasRenderingContext2D,
+  x: number,
+  y: number,
+) {
   ctx.save();
   ctx.fillStyle = "green";
   ctx.globalCompositeOperation = "difference";
   ctx.fillRect(x, y, DISP_CHAR_WIDTH, DISP_CHAR_HEIGHT);
   ctx.restore();
 }
-
-
 
 self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const { type, canvas, state } = event.data;
@@ -217,8 +233,10 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   }
 };
 
-function renderFramebuffer(state: Uint8Array, ctx: OffscreenCanvasRenderingContext2D) {
-
+function renderFramebuffer(
+  state: Uint8Array,
+  ctx: OffscreenCanvasRenderingContext2D,
+) {
   const ram = state.subarray(0, XEP80_RAM_SIZE);
   const regs = state.subarray(XEP80_RAM_SIZE, XEP80_STATE_SIZE);
 
@@ -229,24 +247,26 @@ function renderFramebuffer(state: Uint8Array, ctx: OffscreenCanvasRenderingConte
     curs: regs[Nsp405Reg.CURS] + regs[Nsp405Reg.CURS + 1] * 256,
     srow: 0x1700,
 
-    attr: [{
-      inverted: (regs[Nsp405Reg.AL0] & 0x01) == 0,
-      blinking: (regs[Nsp405Reg.AL0] & 0x04) == 0,
-      doubleHeight: (regs[Nsp405Reg.AL0] & 0x08) == 0,
-      doubleWidth: (regs[Nsp405Reg.AL0] & 0x10) == 0,
-      underline: (regs[Nsp405Reg.AL0] & 0x20) == 0,
-      blank: (regs[Nsp405Reg.AL0] & 0x40) == 0,
-      graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
-    },
-    {
-      inverted: (regs[Nsp405Reg.AL1] & 0x01) == 0,
-      blinking: (regs[Nsp405Reg.AL1] & 0x04) == 0,
-      doubleHeight: (regs[Nsp405Reg.AL1] & 0x08) == 0,
-      doubleWidth: (regs[Nsp405Reg.AL1] & 0x10) == 0,
-      underline: (regs[Nsp405Reg.AL1] & 0x20) == 0,
-      blank: (regs[Nsp405Reg.AL1] & 0x40) == 0,
-      graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
-    }],
+    attr: [
+      {
+        inverted: (regs[Nsp405Reg.AL0] & 0x01) == 0,
+        blinking: (regs[Nsp405Reg.AL0] & 0x04) == 0,
+        doubleHeight: (regs[Nsp405Reg.AL0] & 0x08) == 0,
+        doubleWidth: (regs[Nsp405Reg.AL0] & 0x10) == 0,
+        underline: (regs[Nsp405Reg.AL0] & 0x20) == 0,
+        blank: (regs[Nsp405Reg.AL0] & 0x40) == 0,
+        graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
+      },
+      {
+        inverted: (regs[Nsp405Reg.AL1] & 0x01) == 0,
+        blinking: (regs[Nsp405Reg.AL1] & 0x04) == 0,
+        doubleHeight: (regs[Nsp405Reg.AL1] & 0x08) == 0,
+        doubleWidth: (regs[Nsp405Reg.AL1] & 0x10) == 0,
+        underline: (regs[Nsp405Reg.AL1] & 0x20) == 0,
+        blank: (regs[Nsp405Reg.AL1] & 0x40) == 0,
+        graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
+      },
+    ],
 
     invertedScreen: (regs[Nsp405Reg.VCR] & 0x08) != 0,
     invertedCursor: false,
@@ -267,7 +287,7 @@ function renderFramebuffer(state: Uint8Array, ctx: OffscreenCanvasRenderingConte
 
   // Draw characters from framebuffer
   for (let row = 0; row < DISP_ROWS; row++) {
-    const rowOfs = (opt.rows[row] & 0x1F) * 256 + opt.colOfs;
+    const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
     const font = fonts[(opt.rows[row] >> 5) & 0x03];
 
     if (font === null) {
@@ -280,9 +300,9 @@ function renderFramebuffer(state: Uint8Array, ctx: OffscreenCanvasRenderingConte
       let attr;
       let char;
 
-      if (ram[ofs] != 0x9B) {
+      if (ram[ofs] != 0x9b) {
         attr = opt.attr[ram[ofs] & 0x80 ? 1 : 0];
-        char = ram[ofs] & 0x7F;
+        char = ram[ofs] & 0x7f;
       } else {
         attr = opt.attr[0];
         char = 0x20;
@@ -297,7 +317,7 @@ function renderFramebuffer(state: Uint8Array, ctx: OffscreenCanvasRenderingConte
         doubleWidth: attr.doubleWidth,
         doubleHeight: attr.doubleHeight,
         bottomHalf: attr.doubleHeight && attr.blank,
-      }
+      };
 
       drawCharacter(ctx, char, x, y, charAttr);
 
@@ -306,7 +326,7 @@ function renderFramebuffer(state: Uint8Array, ctx: OffscreenCanvasRenderingConte
       }
 
       if (attr.doubleWidth) {
-        col += 1
+        col += 1;
       }
     }
   }

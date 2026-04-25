@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { BinaryReader, BinaryWriter } from '../utils/binary-io.js';
+import { BinaryReader, BinaryWriter } from "../utils/binary-io.js";
 
 export namespace Btj {
   export class Error extends globalThis.Error {
@@ -24,24 +24,28 @@ export namespace Btj {
 
     constructor(code: number, message?: string) {
       super(message ?? `Device error: code ${code}`);
-      this.name = 'BtjError';
+      this.name = "BtjError";
       this.code = code;
     }
   }
 
-  function assertPresent<T>(value: T | undefined, msg = 'No response available'): T {
+  function assertPresent<T>(
+    value: T | undefined,
+    msg = "No response available",
+  ): T {
     if (value === undefined) throw new globalThis.Error(msg);
     return value;
   }
 
   function assertPayloadLength(view: DataView, expected: number): void {
-    if (view.byteLength !== expected) throw new globalThis.Error(`Invalid payload length`);
+    if (view.byteLength !== expected)
+      throw new globalThis.Error(`Invalid payload length`);
   }
 
   function hexString(bytes: Uint8Array): string {
-    let result = '';
+    let result = "";
     for (const b of bytes) {
-      result += b.toString(16).padStart(2, '0');
+      result += b.toString(16).padStart(2, "0");
     }
     return result;
   }
@@ -83,7 +87,6 @@ export namespace Btj {
     parseResponse(view: DataView): void;
   }
 
-
   export type ApiVersion = {
     major: number;
     minor: number;
@@ -93,7 +96,7 @@ export namespace Btj {
     readonly msgId = MsgId.GET_API_VERSION;
     private _data?: ApiVersion;
 
-    constructor() { }
+    constructor() {}
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -114,13 +117,13 @@ export namespace Btj {
     hw_id: string;
     hw_version: string;
     sw_version: string;
-  }
+  };
 
   export class GetSysInfo implements Command {
     readonly msgId = MsgId.GET_SYS_INFO;
     private _data?: SysInfo;
 
-    constructor() { }
+    constructor() {}
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -169,7 +172,9 @@ export namespace Btj {
 
     constructor(bytes: ArrayLike<number>) {
       if (bytes.length !== DevAddr.LENGTH) {
-        throw new globalThis.Error(`DevAddr must be exactly ${DevAddr.LENGTH} bytes`);
+        throw new globalThis.Error(
+          `DevAddr must be exactly ${DevAddr.LENGTH} bytes`,
+        );
       }
       this._bytes = new Uint8Array(bytes);
       this._bytes.forEach((b, i) => {
@@ -189,12 +194,15 @@ export namespace Btj {
     }
 
     toString(): string {
-      const type_suffix = this._bytes[0] === 0 ? '' : ' (random)';
+      const type_suffix = this._bytes[0] === 0 ? "" : " (random)";
 
-      return Array.from(this._bytes)
-        .reverse().slice(0, 6)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join(':') + type_suffix;
+      return (
+        Array.from(this._bytes)
+          .reverse()
+          .slice(0, 6)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(":") + type_suffix
+      );
     }
 
     static decode(r: BinaryReader): DevAddr {
@@ -210,7 +218,7 @@ export namespace Btj {
     addr: DevAddr;
     rssi: number;
     name: string;
-  }
+  };
 
   export enum ConnState {
     DISCONNECTED = 0,
@@ -231,7 +239,10 @@ export namespace Btj {
   export class SetDevConfig implements Command {
     readonly msgId = MsgId.SET_DEV_CONFIG;
 
-    constructor(private _addr: DevAddr, private _data: DevConfig) { }
+    constructor(
+      private _addr: DevAddr,
+      private _data: DevConfig,
+    ) {}
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -252,7 +263,6 @@ export namespace Btj {
       return this._data;
     }
   }
-
 
   export class PinConfig {
     source: number = 0;
@@ -288,7 +298,11 @@ export namespace Btj {
   export class SetPinConfig implements Command {
     readonly msgId = MsgId.SET_PIN_CONFIG;
 
-    constructor(private _profile: number, private _id: number, private _data: PinConfig) { }
+    constructor(
+      private _profile: number,
+      private _id: number,
+      private _data: PinConfig,
+    ) {}
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -313,7 +327,6 @@ export namespace Btj {
       return this._data;
     }
   }
-
 
   export class PotConfig {
     source: number = 0;
@@ -343,7 +356,11 @@ export namespace Btj {
   export class SetPotConfig implements Command {
     readonly msgId = MsgId.SET_POT_CONFIG;
 
-    constructor(private _profile: number, private _id: number, private _data: PotConfig) { }
+    constructor(
+      private _profile: number,
+      private _id: number,
+      private _data: PotConfig,
+    ) {}
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -410,7 +427,11 @@ export namespace Btj {
   export class SetIntgConfig implements Command {
     readonly msgId = MsgId.SET_INTG_CONFIG;
 
-    constructor(private _profile: number, private _id: number, private _data: IntgConfig) { }
+    constructor(
+      private _profile: number,
+      private _id: number,
+      private _data: IntgConfig,
+    ) {}
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -439,7 +460,10 @@ export namespace Btj {
   export class SetMode implements Command {
     readonly msgId = MsgId.SET_MODE;
 
-    constructor(private _mode: SysMode, private _restart: boolean) { }
+    constructor(
+      private _mode: SysMode,
+      private _restart: boolean,
+    ) {}
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -463,7 +487,7 @@ export namespace Btj {
   export class StartScanning implements Command {
     readonly msgId = MsgId.START_SCANNING;
 
-    constructor() { }
+    constructor() {}
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -477,7 +501,7 @@ export namespace Btj {
   export class StopScanning implements Command {
     readonly msgId = MsgId.STOP_SCANNING;
 
-    constructor() { }
+    constructor() {}
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -491,7 +515,7 @@ export namespace Btj {
   export class ConnectDevice implements Command {
     readonly msgId = MsgId.CONNECT_DEVICE;
 
-    constructor(private _addr: DevAddr) { }
+    constructor(private _addr: DevAddr) {}
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -511,7 +535,7 @@ export namespace Btj {
   export class DeleteDevice implements Command {
     readonly msgId = MsgId.DELETE_DEVICE;
 
-    constructor(private _addr: DevAddr) { }
+    constructor(private _addr: DevAddr) {}
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -531,7 +555,7 @@ export namespace Btj {
   export class FactoryReset implements Command {
     readonly msgId = MsgId.FACTORY_RESET;
 
-    constructor() { }
+    constructor() {}
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -545,7 +569,7 @@ export namespace Btj {
   export class SetJoyPortMode implements Command {
     readonly msgId = MsgId.SET_JOY_PORT_MODE;
 
-    constructor(private _mode: JoyPortMode) { }
+    constructor(private _mode: JoyPortMode) {}
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -589,7 +613,7 @@ export namespace Btj {
       const deleted = r.bool();
       const addr = DevAddr.decode(r);
       const rssi = r.int8();
-      const name = new TextDecoder().decode(r.bytes(31)).replace(/\0.*$/, '');
+      const name = new TextDecoder().decode(r.bytes(31)).replace(/\0.*$/, "");
       this._data = { addr, rssi, name };
       this._deleted = deleted;
     }
@@ -684,7 +708,10 @@ export namespace Btj {
       const r = new BinaryReader(view);
       const mode = r.uint8();
       const pinMask = r.uint8();
-      const pins = Array.from({ length: 5 }, (_, i) => (pinMask & (1 << i)) !== 0);
+      const pins = Array.from(
+        { length: 5 },
+        (_, i) => (pinMask & (1 << i)) !== 0,
+      );
       const pots = [r.uint8(), r.uint8()];
       this._data = { mode, pins, pots };
     }
@@ -693,5 +720,4 @@ export namespace Btj {
       return assertPresent(this._data);
     }
   }
-
 }

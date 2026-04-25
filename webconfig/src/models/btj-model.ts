@@ -36,7 +36,7 @@ export interface ProfileEntry {
 export interface ErrorEntry {
   id: number;
   message: string;
-  source?: string;  // e.g., 'connection', 'device', 'profile'
+  source?: string; // e.g., 'connection', 'device', 'profile'
 }
 
 export class BtjModel {
@@ -75,7 +75,6 @@ export class BtjModel {
   @observable
   xep80State: Uint8Array = new Uint8Array(XEP80_STATE_SIZE);
 
-
   @computed
   get connected(): boolean {
     return this.conn != null;
@@ -105,7 +104,7 @@ export class BtjModel {
 
   @action
   removeError(id: number): void {
-    this.errors = this.errors.filter(e => e.id !== id);
+    this.errors = this.errors.filter((e) => e.id !== id);
   }
 
   @action
@@ -114,11 +113,11 @@ export class BtjModel {
       const device = await scanAndSelect();
       await this.connect(device);
     } catch (err: any) {
-      if (err && err.name === 'NotFoundError') {
+      if (err && err.name === "NotFoundError") {
         // User canceled the chooser - not an error
         return;
       }
-      this.logError(err, 'connection');
+      this.logError(err, "connection");
     }
   }
 
@@ -135,7 +134,9 @@ export class BtjModel {
     evt.parseMessage(payload);
     if (!evt.deleted) {
       // New or updated entry
-      const idx = this.advDevices.findIndex(dev => dev.addr.equals(evt.data.addr));
+      const idx = this.advDevices.findIndex((dev) =>
+        dev.addr.equals(evt.data.addr),
+      );
       if (idx >= 0) {
         // replace existing entry
         this.advDevices.splice(idx, 1, evt.data);
@@ -145,7 +146,9 @@ export class BtjModel {
       }
     } else {
       // Entry removed
-      this.advDevices = this.advDevices.filter(dev => !dev.addr.equals(evt.data.addr));
+      this.advDevices = this.advDevices.filter(
+        (dev) => !dev.addr.equals(evt.data.addr),
+      );
     }
   }
 
@@ -155,19 +158,18 @@ export class BtjModel {
     evt.parseMessage(payload);
     if (!evt.deleted) {
       // New or updated entry
-      const idx = this.devices.findIndex(dev => dev.addr.equals(evt.addr));
+      const idx = this.devices.findIndex((dev) => dev.addr.equals(evt.addr));
       const entry = { addr: evt.addr, config: evt.config!, state: evt.state! };
       if (idx >= 0) {
         // replace existing entry
         this.devices.splice(idx, 1, entry);
-
       } else {
         // append new entry
         this.devices.push(entry);
       }
     } else {
       // Entry removed
-      this.devices = this.devices.filter(dev => !dev.addr.equals(evt.addr));
+      this.devices = this.devices.filter((dev) => !dev.addr.equals(evt.addr));
     }
   }
 
@@ -175,7 +177,11 @@ export class BtjModel {
   private processProfileUpdateEvent(payload: DataView) {
     const evt = new Btj.ProfileUpdateEvent();
     evt.parseMessage(payload);
-    const entry: ProfileEntry = { pins: evt.pins, pots: evt.pots, intgs: evt.intgs };
+    const entry: ProfileEntry = {
+      pins: evt.pins,
+      pots: evt.pots,
+      intgs: evt.intgs,
+    };
     this.profiles.set(evt.profile, entry);
   }
 
@@ -188,11 +194,15 @@ export class BtjModel {
 
   @action
   private processXep80UpdateEvent(payload: DataView) {
-    const data = new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength);
+    const data = new Uint8Array(
+      payload.buffer,
+      payload.byteOffset,
+      payload.byteLength,
+    );
     decodeXep80Update(data, this.xep80State);
 
     // Update the XEP80 view with the new state
-    const view = document.querySelector('xep80-view') as any;
+    const view = document.querySelector("xep80-view") as any;
     if (view?.renderFramebuffer) {
       view.renderFramebuffer(this.xep80State);
     }
@@ -222,9 +232,9 @@ export class BtjModel {
           break;
       }
     } catch (err) {
-      console.error('Failed to handle event', err);
+      console.error("Failed to handle event", err);
     }
-  }
+  };
 
   @action
   async connect(device: BluetoothDevice): Promise<void> {
@@ -232,7 +242,7 @@ export class BtjModel {
     this.removeAllProfiles();
     this.resetXep80State();
 
-    device.addEventListener('gattserverdisconnected', () => {
+    device.addEventListener("gattserverdisconnected", () => {
       this.disconnect();
     });
 
@@ -245,7 +255,7 @@ export class BtjModel {
       await this.conn.connect();
       this.sysInfo = (await this.conn.invoke(new Btj.GetSysInfo())).data;
     } catch (err: any) {
-      this.logError(err, 'connection');
+      this.logError(err, "connection");
       this.disconnect();
     }
   }
@@ -255,7 +265,7 @@ export class BtjModel {
     // Close underlying BLE connection if any
     if (this.conn) {
       // best-effort disconnect; do not await
-      this.conn.disconnect().catch(() => { });
+      this.conn.disconnect().catch(() => {});
     }
     this.conn = null;
     this.sysInfo = null;
@@ -284,14 +294,14 @@ export class BtjModel {
 
   @action
   async setPinConfig(profileId: number, pinId: number, config: Btj.PinConfig) {
-    if (!this.conn) throw new Error('Not connected');
+    if (!this.conn) throw new Error("Not connected");
     // Update local cache
     this.profiles.get(profileId)!.pins.set(pinId, config);
     try {
       // Send to device
       await this.conn.invoke(new Btj.SetPinConfig(profileId, pinId, config));
     } catch (err: any) {
-      this.logError(err, 'profile');
+      this.logError(err, "profile");
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
       if (profile) {
@@ -302,14 +312,14 @@ export class BtjModel {
 
   @action
   async setPotConfig(profileId: number, potId: number, config: Btj.PotConfig) {
-    if (!this.conn) throw new Error('Not connected');
+    if (!this.conn) throw new Error("Not connected");
     // Update local cache
     this.profiles.get(profileId)!.pots.set(potId, config);
     try {
       // Send to device
       await this.conn.invoke(new Btj.SetPotConfig(profileId, potId, config));
     } catch (err: any) {
-      this.logError(err, 'profile');
+      this.logError(err, "profile");
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
       if (profile) {
@@ -319,15 +329,19 @@ export class BtjModel {
   }
 
   @action
-  async setIntgConfig(profileId: number, intgId: number, config: Btj.IntgConfig) {
-    if (!this.conn) throw new Error('Not connected');
+  async setIntgConfig(
+    profileId: number,
+    intgId: number,
+    config: Btj.IntgConfig,
+  ) {
+    if (!this.conn) throw new Error("Not connected");
     // Update local cache
     this.profiles.get(profileId)!.intgs.set(intgId, config);
     try {
       // Send to device
       await this.conn.invoke(new Btj.SetIntgConfig(profileId, intgId, config));
     } catch (err: any) {
-      this.logError(err, 'profile');
+      this.logError(err, "profile");
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
       if (profile) {
@@ -338,35 +352,35 @@ export class BtjModel {
 
   @action
   async deleteDevice(addr: Btj.DevAddr): Promise<void> {
-    if (!this.conn) throw new Error('Not connected');
+    if (!this.conn) throw new Error("Not connected");
     try {
       await this.conn.invoke(new Btj.DeleteDevice(addr));
     } catch (err: any) {
-      this.logError(err, 'device');
+      this.logError(err, "device");
     }
   }
 
   @action
   async setDeviceProfile(addr: Btj.DevAddr, profile: number): Promise<void> {
-    if (!this.conn) throw new Error('Not connected');
+    if (!this.conn) throw new Error("Not connected");
     try {
       await this.conn.invoke(new Btj.SetDevConfig(addr, { profile }));
     } catch (err: any) {
-      this.logError(err, 'device');
+      this.logError(err, "device");
     }
   }
 
   @action
   async startScanning(): Promise<void> {
     if (!this.conn) {
-      this.logError('Not connected', 'connection');
+      this.logError("Not connected", "connection");
       return;
     }
     try {
       await this.conn.invoke(new Btj.SetMode(Btj.SysMode.MANUAL, true));
       await this.conn.invoke(new Btj.StartScanning());
     } catch (err: any) {
-      this.logError(err, 'device');
+      this.logError(err, "device");
     }
   }
 
@@ -376,34 +390,34 @@ export class BtjModel {
     try {
       await this.conn.invoke(new Btj.StopScanning());
     } catch (err: any) {
-      this.logError(err, 'device');
+      this.logError(err, "device");
     }
   }
 
   @action
   async connectDevice(addr: Btj.DevAddr): Promise<void> {
     if (!this.conn) {
-      this.logError('Not connected', 'connection');
+      this.logError("Not connected", "connection");
       return;
     }
     try {
       await this.stopScanning();
       await this.conn.invoke(new Btj.ConnectDevice(addr));
     } catch (err: any) {
-      this.logError(err, 'device');
+      this.logError(err, "device");
     }
   }
 
   @action
   async setJoyPortMode(mode: Btj.JoyPortMode) {
-    if (!this.conn) throw new Error('Not connected');
+    if (!this.conn) throw new Error("Not connected");
     try {
       if (mode === Btj.JoyPortMode.UART) {
         this.resetXep80State();
       }
       await this.conn.invoke(new Btj.SetJoyPortMode(mode));
     } catch (err: any) {
-      this.logError(err, 'joyport');
+      this.logError(err, "joyport");
     }
   }
 }

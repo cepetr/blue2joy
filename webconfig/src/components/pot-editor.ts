@@ -1,11 +1,11 @@
-import { html, LitElement } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { btj } from '../models/btj-model.js';
-import { Btj } from '../services/btj-messages.js';
-import { HID_USAGE_TYPE } from '../utils/hid-usage.js';
-import './hid-usage-select.js';
+import { html, LitElement } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
+import { btj } from "../models/btj-model.js";
+import { Btj } from "../services/btj-messages.js";
+import { HID_USAGE_TYPE } from "../utils/hid-usage.js";
+import "./hid-usage-select.js";
 
-@customElement('pot-editor')
+@customElement("pot-editor")
 export class PotEditor extends LitElement {
   protected override createRenderRoot() {
     return this;
@@ -18,21 +18,23 @@ export class PotEditor extends LitElement {
   @state() private _local: Btj.PotConfig = Btj.PotConfig.default();
 
   override willUpdate(changed: any) {
-    if (changed.has('profileId') || changed.has('potId')) {
+    if (changed.has("profileId") || changed.has("potId")) {
       if (this.profileId !== undefined && this.potId !== undefined) {
-        this._local = btj.profiles.get(this.profileId)?.pots.get(this.potId) ?? Btj.PotConfig.default();
+        this._local =
+          btj.profiles.get(this.profileId)?.pots.get(this.potId) ??
+          Btj.PotConfig.default();
       }
     }
   }
 
   private emitEdit = () => {
     btj.setPotConfig(this.profileId, this.potId, this._local);
-  }
+  };
 
   private onSourceChange = (e: CustomEvent) => {
     this._local = { ...this._local, source: e.detail.value };
     this.emitEdit();
-  }
+  };
 
   private renderSource() {
     const cfg = this._local;
@@ -41,7 +43,7 @@ export class PotEditor extends LitElement {
         <label class="form-label">Source</label>
         <hid-usage-select
           .value=${cfg.source}
-          .filter=${['digital', 'analog', 'analog-intg']}
+          .filter=${["digital", "analog", "analog-intg"]}
           @change=${this.onSourceChange}
         ></hid-usage-select>
       </div>
@@ -52,7 +54,7 @@ export class PotEditor extends LitElement {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, low: v };
     this.emitEdit();
-  }
+  };
 
   private renderMin() {
     const cfg = this._local;
@@ -61,7 +63,7 @@ export class PotEditor extends LitElement {
         <label class="form-label">Min</label>
         <input
           class="form-control"
-          .value=${String(cfg.low ?? '')}
+          .value=${String(cfg.low ?? "")}
           @input=${this.onMinChange}
           @change=${this.emitEdit}
         />
@@ -73,7 +75,7 @@ export class PotEditor extends LitElement {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, high: v };
     this.emitEdit();
-  }
+  };
 
   private renderMax() {
     const cfg = this._local;
@@ -82,7 +84,7 @@ export class PotEditor extends LitElement {
         <label class="form-label">Max</label>
         <input
           class="form-control"
-          .value=${String(cfg.high ?? '')}
+          .value=${String(cfg.high ?? "")}
           @input=${this.onMaxChange}
           @change=${this.emitEdit}
         />
@@ -95,10 +97,10 @@ export class PotEditor extends LitElement {
     return html`
       <div class="card">
         <div class="row g-0 align-items-stretch">
-
           <div class="col-auto">
-            <div class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center">
-
+            <div
+              class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center"
+            >
               <div class="card-title mb-0">
                 <div><h5>Pot${this.potId}</h5></div>
                 <div>
@@ -113,23 +115,18 @@ export class PotEditor extends LitElement {
           <div class="col">
             <div class="card-body py-2">
               <div class="row g-4">
-                <div class="col-12 col-xl-2">
-                  ${this.renderSource()}
-                </div>
-                <div class="d-none d-xl-block col-xl-2">
+                <div class="col-12 col-xl-2">${this.renderSource()}</div>
+                <div class="d-none d-xl-block col-xl-2"></div>
+                <div class="col-6 col-xl-2">
+                  ${usageType != "" ? this.renderMin() : ""}
                 </div>
                 <div class="col-6 col-xl-2">
-                  ${usageType != '' ? this.renderMin() : ''}
+                  ${usageType != "" ? this.renderMax() : ""}
                 </div>
-                <div class="col-6 col-xl-2">
-                  ${usageType != '' ? this.renderMax() : ''}
-                </div>
-                <div class="col-12 col-xl-2">
-                </div>
+                <div class="col-12 col-xl-2"></div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
     `;
@@ -138,6 +135,6 @@ export class PotEditor extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pot-editor': PotEditor;
+    "pot-editor": PotEditor;
   }
 }

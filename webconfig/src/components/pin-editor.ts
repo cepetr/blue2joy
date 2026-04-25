@@ -1,11 +1,11 @@
-import { html, LitElement } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { btj } from '../models/btj-model.js';
-import { Btj } from '../services/btj-messages.js';
-import { HID_USAGE_TYPE } from '../utils/hid-usage.js';
-import './hid-usage-select.js';
+import { html, LitElement } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
+import { btj } from "../models/btj-model.js";
+import { Btj } from "../services/btj-messages.js";
+import { HID_USAGE_TYPE } from "../utils/hid-usage.js";
+import "./hid-usage-select.js";
 
-@customElement('pin-editor')
+@customElement("pin-editor")
 export class PinEditor extends LitElement {
   protected override createRenderRoot() {
     return this;
@@ -18,21 +18,23 @@ export class PinEditor extends LitElement {
   @state() private _local: Btj.PinConfig = Btj.PinConfig.default();
 
   override willUpdate(changed: any) {
-    if (changed.has('profileId') || changed.has('pinId')) {
+    if (changed.has("profileId") || changed.has("pinId")) {
       if (this.profileId !== undefined && this.pinId !== undefined) {
-        this._local = btj.profiles.get(this.profileId)?.pins.get(this.pinId) ?? Btj.PinConfig.default();
+        this._local =
+          btj.profiles.get(this.profileId)?.pins.get(this.pinId) ??
+          Btj.PinConfig.default();
       }
     }
   }
 
   private emitEdit = () => {
     btj.setPinConfig(this.profileId, this.pinId, this._local);
-  }
+  };
 
   private onSourceChange = (e: CustomEvent) => {
     this._local = { ...this._local, source: e.detail.value };
     this.emitEdit();
-  }
+  };
 
   private renderSource() {
     const cfg = this._local;
@@ -41,7 +43,7 @@ export class PinEditor extends LitElement {
         <label class="form-label">Source</label>
         <hid-usage-select
           .value=${cfg.source}
-          .filter=${['digital', 'analog', 'hatswitch', 'digital-intg']}
+          .filter=${["digital", "analog", "hatswitch", "digital-intg"]}
           @change=${this.onSourceChange}
         >
         </hid-usage-select>
@@ -50,10 +52,10 @@ export class PinEditor extends LitElement {
   }
 
   private onInvertChange = (e: Event) => {
-    const v = (e.target as HTMLSelectElement).value === 'inverted';
+    const v = (e.target as HTMLSelectElement).value === "inverted";
     this._local = { ...this._local, invert: v };
     this.emitEdit();
-  }
+  };
 
   private renderInvert() {
     const cfg = this._local;
@@ -76,30 +78,35 @@ export class PinEditor extends LitElement {
     const v = Number((e.target as HTMLSelectElement).value);
     this._local = { ...this._local, hatSwitch: v };
     this.emitEdit();
-  }
+  };
 
   private renderHatSwitch() {
     const cfg = this._local;
     const knownHatValues = [0, 1, 2, 4, 8];
-    const hatLabels: Record<number, string> = { 0: 'Not selected', 1: 'Up', 2: 'Down', 4: 'Left', 8: 'Right' };
+    const hatLabels: Record<number, string> = {
+      0: "Not selected",
+      1: "Up",
+      2: "Down",
+      4: "Left",
+      8: "Right",
+    };
     const isKnownHat = knownHatValues.includes(cfg.hatSwitch);
     return html`
       <div class="mb-2">
         <label class="form-label">Direction</label>
-        <select
-          class="form-select"
-          @change=${this.onHatSwitchChange}
-        >
+        <select class="form-select" @change=${this.onHatSwitchChange}>
           ${!isKnownHat
-        ? html`<option value=${String(cfg.hatSwitch)} selected>
-                0x${cfg.hatSwitch.toString(16).toUpperCase().padStart(2, '0')}
+            ? html`<option value=${String(cfg.hatSwitch)} selected>
+                0x${cfg.hatSwitch.toString(16).toUpperCase().padStart(2, "0")}
               </option>`
-        : ''}
-          ${knownHatValues.map(v => html`
-            <option value=${String(v)} ?selected=${v === cfg.hatSwitch}>
-              ${hatLabels[v]}
-            </option>
-          `)}
+            : ""}
+          ${knownHatValues.map(
+            (v) => html`
+              <option value=${String(v)} ?selected=${v === cfg.hatSwitch}>
+                ${hatLabels[v]}
+              </option>
+            `,
+          )}
         </select>
       </div>
     `;
@@ -109,7 +116,7 @@ export class PinEditor extends LitElement {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, threshold: v };
     this.emitEdit();
-  }
+  };
 
   private renderThreshold() {
     const cfg = this._local;
@@ -134,7 +141,7 @@ export class PinEditor extends LitElement {
     const v = Number((e.target as HTMLInputElement).value);
     this._local = { ...this._local, hysteresis: v };
     this.emitEdit();
-  }
+  };
 
   private renderHysteresis() {
     const cfg = this._local;
@@ -159,57 +166,65 @@ export class PinEditor extends LitElement {
     const usageType = HID_USAGE_TYPE[this._local.source];
 
     return html`
-        <div class="card">
-          <div class="row g-0 align-items-stretch">
-
-            <div class="col-auto">
-              <div class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center">
-                <div class="card-title mb-0">
-                  <div><h5>Pin ${this.pinId}</h5></div>
-                  <div>
-                    <span class="badge ${this.pinActive ? 'bg-success' : 'bg-secondary'}">
-                      ${this.pinActive ? 'LOW' : 'HIGH'}
-                    </span>
-                  </div>
+      <div class="card">
+        <div class="row g-0 align-items-stretch">
+          <div class="col-auto">
+            <div
+              class="h-100 bg-body-secondary border-end px-3 py-2 d-flex align-items-center"
+            >
+              <div class="card-title mb-0">
+                <div><h5>Pin ${this.pinId}</h5></div>
+                <div>
+                  <span
+                    class="badge ${this.pinActive
+                      ? "bg-success"
+                      : "bg-secondary"}"
+                  >
+                    ${this.pinActive ? "LOW" : "HIGH"}
+                  </span>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div class="col">
-              <div class="card-body py-2">
-                <div class="row g-4">
-                  <div class="col-6 col-xl-2">
-                    ${this.renderSource()}
-                  </div>
-                  <div class="col-6 col-xl-2">
-                    ${usageType != '' && usageType != 'digital-intg' ? this.renderInvert() : ''}
-                  </div>
-
-                  ${usageType === 'hatswitch' ? html`
-                  <div class="col-6 col-xl-3">
-                    ${this.renderHatSwitch()}
-                  </div>
-                  ` : ''}
-
-                  ${usageType == 'analog' ? html`
-                  <div class="col-6 col-xl-4">
-                    ${this.renderThreshold()}
-                  </div>
-                  <div class="col-6 col-xl-4">
-                    ${this.renderHysteresis()}
-                  </div>
-                  ` : ''}
+          <div class="col">
+            <div class="card-body py-2">
+              <div class="row g-4">
+                <div class="col-6 col-xl-2">${this.renderSource()}</div>
+                <div class="col-6 col-xl-2">
+                  ${usageType != "" && usageType != "digital-intg"
+                    ? this.renderInvert()
+                    : ""}
                 </div>
-            </div>
 
+                ${usageType === "hatswitch"
+                  ? html`
+                      <div class="col-6 col-xl-3">
+                        ${this.renderHatSwitch()}
+                      </div>
+                    `
+                  : ""}
+                ${usageType == "analog"
+                  ? html`
+                      <div class="col-6 col-xl-4">
+                        ${this.renderThreshold()}
+                      </div>
+                      <div class="col-6 col-xl-4">
+                        ${this.renderHysteresis()}
+                      </div>
+                    `
+                  : ""}
+              </div>
+            </div>
           </div>
         </div>
+      </div>
     `;
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pin-editor': PinEditor;
+    "pin-editor": PinEditor;
   }
 }

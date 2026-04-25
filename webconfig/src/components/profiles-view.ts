@@ -4,7 +4,6 @@ import { customElement, property } from "lit/decorators.js";
 import { autorun, IReactionDisposer } from "mobx";
 import { btj } from "../models/btj-model.js";
 
-
 import "./intg-editor.js";
 import "./pin-editor.js";
 import "./pot-editor.js";
@@ -43,51 +42,59 @@ export class ProfilesView extends MobxLitElement {
       <div class="container-fluid">
         <div class="row">
           <div class="col-12">
-            ${!profile ? html`
-              <div class="spinner-border" role="status">
-                <span class="sr-only"></span>
-              </div>
-              ` : html`
-              <form>
-                <div class="row g-3">
-                  ${Array.from(profile.pins.entries()).map(([pid]) => html`
-                    <div class="row mb-3 g-0">
-                      <div class="col-12 g-0">
-                        <pin-editor
-                          .profileId=${this.profileId}
-                          .pinId=${pid}
-                          .pinActive=${btj.joyPort?.pins[pid] ?? false}
-                        >
-                        </pin-editor>
-                      </div>
+            ${!profile
+              ? html`
+                  <div class="spinner-border" role="status">
+                    <span class="sr-only"></span>
+                  </div>
+                `
+              : html`
+                  <form>
+                    <div class="row g-3">
+                      ${Array.from(profile.pins.entries()).map(
+                        ([pid]) => html`
+                          <div class="row mb-3 g-0">
+                            <div class="col-12 g-0">
+                              <pin-editor
+                                .profileId=${this.profileId}
+                                .pinId=${pid}
+                                .pinActive=${btj.joyPort?.pins[pid] ?? false}
+                              >
+                              </pin-editor>
+                            </div>
+                          </div>
+                        `,
+                      )}
+                      ${Array.from(profile.pots.entries()).map(
+                        ([pid]) => html`
+                          <div class="row mb-3 g-0">
+                            <div class="col-12 g-0">
+                              <pot-editor
+                                .profileId=${this.profileId}
+                                .potId=${pid}
+                                .potValue=${btj.joyPort?.pots[pid] ?? 0}
+                              >
+                              </pot-editor>
+                            </div>
+                          </div>
+                        `,
+                      )}
+                      ${Array.from(profile.intgs.entries()).map(
+                        ([eid]) => html`
+                          <div class="row mb-3 g-0">
+                            <div class="col-12 g-0">
+                              <intg-editor
+                                .profileId=${this.profileId}
+                                .intgId=${eid}
+                              >
+                              </intg-editor>
+                            </div>
+                          </div>
+                        `,
+                      )}
                     </div>
-                  `)}
-                  ${Array.from(profile.pots.entries()).map(([pid]) => html`
-                    <div class="row mb-3 g-0">
-                      <div class="col-12 g-0">
-                        <pot-editor
-                          .profileId=${this.profileId}
-                          .potId=${pid}
-                          .potValue=${btj.joyPort?.pots[pid] ?? 0}
-                        >
-                        </pot-editor>
-                      </div>
-                    </div>
-                  `)}
-                  ${Array.from(profile.intgs.entries()).map(([eid]) => html`
-                    <div class="row mb-3 g-0">
-                      <div class="col-12 g-0">
-                        <intg-editor
-                          .profileId=${this.profileId}
-                          .intgId=${eid}
-                        >
-                        </intg-editor>
-                      </div>
-                    </div>
-                  `)}
-                </div>
-              </form>
-            `}
+                  </form>
+                `}
           </div>
         </div>
       </div>
