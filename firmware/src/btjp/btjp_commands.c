@@ -229,9 +229,12 @@ static btjp_status_t btjp_handle_request(const btjp_req_t *req, btjp_rsp_t *rsp)
         if (err) {
             return BTJP_ERR_INVALID_ARG;
         }
-    }
+    } break;
 
     case BTJP_MSG_FACTORY_RESET: {
+        CHECK_REQ_SIZE(req, 0);
+        LOG_ERR("Factory reset over BTJP is not implemented");
+        return BTJP_ERR_UNKNOWN_MSG;
     } break;
 
     case BTJP_MSG_SET_JOY_PORT_MODE: {
@@ -312,7 +315,7 @@ size_t btjp_handle_message(const void *inbuff, size_t insize, void *outbuff, siz
         return 0;
     }
 
-    btjp_req_t *req = (btjp_req_t *)inbuff;
+    const btjp_req_t *req = (const btjp_req_t *)inbuff;
     btjp_rsp_t *rsp = (btjp_rsp_t *)outbuff;
 
     if ((req->hdr.flags & BTJP_MSG_TYPE_MASK) != BTJP_MSG_TYPE_REQUEST) {
