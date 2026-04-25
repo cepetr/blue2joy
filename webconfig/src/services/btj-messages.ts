@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-namespace */
+
 /*
  * This file is part of the Blue2Joy project
  * (https://github.com/cepetr/blue2joy).

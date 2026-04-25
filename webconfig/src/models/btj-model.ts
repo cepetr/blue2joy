@@ -39,6 +39,10 @@ export interface ErrorEntry {
   source?: string; // e.g., 'connection', 'device', 'profile'
 }
 
+type Xep80ViewElement = HTMLElement & {
+  renderFramebuffer(state: Uint8Array): void;
+};
+
 export class BtjModel {
   private _errorIdCounter = 0;
 
@@ -80,18 +84,21 @@ export class BtjModel {
     return this.conn != null;
   }
 
-  private formatError(err: any): string {
+  private formatError(err: unknown): string {
     if (err instanceof Btj.Error) {
       return `Device error: ${err.code}`;
     }
-    return err?.message ?? String(err);
+    if (err instanceof Error) {
+      return err.message;
+    }
+    return String(err);
   }
 
   @action
-  logError(err: Error | string, source?: string): void {
+  logError(err: unknown, source?: string): void {
     const error: ErrorEntry = {
       id: ++this._errorIdCounter,
-      message: err instanceof Error ? this.formatError(err) : err,
+      message: this.formatError(err),
       source,
     };
     this.errors.push(error);
@@ -112,8 +119,8 @@ export class BtjModel {
     try {
       const device = await scanAndSelect();
       await this.connect(device);
-    } catch (err: any) {
-      if (err && err.name === "NotFoundError") {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "NotFoundError") {
         // User canceled the chooser - not an error
         return;
       }
@@ -202,7 +209,7 @@ export class BtjModel {
     decodeXep80Update(data, this.xep80State);
 
     // Update the XEP80 view with the new state
-    const view = document.querySelector("xep80-view") as any;
+    const view = document.querySelector<Xep80ViewElement>("xep80-view");
     if (view?.renderFramebuffer) {
       view.renderFramebuffer(this.xep80State);
     }
@@ -254,7 +261,7 @@ export class BtjModel {
       // Wait for the connection to be fully initialized
       await this.conn.connect();
       this.sysInfo = (await this.conn.invoke(new Btj.GetSysInfo())).data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "connection");
       this.disconnect();
     }
@@ -300,7 +307,7 @@ export class BtjModel {
     try {
       // Send to device
       await this.conn.invoke(new Btj.SetPinConfig(profileId, pinId, config));
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "profile");
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
@@ -318,7 +325,7 @@ export class BtjModel {
     try {
       // Send to device
       await this.conn.invoke(new Btj.SetPotConfig(profileId, potId, config));
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "profile");
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
@@ -340,7 +347,7 @@ export class BtjModel {
     try {
       // Send to device
       await this.conn.invoke(new Btj.SetIntgConfig(profileId, intgId, config));
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "profile");
       // Revert local cache change on error
       const profile = this.profiles.get(profileId);
@@ -355,7 +362,7 @@ export class BtjModel {
     if (!this.conn) throw new Error("Not connected");
     try {
       await this.conn.invoke(new Btj.DeleteDevice(addr));
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "device");
     }
   }
@@ -365,7 +372,7 @@ export class BtjModel {
     if (!this.conn) throw new Error("Not connected");
     try {
       await this.conn.invoke(new Btj.SetDevConfig(addr, { profile }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "device");
     }
   }
@@ -379,7 +386,7 @@ export class BtjModel {
     try {
       await this.conn.invoke(new Btj.SetMode(Btj.SysMode.MANUAL, true));
       await this.conn.invoke(new Btj.StartScanning());
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "device");
     }
   }
@@ -389,7 +396,7 @@ export class BtjModel {
     if (!this.conn) return;
     try {
       await this.conn.invoke(new Btj.StopScanning());
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "device");
     }
   }
@@ -403,7 +410,7 @@ export class BtjModel {
     try {
       await this.stopScanning();
       await this.conn.invoke(new Btj.ConnectDevice(addr));
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "device");
     }
   }
@@ -416,7 +423,7 @@ export class BtjModel {
         this.resetXep80State();
       }
       await this.conn.invoke(new Btj.SetJoyPortMode(mode));
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logError(err, "joyport");
     }
   }

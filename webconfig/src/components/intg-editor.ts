@@ -1,4 +1,4 @@
-import { html, LitElement } from "lit";
+import { html, LitElement, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
@@ -16,7 +16,7 @@ export class IntgEditor extends LitElement {
 
   @state() private _local: Btj.IntgConfig = Btj.IntgConfig.default();
 
-  override willUpdate(changed: any) {
+  override willUpdate(changed: PropertyValues<this>) {
     if (changed.has("profileId") || changed.has("intgId")) {
       if (this.profileId !== undefined && this.intgId !== undefined) {
         this._local =

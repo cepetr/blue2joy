@@ -20,6 +20,7 @@ module.exports = [
         ...require('globals').browser,
         CSSStyleSheet: 'readonly',
         BluetoothDevice: 'readonly',
+        BluetoothRemoteGATTCharacteristic: 'readonly',
       },
     },
     plugins: {

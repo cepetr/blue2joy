@@ -1,4 +1,4 @@
-import { html, LitElement } from "lit";
+import { html, LitElement, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
@@ -17,7 +17,7 @@ export class PinEditor extends LitElement {
 
   @state() private _local: Btj.PinConfig = Btj.PinConfig.default();
 
-  override willUpdate(changed: any) {
+  override willUpdate(changed: PropertyValues<this>) {
     if (changed.has("profileId") || changed.has("pinId")) {
       if (this.profileId !== undefined && this.pinId !== undefined) {
         this._local =

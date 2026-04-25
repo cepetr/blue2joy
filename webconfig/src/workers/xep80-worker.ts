@@ -121,7 +121,6 @@ export interface WorkerMessage {
 }
 
 let fonts: Array<ImageBitmap | null> = [];
-let offscreenCanvas: OffscreenCanvas | null = null;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 
 // Font bitmap: 128 characters in 16x8 matrix, each character 8x12 pixels
@@ -219,7 +218,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 
   if (type === "init" && canvas) {
     // Store canvas and context for reuse
-    offscreenCanvas = canvas;
     ctx = canvas.getContext("2d");
 
     // Load font bitmap first

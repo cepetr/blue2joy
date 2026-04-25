@@ -34,6 +34,16 @@ const OFFSET_SEQ = 2;
 const OFFSET_SIZE = 3;
 const HEADER_SIZE = 4;
 
+type PendingRequest = {
+  seq: number;
+  msgId: Btj.MsgId;
+  resolve: (value: Btj.Command) => void;
+  reject: (reason?: unknown) => void;
+  timeout: ReturnType<typeof setTimeout>;
+  parseResponse: (view: DataView) => void;
+  cmd: Btj.Command;
+};
+
 export class BtjConnection {
   private device: BluetoothDevice;
   private requestChar: BluetoothRemoteGATTCharacteristic | null = null;
@@ -46,7 +56,7 @@ export class BtjConnection {
 
   private reqSeq = 1;
   private reqQueue: Array<() => void> = [];
-  private reqPending: any = null;
+  private reqPending: PendingRequest | null = null;
   private timeoutMs = 3000;
 
   constructor(
@@ -108,7 +118,7 @@ export class BtjConnection {
       try {
         clearTimeout(this.reqPending.timeout);
         this.reqPending.reject(new Error("Connection closed"));
-      } catch (_) {
+      } catch {
         // Ignore errors
       }
       this.reqPending = null;
@@ -122,7 +132,7 @@ export class BtjConnection {
       if (this.notifyChar) {
         try {
           await this.notifyChar.stopNotifications();
-        } catch (e) {
+        } catch {
           // Ignore stop errors
         }
         if (this.notifyHandler) {
@@ -134,7 +144,7 @@ export class BtjConnection {
         this.notifyChar = null;
         this.notifyHandler = null;
       }
-    } catch (err) {
+    } catch {
       // Ignore errors
     }
 
@@ -144,7 +154,7 @@ export class BtjConnection {
       if (server && server.connected) {
         server.disconnect();
       }
-    } catch (err) {
+    } catch {
       // Ignore errors
     }
 
@@ -167,7 +177,7 @@ export class BtjConnection {
   private async _invoke<T extends Btj.Command>(
     cmd: T,
     resolve: (value: T) => void,
-    reject: (reason?: any) => void,
+    reject: (reason?: unknown) => void,
   ) {
     const seq = this.reqSeq++ & 0xff;
     const reqBuf = this.serializeRequest(
@@ -177,7 +187,7 @@ export class BtjConnection {
     this.reqPending = {
       seq,
       msgId: cmd.msgId,
-      resolve,
+      resolve: resolve as (value: Btj.Command) => void,
       reject,
       timeout: setTimeout(() => this.handleTimeout(), this.timeoutMs),
       parseResponse: cmd.parseResponse.bind(cmd),
@@ -198,7 +208,7 @@ export class BtjConnection {
     }
   }
 
-  private handleError(err: any) {
+  private handleError(err: unknown) {
     if (this.reqPending) {
       this.reqPending.reject(err);
       clearTimeout(this.reqPending.timeout);
@@ -259,9 +269,7 @@ export class BtjConnection {
 
           if (type == MSG_TYPE_RESPONSE) {
             try {
-              const resp = this.reqPending.parseResponse(payload);
-              // Attach response to the command instance
-              this.reqPending.cmd.response = resp;
+              this.reqPending.parseResponse(payload);
               this.reqPending.resolve(this.reqPending.cmd);
             } catch (err) {
               this.reqPending.reject(err);
