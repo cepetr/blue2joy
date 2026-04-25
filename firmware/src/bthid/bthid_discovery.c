@@ -191,6 +191,12 @@ static uint8_t on_report_desc(struct bt_conn *conn, const struct bt_gatt_attr *a
 
 static int start_report_descriptor_discovery(bthid_device_t *dev)
 {
+    if (dev->handles.report_count == 0) {
+        LOG_ERR("No HID report characteristics discovered");
+        bthid.cb->discovery_error(dev);
+        return -ENOENT;
+    }
+
     uint8_t i = dev->report_index;
 
     uint16_t start = dev->handles.report[i].value_handle + 1;
