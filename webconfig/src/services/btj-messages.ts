@@ -37,11 +37,6 @@ export namespace Btj {
     return value;
   }
 
-  function assertPayloadLength(view: DataView, expected: number): void {
-    if (view.byteLength !== expected)
-      throw new globalThis.Error(`Invalid payload length`);
-  }
-
   function hexString(bytes: Uint8Array): string {
     let result = "";
     for (const b of bytes) {
@@ -103,9 +98,9 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 2);
       const r = new BinaryReader(view);
       this._data = { major: r.uint8(), minor: r.uint8() };
+      r.assertDone("GetApiVersion response");
     }
 
     get data(): ApiVersion {
@@ -130,12 +125,12 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 16);
       const r = new BinaryReader(view);
       const hw_id = hexString(r.bytes(8));
       const hw_version = versionString(r.uint32());
       const sw_version = versionString(r.uint32());
       this._data = { hw_id, hw_version, sw_version };
+      r.assertDone("GetSysInfo response");
     }
 
     get data(): SysInfo {
@@ -252,7 +247,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("SetDevConfig response");
     }
 
     get addr(): DevAddr {
@@ -312,7 +307,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("SetPinConfig response");
     }
 
     get profile(): number {
@@ -370,7 +365,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("SetPotConfig response");
     }
 
     get profile(): number {
@@ -441,7 +436,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("SetIntgConfig response");
     }
 
     get profile(): number {
@@ -472,7 +467,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("SetMode response");
     }
 
     get mode(): SysMode {
@@ -494,7 +489,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("StartScanning response");
     }
   }
 
@@ -508,7 +503,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("StopScanning response");
     }
   }
 
@@ -524,7 +519,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("ConnectDevice response");
     }
 
     get addr(): DevAddr {
@@ -544,7 +539,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("DeleteDevice response");
     }
 
     get addr(): DevAddr {
@@ -562,7 +557,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("FactoryReset response");
     }
   }
 
@@ -578,7 +573,7 @@ export namespace Btj {
     }
 
     parseResponse(view: DataView) {
-      assertPayloadLength(view, 0);
+      new BinaryReader(view).assertDone("SetJoyPortMode response");
     }
 
     get mode(): JoyPortMode {
@@ -592,9 +587,9 @@ export namespace Btj {
     private _data?: SysState;
 
     parseMessage(view: DataView) {
-      assertPayloadLength(view, 2);
       const r = new BinaryReader(view);
       this._data = { scanning: r.bool(), mode: r.uint8() };
+      r.assertDone("SysStateUpdate event");
     }
 
     get data(): SysState {
@@ -608,7 +603,6 @@ export namespace Btj {
     private _deleted?: boolean;
 
     parseMessage(view: DataView) {
-      assertPayloadLength(view, 1 + DevAddr.LENGTH + 1 + 31);
       const r = new BinaryReader(view);
       const deleted = r.bool();
       const addr = DevAddr.decode(r);
@@ -616,6 +610,7 @@ export namespace Btj {
       const name = new TextDecoder().decode(r.bytes(31)).replace(/\0.*$/, "");
       this._data = { addr, rssi, name };
       this._deleted = deleted;
+      r.assertDone("AdvListUpdate event");
     }
 
     get data(): AdvData {
@@ -636,12 +631,12 @@ export namespace Btj {
     private _config?: DevConfig;
 
     parseMessage(view: DataView) {
-      assertPayloadLength(view, 1 + DevAddr.LENGTH + 1 + 1);
       const r = new BinaryReader(view);
       this._deleted = r.bool();
       this._addr = DevAddr.decode(r);
       this._state = { connState: r.int8() };
       this._config = { profile: r.uint8() };
+      r.assertDone("DevListUpdate event");
     }
 
     get deleted(): boolean {
@@ -671,14 +666,13 @@ export namespace Btj {
     private _intgs: Map<number, IntgConfig> = new Map();
 
     parseMessage(view: DataView) {
-      // header(4) + 5×PinConfig(8) + 2×PotConfig(8) + 2×IntgConfig(12)
-      assertPayloadLength(view, 4 + 5 * 8 + 2 * 8 + 2 * 12);
       const r = new BinaryReader(view);
       this._profile = r.uint8();
       r.skip(3);
       for (let i = 0; i < 5; i++) this._pins.set(i, PinConfig.decode(r));
       for (let i = 0; i < 2; i++) this._pots.set(i, PotConfig.decode(r));
       for (let i = 0; i < 2; i++) this._intgs.set(i, IntgConfig.decode(r));
+      r.assertDone("ProfileUpdate event");
     }
 
     get profile(): number {
@@ -704,7 +698,6 @@ export namespace Btj {
     private _data?: Btj.JoyPortState;
 
     parseMessage(view: DataView) {
-      assertPayloadLength(view, 1 + 1 + 2);
       const r = new BinaryReader(view);
       const mode = r.uint8();
       const pinMask = r.uint8();
@@ -714,6 +707,7 @@ export namespace Btj {
       );
       const pots = [r.uint8(), r.uint8()];
       this._data = { mode, pins, pots };
+      r.assertDone("JoyPortUpdate event");
     }
 
     get data(): Btj.JoyPortState {

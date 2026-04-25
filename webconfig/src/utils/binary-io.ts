@@ -20,11 +20,22 @@ export class BinaryReader {
   private pos = 0;
   constructor(private view: DataView) {}
 
+  private assertAvailable(size: number, what = "payload"): void {
+    const remaining = this.view.byteLength - this.pos;
+    if (remaining < size) {
+      throw new Error(
+        `Invalid ${what} length: need ${size} byte(s), have ${remaining}`,
+      );
+    }
+  }
+
   uint8(): number {
+    this.assertAvailable(1);
     return this.view.getUint8(this.pos++);
   }
 
   int8(): number {
+    this.assertAvailable(1);
     return this.view.getInt8(this.pos++);
   }
 
@@ -33,29 +44,34 @@ export class BinaryReader {
   }
 
   uint16(): number {
+    this.assertAvailable(2);
     const v = this.view.getUint16(this.pos, true);
     this.pos += 2;
     return v;
   }
 
   int16(): number {
+    this.assertAvailable(2);
     const v = this.view.getInt16(this.pos, true);
     this.pos += 2;
     return v;
   }
 
   uint32(): number {
+    this.assertAvailable(4);
     const v = this.view.getUint32(this.pos, true);
     this.pos += 4;
     return v;
   }
 
   skip(n: number): this {
+    this.assertAvailable(n);
     this.pos += n;
     return this;
   }
 
   bytes(n: number): Uint8Array {
+    this.assertAvailable(n);
     const arr = new Uint8Array(
       this.view.buffer,
       this.view.byteOffset + this.pos,
@@ -63,6 +79,13 @@ export class BinaryReader {
     );
     this.pos += n;
     return arr;
+  }
+
+  assertDone(what = "payload"): void {
+    const remaining = this.view.byteLength - this.pos;
+    if (remaining !== 0) {
+      throw new Error(`Invalid ${what} length: ${remaining} trailing byte(s)`);
+    }
   }
 }
 
