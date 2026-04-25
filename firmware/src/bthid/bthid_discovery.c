@@ -71,7 +71,13 @@ static int start_report_map_read(bthid_device_t *dev)
         .single.handle = dev->handles.report_map,
     };
 
-    int err = bt_gatt_read(dev->conn, &read_report_map_params);
+    struct bt_conn *conn = bthid_device_conn_ref(dev);
+    if (conn == NULL) {
+        return -ENOTCONN;
+    }
+
+    int err = bt_gatt_read(conn, &read_report_map_params);
+    bt_conn_unref(conn);
     if (err) {
         LOG_ERR("Failed to read HID report map {err: %d}", err);
     } else {
@@ -220,7 +226,13 @@ static int start_report_descriptor_discovery(bthid_device_t *dev)
         .type = BT_GATT_DISCOVER_DESCRIPTOR,
     };
 
-    int err = bt_gatt_discover(dev->conn, &dp);
+    struct bt_conn *conn = bthid_device_conn_ref(dev);
+    if (conn == NULL) {
+        return -ENOTCONN;
+    }
+
+    int err = bt_gatt_discover(conn, &dp);
+    bt_conn_unref(conn);
     if (err) {
         LOG_ERR("Failed to start descriptor discovery {err: %d}", err);
         bthid.cb->discovery_error(dev);
@@ -297,7 +309,13 @@ static int start_hid_characteristic_discovery(bthid_device_t *dev, uint16_t star
         .type = BT_GATT_DISCOVER_CHARACTERISTIC,
     };
 
-    int err = bt_gatt_discover(dev->conn, &discover_params);
+    struct bt_conn *conn = bthid_device_conn_ref(dev);
+    if (conn == NULL) {
+        return -ENOTCONN;
+    }
+
+    int err = bt_gatt_discover(conn, &discover_params);
+    bt_conn_unref(conn);
     if (err) {
         LOG_ERR("Cannot start HID characteristic discovery {err: %d}", err);
     } else {
@@ -355,7 +373,13 @@ int bthid_device_discover(bthid_device_t *dev)
         .type = BT_GATT_DISCOVER_PRIMARY,
     };
 
-    int err = bt_gatt_discover(dev->conn, &discover_params);
+    struct bt_conn *conn = bthid_device_conn_ref(dev);
+    if (conn == NULL) {
+        return -ENOTCONN;
+    }
+
+    int err = bt_gatt_discover(conn, &discover_params);
+    bt_conn_unref(conn);
     if (err) {
         LOG_ERR("Cannot start service discovery {err: %d}", err);
     } else {

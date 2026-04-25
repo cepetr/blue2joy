@@ -41,6 +41,9 @@ struct bthid_device {
     // Lower layer connection to the device
     struct bt_conn *conn;
 
+    // Peer Bluetooth address
+    bt_addr_le_t addr;
+
     // Indicates whether handles and report map are valid
     bool discovered;
 
@@ -78,6 +81,8 @@ typedef struct {
     bthid_device_t devices[BTHID_MAX_DEVICES];
     // Mutex for synchronizing access to the device list
     struct k_mutex mutex;
+    // Indicates whether mutex/callback state is initialized
+    bool initialized;
     // High-level callbacks for bthid events
     const bthid_callbacks_t *cb;
 } bthid_drv_t;
@@ -88,5 +93,11 @@ extern bthid_drv_t bthid;
 // Initialize pairing/bonding state machine
 int bthid_bonds_init(void);
 
+// Finds a device structure by its connection while caller holds bthid.mutex
+bthid_device_t *bthid_device_find_locked(struct bt_conn *conn);
+
 // Finds a device structure by its connection
 bthid_device_t *bthid_device_find(struct bt_conn *conn);
+
+// Returns a referenced connection for the device, or NULL if disconnected
+struct bt_conn *bthid_device_conn_ref(bthid_device_t *dev);

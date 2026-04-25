@@ -34,6 +34,30 @@ static void mtu_exchanged(struct bt_conn *conn, uint8_t err, struct bt_gatt_exch
     }
 }
 
+static struct bt_conn *take_device_conn(bthid_device_t *dev)
+{
+    struct bt_conn *conn;
+
+    k_mutex_lock(&bthid.mutex, K_FOREVER);
+    conn = dev->conn;
+    dev->conn = NULL;
+    k_mutex_unlock(&bthid.mutex);
+
+    return conn;
+}
+
+static void disconnect_conn(struct bt_conn *conn)
+{
+    int err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+    if (err) {
+        LOG_ERR("Failed to disconnect {err: %d}", err);
+    }
+
+    bt_conn_unref(conn);
+
+    LOG_INF("Disconnected");
+}
+
 static void connected(struct bt_conn *conn, uint8_t err)
 {
     bthid_device_t *dev = bthid_device_find(conn);
@@ -79,7 +103,12 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
-    bthid_device_t *dev = bthid_device_find(conn);
+    k_mutex_lock(&bthid.mutex, K_FOREVER);
+    bthid_device_t *dev = bthid_device_find_locked(conn);
+    if (dev != NULL) {
+        dev->conn = NULL;
+    }
+    k_mutex_unlock(&bthid.mutex);
 
     if (dev == NULL) {
         return;
@@ -91,11 +120,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
     LOG_INF("Disconnected {peer: %s, reason: 0x%02x %s", addr, reason, bt_hci_err_to_str(reason));
 
     bthid.cb->conn_closed(dev);
-
-    k_mutex_lock(&bthid.mutex, K_FOREVER);
     bt_conn_unref(conn);
-    dev->conn = NULL;
-    k_mutex_unlock(&bthid.mutex);
 }
 
 static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_security_err err)
@@ -139,6 +164,7 @@ int bthid_connect(int slot, const bt_addr_le_t *addr)
     }
 
     memset(dev, 0, sizeof(*dev));
+    bt_addr_le_copy(&dev->addr, addr);
 
     int err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT, &dev->conn);
 
@@ -162,28 +188,33 @@ void bthid_disconnect(int slot)
     assert(slot >= 0 && slot < BTHID_MAX_DEVICES);
 
     bthid_device_t *dev = &bthid.devices[slot];
+    struct bt_conn *conn = take_device_conn(dev);
 
-    k_mutex_lock(&bthid.mutex, K_FOREVER);
-    if (dev->conn != NULL) {
+    if (conn != NULL) {
         bthid.cb->conn_closed(dev);
-        bthid_device_disconnect(dev);
+        disconnect_conn(conn);
     }
-    k_mutex_unlock(&bthid.mutex);
 }
 
 void bthid_device_disconnect(bthid_device_t *dev)
 {
-    bt_conn_disconnect(dev->conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+    struct bt_conn *conn = take_device_conn(dev);
 
-    k_mutex_lock(&bthid.mutex, K_FOREVER);
-    bt_conn_unref(dev->conn);
-    dev->conn = NULL;
-    k_mutex_unlock(&bthid.mutex);
-
-    LOG_INF("Disconnected");
+    if (conn != NULL) {
+        disconnect_conn(conn);
+    }
 }
 
 bool bthid_device_is_secure(bthid_device_t *dev)
 {
-    return bt_conn_get_security(dev->conn) >= BT_SECURITY_L2;
+    struct bt_conn *conn = bthid_device_conn_ref(dev);
+
+    if (conn == NULL) {
+        return false;
+    }
+
+    bool is_secure = bt_conn_get_security(conn) >= BT_SECURITY_L2;
+    bt_conn_unref(conn);
+
+    return is_secure;
 }

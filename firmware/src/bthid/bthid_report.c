@@ -83,7 +83,12 @@ int bthid_device_subscribe(bthid_device_t *dev)
         0x01, // Exit from suspend mode
     };
 
-    int err = bt_gatt_write_without_response(dev->conn, dev->handles.control_point, wake_up_command,
+    struct bt_conn *conn = bthid_device_conn_ref(dev);
+    if (conn == NULL) {
+        return -ENOTCONN;
+    }
+
+    int err = bt_gatt_write_without_response(conn, dev->handles.control_point, wake_up_command,
                                              sizeof(wake_up_command), false);
     if (err) {
         LOG_ERR("Failed to send wake-up command {err: %d}", err);
@@ -95,6 +100,7 @@ int bthid_device_subscribe(bthid_device_t *dev)
     report_char_t *report_char = get_report_char_to_subscribe(dev);
 
     if (report_char == NULL) {
+        bt_conn_unref(conn);
         return -ENOENT;
     }
 
@@ -108,7 +114,7 @@ int bthid_device_subscribe(bthid_device_t *dev)
         .flags = {BIT(BT_GATT_SUBSCRIBE_FLAG_VOLATILE) | BIT(BT_GATT_SUBSCRIBE_FLAG_NO_RESUB)},
     };
 
-    err = bt_gatt_subscribe(dev->conn, &subscribe_params);
+    err = bt_gatt_subscribe(conn, &subscribe_params);
 
     if (err) {
         if (err == -EALREADY) {
@@ -119,6 +125,8 @@ int bthid_device_subscribe(bthid_device_t *dev)
     } else {
         LOG_INF("Subscribing to HID report notifications...");
     }
+
+    bt_conn_unref(conn);
 
     return err;
 }

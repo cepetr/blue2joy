@@ -26,7 +26,6 @@ int bthid_init(const bthid_callbacks_t *callbacks)
 {
     assert(callbacks != NULL);
     memset(&bthid, 0, sizeof(bthid_drv_t));
-    bthid.cb = callbacks;
 
     int err;
 
@@ -35,15 +34,20 @@ int bthid_init(const bthid_callbacks_t *callbacks)
         return err;
     }
 
+    bthid.cb = callbacks;
+    bthid.initialized = true;
+
     err = bthid_bonds_init();
     if (err) {
+        bthid.initialized = false;
+        bthid.cb = NULL;
         return err;
     }
 
     return 0;
 }
 
-bthid_device_t *bthid_device_find(struct bt_conn *conn)
+static bthid_device_t *find_device_by_conn(struct bt_conn *conn)
 {
     for (int dev_idx = 0; dev_idx < ARRAY_SIZE(bthid.devices); ++dev_idx) {
         if (bthid.devices[dev_idx].conn == conn) {
@@ -54,9 +58,44 @@ bthid_device_t *bthid_device_find(struct bt_conn *conn)
     return NULL;
 }
 
+bthid_device_t *bthid_device_find_locked(struct bt_conn *conn)
+{
+    return find_device_by_conn(conn);
+}
+
+bthid_device_t *bthid_device_find(struct bt_conn *conn)
+{
+    bthid_device_t *dev;
+
+    if (!bthid.initialized) {
+        return NULL;
+    }
+
+    k_mutex_lock(&bthid.mutex, K_FOREVER);
+    dev = find_device_by_conn(conn);
+    k_mutex_unlock(&bthid.mutex);
+
+    return dev;
+}
+
+struct bt_conn *bthid_device_conn_ref(bthid_device_t *dev)
+{
+    struct bt_conn *conn = NULL;
+
+    if (!bthid.initialized) {
+        return NULL;
+    }
+
+    k_mutex_lock(&bthid.mutex, K_FOREVER);
+    if (dev->conn != NULL) {
+        conn = bt_conn_ref(dev->conn);
+    }
+    k_mutex_unlock(&bthid.mutex);
+
+    return conn;
+}
+
 void bthid_device_get_addr(bthid_device_t *dev, bt_addr_le_t *addr)
 {
-    struct bt_conn_info info;
-    bt_conn_get_info(dev->conn, &info);
-    bt_addr_le_copy(addr, info.le.dst);
+    bt_addr_le_copy(addr, &dev->addr);
 }
