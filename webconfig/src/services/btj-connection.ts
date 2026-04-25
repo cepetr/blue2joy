@@ -158,7 +158,7 @@ export class BtjConnection {
     reject: (reason?: any) => void
   ) {
     const seq = this.reqSeq++ & 0xff;
-    const reqBuf = this.serializeRequest({ msgId: cmd.msgId, data: { serialize: () => new Uint8Array(cmd.serializeRequest()) } }, seq);
+    const reqBuf = this.serializeRequest({ msgId: cmd.msgId, data: { serialize: () => cmd.serializeRequest() } }, seq);
     this.reqPending = {
       seq,
       msgId: cmd.msgId,

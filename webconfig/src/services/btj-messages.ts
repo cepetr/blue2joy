@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+import { BinaryReader, BinaryWriter } from '../utils/binary-io.js';
+
 export namespace Btj {
   export class Error extends globalThis.Error {
     readonly code: number;
@@ -36,10 +38,10 @@ export namespace Btj {
     if (view.byteLength !== expected) throw new globalThis.Error(`Invalid payload length`);
   }
 
-  function hexString(view: DataView, offset: number, length: number): string {
+  function hexString(bytes: Uint8Array): string {
     let result = '';
-    for (let i = 0; i < length; i++) {
-      result += view.getUint8(offset + i).toString(16).padStart(2, '0');
+    for (const b of bytes) {
+      result += b.toString(16).padStart(2, '0');
     }
     return result;
   }
@@ -77,7 +79,7 @@ export namespace Btj {
 
   export interface Command {
     readonly msgId: MsgId;
-    serializeRequest(): ArrayBuffer;
+    serializeRequest(): Uint8Array;
     parseResponse(view: DataView): void;
   }
 
@@ -93,15 +95,14 @@ export namespace Btj {
 
     constructor() { }
 
-    serializeRequest(): ArrayBuffer {
-      return new ArrayBuffer(0);
+    serializeRequest(): Uint8Array {
+      return new Uint8Array(0);
     }
 
     parseResponse(view: DataView) {
       assertPayloadLength(view, 2);
-      const major = view.getUint8(0);
-      const minor = view.getUint8(1);
-      this._data = { major, minor };
+      const r = new BinaryReader(view);
+      this._data = { major: r.uint8(), minor: r.uint8() };
     }
 
     get data(): ApiVersion {
@@ -121,15 +122,16 @@ export namespace Btj {
 
     constructor() { }
 
-    serializeRequest(): ArrayBuffer {
-      return new ArrayBuffer(0);
+    serializeRequest(): Uint8Array {
+      return new Uint8Array(0);
     }
 
     parseResponse(view: DataView) {
       assertPayloadLength(view, 16);
-      const hw_id = hexString(view, 0, 8);
-      const hw_version = versionString(view.getUint32(8, true));
-      const sw_version = versionString(view.getUint32(12, true));
+      const r = new BinaryReader(view);
+      const hw_id = hexString(r.bytes(8));
+      const hw_version = versionString(r.uint32());
+      const sw_version = versionString(r.uint32());
       this._data = { hw_id, hw_version, sw_version };
     }
 
@@ -195,14 +197,12 @@ export namespace Btj {
         .join(':') + type_suffix;
     }
 
-    static copyFrom(offset: number, view: DataView): DevAddr {
-      return new DevAddr(new Uint8Array(view.buffer, view.byteOffset + offset, DevAddr.LENGTH));
+    static decode(r: BinaryReader): DevAddr {
+      return new DevAddr(r.bytes(DevAddr.LENGTH));
     }
 
-    copyTo(offset: number, view: DataView) {
-      for (let i = 0; i < DevAddr.LENGTH; i++) {
-        view.setUint8(offset + i, this._bytes[i]);
-      }
+    encode(w: BinaryWriter): void {
+      w.bytes(this._bytes);
     }
   }
 
@@ -232,12 +232,12 @@ export namespace Btj {
     readonly msgId = MsgId.SET_DEV_CONFIG;
 
     constructor(private _addr: DevAddr, private _data: DevConfig) { }
-    serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(DevAddr.LENGTH + 1);
-      const view = new DataView(buf);
-      this._addr.copyTo(0, view);
-      view.setUint8(DevAddr.LENGTH, this._data.profile);
-      return buf;
+
+    serializeRequest(): Uint8Array {
+      const w = new BinaryWriter();
+      this._addr.encode(w);
+      w.uint8(this._data.profile);
+      return w.result;
     }
 
     parseResponse(view: DataView) {
@@ -264,23 +264,37 @@ export namespace Btj {
     static default(): PinConfig {
       return new PinConfig();
     }
+
+    // Wire layout: source(4) + invert(1) + hatSwitch(1) + threshold(1) + hysteresis(1) = 8 bytes
+    static decode(r: BinaryReader): PinConfig {
+      const cfg = new PinConfig();
+      cfg.source = r.uint32();
+      cfg.invert = r.bool();
+      cfg.hatSwitch = r.uint8();
+      cfg.threshold = r.uint8();
+      cfg.hysteresis = r.uint8();
+      return cfg;
+    }
+
+    static encode(w: BinaryWriter, cfg: PinConfig): void {
+      w.uint32(cfg.source);
+      w.bool(cfg.invert);
+      w.uint8(cfg.hatSwitch);
+      w.uint8(cfg.threshold);
+      w.uint8(cfg.hysteresis);
+    }
   }
 
   export class SetPinConfig implements Command {
     readonly msgId = MsgId.SET_PIN_CONFIG;
 
     constructor(private _profile: number, private _id: number, private _data: PinConfig) { }
-    serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(4 + 8);
-      const view = new DataView(buf);
-      view.setUint8(0, this._profile);
-      view.setUint8(1, this._id);
-      view.setUint32(4, this._data.source, true);
-      view.setUint8(8, this._data.invert ? 1 : 0);
-      view.setUint8(9, this._data.hatSwitch);
-      view.setUint8(10, this._data.threshold);
-      view.setUint8(11, this._data.hysteresis);
-      return buf;
+
+    serializeRequest(): Uint8Array {
+      const w = new BinaryWriter();
+      w.uint8(this._profile).uint8(this._id).skip(2);
+      PinConfig.encode(w, this._data);
+      return w.result;
     }
 
     parseResponse(view: DataView) {
@@ -309,21 +323,33 @@ export namespace Btj {
     static default(): PotConfig {
       return new PotConfig();
     }
+
+    // Wire layout: source(4) + low(2) + high(2) = 8 bytes
+    static decode(r: BinaryReader): PotConfig {
+      const cfg = new PotConfig();
+      cfg.source = r.uint32();
+      cfg.low = r.int16();
+      cfg.high = r.int16();
+      return cfg;
+    }
+
+    static encode(w: BinaryWriter, cfg: PotConfig): void {
+      w.uint32(cfg.source);
+      w.int16(cfg.low);
+      w.int16(cfg.high);
+    }
   }
 
   export class SetPotConfig implements Command {
     readonly msgId = MsgId.SET_POT_CONFIG;
 
     constructor(private _profile: number, private _id: number, private _data: PotConfig) { }
-    serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(4 + 8);
-      const view = new DataView(buf);
-      view.setUint8(0, this._profile);
-      view.setUint8(1, this._id);
-      view.setUint32(4, this._data.source, true);
-      view.setInt16(8, this._data.low, true);
-      view.setInt16(10, this._data.high, true);
-      return buf;
+
+    serializeRequest(): Uint8Array {
+      const w = new BinaryWriter();
+      w.uint8(this._profile).uint8(this._id).skip(2);
+      PotConfig.encode(w, this._data);
+      return w.result;
     }
 
     parseResponse(view: DataView) {
@@ -358,6 +384,27 @@ export namespace Btj {
     static default(): IntgConfig {
       return new IntgConfig();
     }
+
+    // Wire layout: source(4) + mode(1) + deadZone(1) + gain/Q7.8(2) + max(2) + pad(2) = 12 bytes
+    static decode(r: BinaryReader): IntgConfig {
+      const cfg = new IntgConfig();
+      cfg.source = r.uint32();
+      cfg.mode = r.uint8();
+      cfg.deadZone = r.uint8();
+      cfg.gain = r.int16() / 256.0;
+      cfg.max = r.int16();
+      r.skip(2);
+      return cfg;
+    }
+
+    static encode(w: BinaryWriter, cfg: IntgConfig): void {
+      w.uint32(cfg.source);
+      w.uint8(cfg.mode);
+      w.uint8(cfg.deadZone);
+      w.int16(Math.round(cfg.gain * 256.0));
+      w.int16(cfg.max);
+      w.skip(2);
+    }
   }
 
   export class SetIntgConfig implements Command {
@@ -365,18 +412,11 @@ export namespace Btj {
 
     constructor(private _profile: number, private _id: number, private _data: IntgConfig) { }
 
-    serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(16);
-      const view = new DataView(buf);
-      view.setUint8(0, this._profile);
-      view.setUint8(1, this._id);
-      view.setUint32(4, this._data.source, true);
-      view.setUint8(8, this._data.mode);
-      view.setUint8(9, this._data.deadZone);
-      const gainFixed = Math.round(this._data.gain * 256.0); // Convert float to Q7.8
-      view.setInt16(10, gainFixed, true);
-      view.setInt16(12, this._data.max, true);
-      return buf;
+    serializeRequest(): Uint8Array {
+      const w = new BinaryWriter();
+      w.uint8(this._profile).uint8(this._id).skip(2);
+      IntgConfig.encode(w, this._data);
+      return w.result;
     }
 
     parseResponse(view: DataView) {
@@ -401,12 +441,10 @@ export namespace Btj {
 
     constructor(private _mode: SysMode, private _restart: boolean) { }
 
-    serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(2);
-      const view = new DataView(buf);
-      view.setUint8(0, this._mode);
-      view.setUint8(1, this._restart ? 1 : 0);
-      return buf;
+    serializeRequest(): Uint8Array {
+      const w = new BinaryWriter();
+      w.uint8(this._mode).bool(this._restart);
+      return w.result;
     }
 
     parseResponse(view: DataView) {
@@ -426,8 +464,9 @@ export namespace Btj {
     readonly msgId = MsgId.START_SCANNING;
 
     constructor() { }
-    serializeRequest(): ArrayBuffer {
-      return new ArrayBuffer(0);
+
+    serializeRequest(): Uint8Array {
+      return new Uint8Array(0);
     }
 
     parseResponse(view: DataView) {
@@ -440,8 +479,8 @@ export namespace Btj {
 
     constructor() { }
 
-    serializeRequest(): ArrayBuffer {
-      return new ArrayBuffer(0);
+    serializeRequest(): Uint8Array {
+      return new Uint8Array(0);
     }
 
     parseResponse(view: DataView) {
@@ -453,11 +492,11 @@ export namespace Btj {
     readonly msgId = MsgId.CONNECT_DEVICE;
 
     constructor(private _addr: DevAddr) { }
-    serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(DevAddr.LENGTH);
-      const view = new DataView(buf);
-      this._addr.copyTo(0, view);
-      return buf;
+
+    serializeRequest(): Uint8Array {
+      const w = new BinaryWriter();
+      this._addr.encode(w);
+      return w.result;
     }
 
     parseResponse(view: DataView) {
@@ -473,11 +512,11 @@ export namespace Btj {
     readonly msgId = MsgId.DELETE_DEVICE;
 
     constructor(private _addr: DevAddr) { }
-    serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(DevAddr.LENGTH);
-      const view = new DataView(buf);
-      this._addr.copyTo(0, view);
-      return buf;
+
+    serializeRequest(): Uint8Array {
+      const w = new BinaryWriter();
+      this._addr.encode(w);
+      return w.result;
     }
 
     parseResponse(view: DataView) {
@@ -493,8 +532,9 @@ export namespace Btj {
     readonly msgId = MsgId.FACTORY_RESET;
 
     constructor() { }
-    serializeRequest(): ArrayBuffer {
-      return new ArrayBuffer(0);
+
+    serializeRequest(): Uint8Array {
+      return new Uint8Array(0);
     }
 
     parseResponse(view: DataView) {
@@ -507,11 +547,10 @@ export namespace Btj {
 
     constructor(private _mode: JoyPortMode) { }
 
-    serializeRequest(): ArrayBuffer {
-      const buf = new ArrayBuffer(1);
-      const view = new DataView(buf);
-      view.setUint8(0, this._mode);
-      return buf;
+    serializeRequest(): Uint8Array {
+      const w = new BinaryWriter();
+      w.uint8(this._mode);
+      return w.result;
     }
 
     parseResponse(view: DataView) {
@@ -530,9 +569,8 @@ export namespace Btj {
 
     parseMessage(view: DataView) {
       assertPayloadLength(view, 2);
-      const scanning = view.getUint8(0) != 0;
-      const mode = view.getUint8(1);
-      this._data = { scanning, mode };
+      const r = new BinaryReader(view);
+      this._data = { scanning: r.bool(), mode: r.uint8() };
     }
 
     get data(): SysState {
@@ -547,10 +585,11 @@ export namespace Btj {
 
     parseMessage(view: DataView) {
       assertPayloadLength(view, 1 + DevAddr.LENGTH + 1 + 31);
-      const deleted = view.getUint8(0) ? true : false;
-      const addr = DevAddr.copyFrom(1, view);
-      const rssi = view.getInt8(8);
-      const name = new TextDecoder().decode(new Uint8Array(view.buffer, view.byteOffset + 9, 31)).replace(/\0.*$/, '');
+      const r = new BinaryReader(view);
+      const deleted = r.bool();
+      const addr = DevAddr.decode(r);
+      const rssi = r.int8();
+      const name = new TextDecoder().decode(r.bytes(31)).replace(/\0.*$/, '');
       this._data = { addr, rssi, name };
       this._deleted = deleted;
     }
@@ -574,14 +613,11 @@ export namespace Btj {
 
     parseMessage(view: DataView) {
       assertPayloadLength(view, 1 + DevAddr.LENGTH + 1 + 1);
-      const deleted = view.getUint8(0) ? true : false;
-      const addr = DevAddr.copyFrom(1, view);
-      const connState = view.getInt8(8);
-      const profile = view.getUint8(9);
-      this._deleted = deleted;
-      this._addr = addr;
-      this._state = { connState };
-      this._config = { profile };
+      const r = new BinaryReader(view);
+      this._deleted = r.bool();
+      this._addr = DevAddr.decode(r);
+      this._state = { connState: r.int8() };
+      this._config = { profile: r.uint8() };
     }
 
     get deleted(): boolean {
@@ -611,37 +647,14 @@ export namespace Btj {
     private _intgs: Map<number, IntgConfig> = new Map();
 
     parseMessage(view: DataView) {
+      // header(4) + 5×PinConfig(8) + 2×PotConfig(8) + 2×IntgConfig(12)
       assertPayloadLength(view, 4 + 5 * 8 + 2 * 8 + 2 * 12);
-      this._profile = view.getUint8(0);
-
-      for (let i = 0; i < 5; i++) {
-        const offset = 4 + i * 8;
-        const source = view.getUint32(offset, true);
-        const invert = Boolean(view.getUint8(offset + 4));
-        const hatSwitch = view.getUint8(offset + 5);
-        const threshold = view.getUint8(offset + 6);
-        const hysteresis = view.getUint8(offset + 7);
-        this._pins.set(i, { source, invert, hatSwitch, threshold, hysteresis });
-      }
-
-      for (let i = 0; i < 2; i++) {
-        const offset = 4 + 5 * 8 + i * 8;
-        const source = view.getUint32(offset, true);
-        const low = view.getInt16(offset + 4, true);
-        const high = view.getInt16(offset + 6, true);
-        this._pots.set(i, { source, low, high });
-      }
-
-      for (let i = 0; i < 2; i++) {
-        const offset = 4 + 5 * 8 + 2 * 8 + i * 12;
-        const source = view.getUint32(offset, true);
-        const mode = view.getUint8(offset + 4);
-        const deadZone = view.getUint8(offset + 5);
-        const gainFixed = view.getInt16(offset + 6, true);
-        const gain = gainFixed / 256.0; // Convert Q7.8 to float
-        const max = view.getInt16(offset + 8, true);
-        this._intgs.set(i, { source, mode, deadZone, gain: gain, max: max });
-      }
+      const r = new BinaryReader(view);
+      this._profile = r.uint8();
+      r.skip(3);
+      for (let i = 0; i < 5; i++) this._pins.set(i, PinConfig.decode(r));
+      for (let i = 0; i < 2; i++) this._pots.set(i, PotConfig.decode(r));
+      for (let i = 0; i < 2; i++) this._intgs.set(i, IntgConfig.decode(r));
     }
 
     get profile(): number {
@@ -668,15 +681,11 @@ export namespace Btj {
 
     parseMessage(view: DataView) {
       assertPayloadLength(view, 1 + 1 + 2);
-      const pins: Array<boolean> = [];
-      const pots: Array<number> = [];
-      const mode = view.getUint8(0);
-      const pinMask = view.getUint8(1);
-      for (let i = 0; i < 5; i++) {
-        pins.push((pinMask & (1 << i)) !== 0);
-      }
-      pots.push(view.getUint8(2));
-      pots.push(view.getUint8(3));
+      const r = new BinaryReader(view);
+      const mode = r.uint8();
+      const pinMask = r.uint8();
+      const pins = Array.from({ length: 5 }, (_, i) => (pinMask & (1 << i)) !== 0);
+      const pots = [r.uint8(), r.uint8()];
       this._data = { mode, pins, pots };
     }
 
