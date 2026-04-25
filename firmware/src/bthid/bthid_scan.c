@@ -25,11 +25,16 @@ static bool is_hid_advertisement(struct net_buf_simple *adv)
 {
     size_t i = 0;
 
-    while (i < adv->len - 2) {
+    while (i + 1 < adv->len) {
         uint8_t el_len = adv->data[i];
+
+        if (el_len == 0 || i + el_len >= adv->len) {
+            break;
+        }
+
         uint8_t el_type = adv->data[i + 1];
 
-        if (el_type == BT_DATA_GAP_APPEARANCE) {
+        if (el_type == BT_DATA_GAP_APPEARANCE && el_len >= 3) {
             uint16_t appearance = sys_get_le16(&adv->data[i + 2]);
 
             if (appearance == BT_APPEARANCE_HID_GAMEPAD || appearance == BT_APPEARANCE_HID_MOUSE ||
