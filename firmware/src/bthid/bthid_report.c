@@ -63,8 +63,9 @@ report_char_t *get_report_char_to_subscribe(bthid_device_t *dev)
 
         // Find the report characteristic with the matching report ID
         for (int i = 0; i < dev->handles.report_count; i++) {
-            report_char = &dev->handles.report[i];
-            if (report_char->report_id == report_id) {
+            report_char_t *report = &dev->handles.report[i];
+            if (report->report_id == report_id) {
+                report_char = report;
                 break;
             }
         }
