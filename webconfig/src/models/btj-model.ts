@@ -16,7 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { action, computed, makeAutoObservable, observable } from "mobx";
+import {
+  action,
+  computed,
+  makeAutoObservable,
+  observable,
+  runInAction,
+} from "mobx";
 import { BtjConnection, scanAndSelect } from "../services/btj-connection";
 import { Btj } from "../services/btj-messages";
 import { XEP80_STATE_SIZE, decodeXep80Update } from "../workers/xep80-worker";
@@ -260,7 +266,10 @@ export class BtjModel {
     try {
       // Wait for the connection to be fully initialized
       await this.conn.connect();
-      this.sysInfo = (await this.conn.invoke(new Btj.GetSysInfo())).data;
+      const sysInfo = (await this.conn.invoke(new Btj.GetSysInfo())).data;
+      runInAction(() => {
+        this.sysInfo = sysInfo;
+      });
     } catch (err: unknown) {
       this.logError(err, "connection");
       this.disconnect();
