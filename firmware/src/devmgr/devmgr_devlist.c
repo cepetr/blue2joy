@@ -92,7 +92,8 @@ devmgr_entry_t *devmgr_find_entry(const bt_addr_le_t *addr)
 }
 
 // Must be called with devmgr->mutex locked
-devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save)
+devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save, bt_addr_le_t *deleted_addr,
+                                    bool *deleted, bool *created)
 {
     devmgr_t *devmgr = &g_devmgr;
 
@@ -113,8 +114,13 @@ devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save)
         if (devmgr->sync.dev.count == DEVMGR_MAX_CONFIG_ENTRIES) {
             // remove the last entry
             devmgr_entry_t *last = &devmgr->sync.dev.entry[DEVMGR_MAX_CONFIG_ENTRIES - 1];
+            if (deleted != NULL) {
+                *deleted = true;
+            }
+            if (deleted_addr != NULL) {
+                bt_addr_le_copy(deleted_addr, &last->addr);
+            }
             devmgr->sync.dev.count--;
-            devmgr_notify(EV_SUBJECT_DEV_LIST, &last->addr, EV_ACTION_DELETE);
         }
 
         // create new entry at the beginning
@@ -129,7 +135,9 @@ devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save)
         memset(entry, 0, sizeof(devmgr_entry_t));
         bt_addr_le_copy(&entry->addr, addr);
 
-        devmgr_notify(EV_SUBJECT_DEV_LIST, addr, EV_ACTION_CREATE);
+        if (created != NULL) {
+            *created = true;
+        }
 
         changed = true;
     }
@@ -145,12 +153,22 @@ devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save)
 int devmgr_create_device(const bt_addr_le_t *addr, bool save)
 {
     devmgr_t *devmgr = &g_devmgr;
+    bt_addr_le_t deleted_addr = {0};
+    bool deleted = false;
+    bool created = false;
 
     k_mutex_lock(&devmgr->mutex, K_FOREVER);
 
-    devmgr_entry_t *entry = devmgr_ensure_entry(addr, save);
+    devmgr_entry_t *entry = devmgr_ensure_entry(addr, save, &deleted_addr, &deleted, &created);
 
     k_mutex_unlock(&devmgr->mutex);
+
+    if (deleted) {
+        devmgr_notify(EV_SUBJECT_DEV_LIST, &deleted_addr, EV_ACTION_DELETE);
+    }
+    if (created) {
+        devmgr_notify(EV_SUBJECT_DEV_LIST, addr, EV_ACTION_CREATE);
+    }
 
     return entry != NULL ? 0 : -ENOMEM;
 }
@@ -158,6 +176,7 @@ int devmgr_create_device(const bt_addr_le_t *addr, bool save)
 int devmgr_delete_device(const bt_addr_le_t *addr)
 {
     devmgr_t *devmgr = &g_devmgr;
+    bool deleted = false;
 
     // TODO: We should disconnect specific device by address
     bthid_disconnect(BTHID_DEFAULT_SLOT);
@@ -171,11 +190,14 @@ int devmgr_delete_device(const bt_addr_le_t *addr)
         devmgr_entry_t *end = &devmgr->sync.dev.entry[devmgr->sync.dev.count];
         memmove(entry, entry + 1, (end - entry - 1) * sizeof(devmgr_entry_t));
         devmgr->sync.dev.count--;
-
-        devmgr_notify(EV_SUBJECT_DEV_LIST, addr, EV_ACTION_DELETE);
+        deleted = true;
     }
 
     k_mutex_unlock(&devmgr->mutex);
+
+    if (deleted) {
+        devmgr_notify(EV_SUBJECT_DEV_LIST, addr, EV_ACTION_DELETE);
+    }
 
     if (entry != NULL) {
         // bthid_bonds_delete(); !@# TODO
@@ -238,11 +260,11 @@ int devmgr_set_device_config(const bt_addr_le_t *addr, const devmgr_device_confi
         }
     }
 
+    k_mutex_unlock(&devmgr->mutex);
+
     if (changed) {
         devmgr_notify(EV_SUBJECT_DEV_LIST, addr, EV_ACTION_UPDATE);
     }
-
-    k_mutex_unlock(&devmgr->mutex);
 
     if (changed && save) {
         LOG_INF("Scheduling devmgr settings save");

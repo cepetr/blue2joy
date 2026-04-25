@@ -21,19 +21,27 @@
 void devmgr_clear_adv_list(void)
 {
     devmgr_t *devmgr = &g_devmgr;
+    bt_addr_le_t deleted[DEVMGR_MAX_ADVLIST_ENTRIES];
+    size_t deleted_count = 0;
 
     k_mutex_lock(&devmgr->mutex, K_FOREVER);
     for (int i = devmgr->sync.adv.count - 1; i >= 0; i--) {
         devmgr_adv_entry_t *entry = &devmgr->sync.adv.entry[i];
+        bt_addr_le_copy(&deleted[deleted_count++], &entry->addr);
         --devmgr->sync.adv.count;
-        devmgr_notify(EV_SUBJECT_ADV_LIST, &entry->addr, EV_ACTION_DELETE);
     }
     k_mutex_unlock(&devmgr->mutex);
+
+    for (size_t i = 0; i < deleted_count; i++) {
+        devmgr_notify(EV_SUBJECT_ADV_LIST, &deleted[i], EV_ACTION_DELETE);
+    }
 }
 
 void devmgr_add_to_adv_list(const bt_addr_le_t *addr, int8_t rssi, const char *name)
 {
     devmgr_t *devmgr = &g_devmgr;
+    bool notify = false;
+    event_action_t action = EV_ACTION_UPDATE;
 
     k_mutex_lock(&devmgr->mutex, K_FOREVER);
 
@@ -47,8 +55,11 @@ void devmgr_add_to_adv_list(const bt_addr_le_t *addr, int8_t rssi, const char *n
                 strncpy(entry->name, name, sizeof(entry->name) - 1);
                 entry->name[sizeof(entry->name) - 1] = '\0';
             }
-            devmgr_notify(EV_SUBJECT_ADV_LIST, addr, EV_ACTION_UPDATE);
+            notify = true;
+            action = EV_ACTION_UPDATE;
             k_mutex_unlock(&devmgr->mutex);
+
+            devmgr_notify(EV_SUBJECT_ADV_LIST, addr, action);
             return;
         }
     }
@@ -63,10 +74,15 @@ void devmgr_add_to_adv_list(const bt_addr_le_t *addr, int8_t rssi, const char *n
             strncpy(entry->name, name, sizeof(entry->name) - 1);
             entry->name[sizeof(entry->name) - 1] = '\0';
         }
-        devmgr_notify(EV_SUBJECT_ADV_LIST, addr, EV_ACTION_CREATE);
+        notify = true;
+        action = EV_ACTION_CREATE;
     }
 
     k_mutex_unlock(&devmgr->mutex);
+
+    if (notify) {
+        devmgr_notify(EV_SUBJECT_ADV_LIST, addr, action);
+    }
 }
 
 int devmgr_get_advertising_devices(devmgr_adv_entry_t *list)

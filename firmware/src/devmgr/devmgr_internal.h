@@ -78,4 +78,5 @@ devmgr_entry_t *devmgr_find_entry(const bt_addr_le_t *addr);
 // Finds a device entry by address
 // Returns NULL if not found
 // Must be called with devmgr->mutex locked
-devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save);
+devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save, bt_addr_le_t *deleted_addr,
+                                    bool *deleted, bool *created);

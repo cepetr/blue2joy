@@ -75,8 +75,9 @@ void devmgr_set_mode(devmgr_mode_t mode, bool restart)
 
     k_mutex_lock(&devmgr->mutex, K_FOREVER);
     devmgr->sync.mode = mode;
-    devmgr_notify(EV_SUBJECT_SYS_STATE, NULL, EV_ACTION_UPDATE);
     k_mutex_unlock(&devmgr->mutex);
+
+    devmgr_notify(EV_SUBJECT_SYS_STATE, NULL, EV_ACTION_UPDATE);
 
     if (restart) {
         bthid_disconnect(BTHID_DEFAULT_SLOT);
@@ -114,8 +115,9 @@ int devmgr_start_scanning(void)
 
         k_mutex_lock(&devmgr->mutex, K_FOREVER);
         devmgr->sync.scanning = (err == 0);
-        devmgr_notify(EV_SUBJECT_SYS_STATE, NULL, EV_ACTION_UPDATE);
         k_mutex_unlock(&devmgr->mutex);
+
+        devmgr_notify(EV_SUBJECT_SYS_STATE, NULL, EV_ACTION_UPDATE);
     }
 
     return err;
@@ -134,8 +136,9 @@ void devmgr_stop_scanning(void)
 
         k_mutex_lock(&devmgr->mutex, K_FOREVER);
         devmgr->sync.scanning = false;
-        devmgr_notify(EV_SUBJECT_SYS_STATE, NULL, EV_ACTION_UPDATE);
         k_mutex_unlock(&devmgr->mutex);
+
+        devmgr_notify(EV_SUBJECT_SYS_STATE, NULL, EV_ACTION_UPDATE);
     }
 }
 
@@ -152,18 +155,31 @@ int devmgr_connect(const bt_addr_le_t *addr)
 
         k_mutex_lock(&devmgr->mutex, K_FOREVER);
         devmgr->sync.scanning = false;
-        devmgr_notify(EV_SUBJECT_SYS_STATE, NULL, EV_ACTION_UPDATE);
         k_mutex_unlock(&devmgr->mutex);
+
+        devmgr_notify(EV_SUBJECT_SYS_STATE, NULL, EV_ACTION_UPDATE);
     }
 
     int err = bthid_connect(BTHID_DEFAULT_SLOT, addr);
     if (!err) {
         // Create device entry if it doesn't exist
+        bt_addr_le_t deleted_addr = {0};
+        bool deleted = false;
+        bool created = false;
+        bt_addr_le_t entry_addr = {0};
         k_mutex_lock(&devmgr->mutex, K_FOREVER);
-        devmgr_entry_t *entry = devmgr_ensure_entry(addr, true);
+        devmgr_entry_t *entry = devmgr_ensure_entry(addr, true, &deleted_addr, &deleted, &created);
         entry->state.conn_state = DEVMGR_CONN_CONNECTING;
-        devmgr_notify(EV_SUBJECT_DEV_LIST, &entry->addr, EV_ACTION_UPDATE);
+        bt_addr_le_copy(&entry_addr, &entry->addr);
         k_mutex_unlock(&devmgr->mutex);
+
+        if (deleted) {
+            devmgr_notify(EV_SUBJECT_DEV_LIST, &deleted_addr, EV_ACTION_DELETE);
+        }
+        if (created) {
+            devmgr_notify(EV_SUBJECT_DEV_LIST, &entry_addr, EV_ACTION_CREATE);
+        }
+        devmgr_notify(EV_SUBJECT_DEV_LIST, &entry_addr, EV_ACTION_UPDATE);
     } else {
         if (scanning) {
             // restart scanning
@@ -180,23 +196,43 @@ static void devmgr_update_device_state(bthid_device_t *dev, devmgr_conn_state_t 
 
     bt_addr_le_t addr;
     bthid_device_get_addr(dev, &addr);
+    bt_addr_le_t deleted_addr = {0};
+    bool deleted = false;
+    bool created = false;
+    bool notify_update = false;
+    bool notify_conn_error = false;
 
     k_mutex_lock(&devmgr->mutex, K_FOREVER);
 
     bool new = (state == DEVMGR_CONN_CONNECTING) || (state == DEVMGR_CONN_CONNECTED);
 
-    devmgr_entry_t *entry = new ? devmgr_ensure_entry(&addr, false) : devmgr_find_entry(&addr);
+    devmgr_entry_t *entry =
+        new ? devmgr_ensure_entry(&addr, false, &deleted_addr, &deleted, &created)
+            : devmgr_find_entry(&addr);
 
     if (entry != NULL) {
         entry->state.conn_state = state;
-        devmgr_notify(EV_SUBJECT_DEV_LIST, &addr, EV_ACTION_UPDATE);
+        notify_update = true;
     }
 
     if (state == DEVMGR_CONN_ERROR) {
-        devmgr_notify(EV_SUBJECT_CONN_ERROR, &addr, EV_ACTION_UPDATE);
+        notify_conn_error = true;
     }
 
     k_mutex_unlock(&devmgr->mutex);
+
+    if (deleted) {
+        devmgr_notify(EV_SUBJECT_DEV_LIST, &deleted_addr, EV_ACTION_DELETE);
+    }
+    if (created) {
+        devmgr_notify(EV_SUBJECT_DEV_LIST, &addr, EV_ACTION_CREATE);
+    }
+    if (notify_update) {
+        devmgr_notify(EV_SUBJECT_DEV_LIST, &addr, EV_ACTION_UPDATE);
+    }
+    if (notify_conn_error) {
+        devmgr_notify(EV_SUBJECT_CONN_ERROR, &addr, EV_ACTION_UPDATE);
+    }
 }
 
 // ------------------------ bthid callbacks -----------------------

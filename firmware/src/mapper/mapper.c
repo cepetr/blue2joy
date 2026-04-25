@@ -168,7 +168,11 @@ int mapper_set_profile(int idx, const mapper_profile_t *profile, bool save)
         if (idx == mapper->sync.active_profile) {
             reconfigure_io_pins(profile);
         }
+    }
 
+    k_mutex_unlock(&mapper->mutex);
+
+    if (changed) {
         event_t ev = {
             .subject = EV_SUBJECT_PROFILE,
             .action = EV_ACTION_UPDATE,
@@ -176,8 +180,6 @@ int mapper_set_profile(int idx, const mapper_profile_t *profile, bool save)
         };
         event_bus_publish(&ev);
     }
-
-    k_mutex_unlock(&mapper->mutex);
 
     if (save && changed) {
         LOG_INF("Scheduling profile settings save");
