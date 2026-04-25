@@ -22,6 +22,7 @@ import { customElement, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
 import "../styles/bootstrap";
+import { toggleTheme, currentTheme, type Theme } from "../styles/bootstrap.js";
 
 import "./devices-view.js";
 import "./profiles-view.js";
@@ -35,6 +36,7 @@ export class AppRoot extends MobxLitElement {
 
   @state() private busy = false;
   @state() private currentHash = location.hash.slice(1) || "/";
+  @state() private theme: Theme = currentTheme();
 
   private buildPath(path: string): string {
     return `#${path}`;
@@ -47,15 +49,25 @@ export class AppRoot extends MobxLitElement {
   override connectedCallback() {
     super.connectedCallback();
     window.addEventListener("hashchange", this.handleHashChange);
+    window.addEventListener("themechange", this.handleThemeChange);
   }
 
   override disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("hashchange", this.handleHashChange);
+    window.removeEventListener("themechange", this.handleThemeChange);
   }
 
   private handleHashChange = () => {
     this.currentHash = location.hash.slice(1) || "/";
+  };
+
+  private handleThemeChange = () => {
+    this.theme = currentTheme();
+  };
+
+  private onThemeToggle = () => {
+    toggleTheme();
   };
 
   private renderRoute() {
@@ -267,6 +279,15 @@ export class AppRoot extends MobxLitElement {
             </button>
           `
         : html` <span class="navbar-text ms-3">NOT CONNECTED</span> `}
+
+      <button
+        class="btn btn-sm btn-link ms-2 p-1 navbar-theme-btn"
+        @click=${this.onThemeToggle}
+        title="Toggle theme"
+        aria-label="Toggle theme"
+      >
+        <i class="bi ${this.theme === "dark" ? "bi-sun" : "bi-moon"} fs-5"></i>
+      </button>
     `;
   }
 
@@ -346,6 +367,15 @@ export class AppRoot extends MobxLitElement {
             <span>Blue2Joy</span>
           </a>
 
+          <button
+            class="btn btn-sm btn-link ms-auto me-2 d-lg-none p-1 navbar-theme-btn"
+            @click=${this.onThemeToggle}
+            title="Toggle theme"
+            aria-label="Toggle theme"
+          >
+            <i class="bi ${this.theme === "dark" ? "bi-sun" : "bi-moon"} fs-5"></i>
+          </button>
+
           <div class="d-none d-lg-flex w-100">
             <div class="d-flex gap-3">${this.renderTopbarInfo()}</div>
             <div class="d-flex ms-auto gap-3">${this.renderTopbarMenu()}</div>
@@ -364,29 +394,34 @@ export class AppRoot extends MobxLitElement {
                 >
                   <span class="navbar-toggler-icon"></span>
                 </a>
-
-                <div
-                  class="offcanvas offcanvas-end d-lg-none"
-                  tabindex="-1"
-                  id="appNavOffcanvas"
-                  aria-labelledby="appNavOffcanvasLabel"
-                >
-                  <div class="offcanvas-header">
-                    ${this.renderSidebarInfo()}
-                    <button
-                      type="button"
-                      class="btn-close"
-                      data-bs-dismiss="offcanvas"
-                      aria-label="Close"
-                    ></button>
-                  </div>
-
-                  <div class="offcanvas-body">${this.renderSidebarMenu()}</div>
-                </div>
               `
             : null}
         </div>
       </nav>
+    `;
+  }
+
+  private renderOffcanvas() {
+    if (!btj.connected) return null;
+    return html`
+      <div
+        class="offcanvas offcanvas-end d-lg-none"
+        tabindex="-1"
+        id="appNavOffcanvas"
+        aria-labelledby="appNavOffcanvasLabel"
+      >
+        <div class="offcanvas-header">
+          ${this.renderSidebarInfo()}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div class="offcanvas-body">${this.renderSidebarMenu()}</div>
+      </div>
     `;
   }
 
@@ -402,6 +437,7 @@ export class AppRoot extends MobxLitElement {
       </style>
 
       ${this.renderNavbar()}
+      ${this.renderOffcanvas()}
 
       <div class="container-fluid content-with-offset">
         <div class="row">
