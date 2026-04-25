@@ -373,7 +373,9 @@ export class AppRoot extends MobxLitElement {
             title="Toggle theme"
             aria-label="Toggle theme"
           >
-            <i class="bi ${this.theme === "dark" ? "bi-sun" : "bi-moon"} fs-5"></i>
+            <i
+              class="bi ${this.theme === "dark" ? "bi-sun" : "bi-moon"} fs-5"
+            ></i>
           </button>
 
           <div class="d-none d-lg-flex w-100">
@@ -436,8 +438,7 @@ export class AppRoot extends MobxLitElement {
         }
       </style>
 
-      ${this.renderNavbar()}
-      ${this.renderOffcanvas()}
+      ${this.renderNavbar()} ${this.renderOffcanvas()}
 
       <div class="container-fluid content-with-offset">
         <div class="row">

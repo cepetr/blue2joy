@@ -38,6 +38,8 @@ window
   .addEventListener("change", () => {
     if (!localStorage.getItem("theme")) {
       applyTheme(systemTheme());
-      window.dispatchEvent(new CustomEvent("themechange", { detail: systemTheme() }));
+      window.dispatchEvent(
+        new CustomEvent("themechange", { detail: systemTheme() }),
+      );
     }
   });
