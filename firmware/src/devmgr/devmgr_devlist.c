@@ -91,7 +91,6 @@ devmgr_entry_t *devmgr_find_entry(const bt_addr_le_t *addr)
     return NULL;
 }
 
-// Must be called with devmgr->mutex locked
 devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save, bt_addr_le_t *deleted_addr,
                                     bool *deleted, bool *created)
 {
@@ -147,7 +146,7 @@ devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save, bt_addr
         k_work_reschedule(&devmgr->save_work, K_SECONDS(3));
     }
 
-    return first;
+    return entry;
 }
 
 int devmgr_create_device(const bt_addr_le_t *addr, bool save)

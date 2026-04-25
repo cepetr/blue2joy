@@ -29,6 +29,14 @@
 LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
 
 typedef struct {
+    bool present;
+    bt_addr_le_t addr;
+    devmgr_device_config_t config;
+} imported_dev_config_t;
+
+static imported_dev_config_t g_imported_configs[DEVMGR_MAX_CONFIG_ENTRIES];
+
+typedef struct {
     uint8_t addr[7];
     uint8_t profile;
 } dev_config_dto_v1_t;
@@ -115,6 +123,11 @@ static int _settings_set(const char *key, size_t len, settings_read_cb read_cb, 
 
     dev_config_dto_t dto;
 
+    if (len > sizeof(dto)) {
+        LOG_ERR("Device setting too large (len=%d)", len);
+        return -EINVAL;
+    }
+
     if (read_cb(cb_arg, &dto, len) != len) {
         LOG_ERR("Failed to read setting value");
         return -EINVAL;
@@ -127,17 +140,34 @@ static int _settings_set(const char *key, size_t len, settings_read_cb read_cb, 
         return -EINVAL;
     }
 
-    if (devmgr_create_device(&addr, false) != 0) {
-        LOG_ERR("Failed to create device entry");
-        return -EINVAL;
-    };
+    g_imported_configs[idx].present = true;
+    bt_addr_le_copy(&g_imported_configs[idx].addr, &addr);
+    g_imported_configs[idx].config = dev_config;
 
-    // Ensure the device entry exists
-    // !@# TODO use devmgr_set_device_config_at()
-    if (devmgr_set_device_config(&addr, &dev_config, false) != 0) {
-        LOG_ERR("Failed to set device configuration");
-        return -EINVAL;
+    return 0;
+}
+
+static int _settings_commit(void)
+{
+    for (size_t i = DEVMGR_MAX_CONFIG_ENTRIES; i-- > 0;) {
+        imported_dev_config_t *entry = &g_imported_configs[i];
+
+        if (!entry->present) {
+            continue;
+        }
+
+        if (devmgr_create_device(&entry->addr, false) != 0) {
+            LOG_ERR("Failed to create device entry {idx=%d}", (int)i);
+            return -EINVAL;
+        }
+
+        if (devmgr_set_device_config(&entry->addr, &entry->config, false) != 0) {
+            LOG_ERR("Failed to set device configuration {idx=%d}", (int)i);
+            return -EINVAL;
+        }
     }
+
+    memset(g_imported_configs, 0, sizeof(g_imported_configs));
 
     return 0;
 }
@@ -171,5 +201,5 @@ static int _settings_export(int (*export_func)(const char *name, const void *val
     return 0;
 }
 
-SETTINGS_STATIC_HANDLER_DEFINE(devmgr, SETTINGS_KEY_PREFIX, NULL, _settings_set, NULL,
+SETTINGS_STATIC_HANDLER_DEFINE(devmgr, SETTINGS_KEY_PREFIX, NULL, _settings_set, _settings_commit,
                                _settings_export);
