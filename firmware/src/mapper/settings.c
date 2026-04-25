@@ -200,6 +200,11 @@ static int _settings_set(const char *key, size_t len, settings_read_cb read_cb, 
 
     mapper_profile_dto_t dto;
 
+    if (len > sizeof(dto)) {
+        LOG_ERR("Profile setting too large (len=%d)", len);
+        return -EINVAL;
+    }
+
     if (read_cb(cb_arg, &dto, len) != len) {
         LOG_ERR("Failed to read setting value");
         return -EINVAL;
