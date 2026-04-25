@@ -34,7 +34,7 @@ export class AppRoot extends MobxLitElement {
     return this;
   }
 
-  @state() private busy = false;
+  @state() private busyAction: "bluetooth" | "demo" | null = null;
   @state() private currentHash = location.hash.slice(1) || "/";
   @state() private theme: Theme = currentTheme();
 
@@ -88,10 +88,19 @@ export class AppRoot extends MobxLitElement {
 
   private onScanClick = async () => {
     try {
-      this.busy = true;
+      this.busyAction = "bluetooth";
       await btj.scanAndConnect();
     } finally {
-      this.busy = false;
+      this.busyAction = null;
+    }
+  };
+
+  private onDemoClick = async () => {
+    try {
+      this.busyAction = "demo";
+      await btj.connectDemo();
+    } finally {
+      this.busyAction = null;
     }
   };
 
@@ -108,17 +117,39 @@ export class AppRoot extends MobxLitElement {
   };
 
   private renderNotConnected() {
+    const busy = this.busyAction !== null;
+
     return html`
       <div class="text-center pt-4">
         <h3>No device is connected.</h3>
-        <p>Please press the button and select the device to connect.</p>
-        <button
-          class="btn btn-primary"
-          @click=${this.onScanClick}
-          ?disabled=${this.busy}
-        >
-          ${this.busy ? "Scanning…" : "Select a Blue2Joy device"}
-        </button>
+        <p>Choose a transport to connect to hardware or open the demo mode.</p>
+
+        <div class="d-grid gap-2 mx-auto" style="width: min(100%, 12rem);">
+          <button
+            class="btn btn-primary"
+            @click=${this.onScanClick}
+            ?disabled=${busy}
+          >
+            ${this.busyAction === "bluetooth"
+              ? "Opening Bluetooth chooser…"
+              : "Connect with Bluetooth"}
+          </button>
+
+          <button
+            class="btn btn-outline-secondary"
+            @click=${this.onDemoClick}
+            ?disabled=${busy}
+          >
+            ${this.busyAction === "demo"
+              ? "Starting demo mode…"
+              : "Open Demo Mode"}
+          </button>
+        </div>
+
+        <p class="text-body-secondary mt-3 mb-0">
+          Demo mode uses the virtual transport for UI testing and presentations.
+        </p>
+
         ${this.renderErrors()}
       </div>
     `;
