@@ -198,7 +198,7 @@ static void xep80_tx_pwm_event_handler(nrfx_pwm_evt_type_t event_type, void *con
 {
     xep80_uart_t *drv = (xep80_uart_t *)context;
 
-    if (event_type != NRFX_PWM_EVT_FINISHED) { // !@# ==??
+    if (event_type == NRFX_PWM_EVT_STOPPED) {
         drv->tx_pending = false;
         // Start next transmission
         xep80_uart_restart_tx(drv);
