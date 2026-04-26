@@ -73,11 +73,7 @@ const XEP80_REG_VCR = XEP80_REG_OFFSET + 17;
 const XEP80_REG_CURS = XEP80_REG_OFFSET + 28;
 const XEP80_REG_ROW_PTR0 = XEP80_REG_OFFSET + 30;
 const XEP80_REG_XSCROLL = XEP80_REG_OFFSET + 55;
-const XEP80_DEMO_LINES = [
-  "XEP-80 0.1 installed",
-  "",
-  "D1:",
-];
+const XEP80_DEMO_LINES = ["XEP-80 0.1 installed", "", "D1:"];
 const XEP80_DEMO_TEXT = `${XEP80_DEMO_LINES.join("\n")}\n`;
 
 export class VirtualBtjTransport implements BtjTransport {
@@ -426,7 +422,11 @@ class VirtualBlue2JoyDevice {
   }
 
   private emitXep80Update(emit: (frame: Uint8Array) => void): void {
-    this.emitEvent(emit, Btj.MsgId.EVT_XEP80_UPDATE, buildXep80InitFrame(this.xep80State));
+    this.emitEvent(
+      emit,
+      Btj.MsgId.EVT_XEP80_UPDATE,
+      buildXep80InitFrame(this.xep80State),
+    );
   }
 
   private emitXep80Delta(
@@ -437,7 +437,9 @@ class VirtualBlue2JoyDevice {
   }
 
   private scheduleScanBursts(emit: (frame: Uint8Array) => void): void {
-    const visibleRadios = this.radios.slice().sort((left, right) => left.rssi - right.rssi);
+    const visibleRadios = this.radios
+      .slice()
+      .sort((left, right) => left.rssi - right.rssi);
     visibleRadios.forEach((radio, index) => {
       this.schedule(index * 180, () => {
         if (!this.scanning) {
@@ -889,7 +891,11 @@ function createPinConfig(
   return config;
 }
 
-function createPotConfig(source: number, low: number, high: number): Btj.PotConfig {
+function createPotConfig(
+  source: number,
+  low: number,
+  high: number,
+): Btj.PotConfig {
   const config = Btj.PotConfig.default();
   config.source = source;
   config.low = low;
@@ -966,7 +972,10 @@ function buildXep80InitFrame(state: Uint8Array): Uint8Array {
   payload[index++] = 0x00;
   payload[index++] = 0xbf;
   payload[index++] = XEP80_REGS_SIZE - 1;
-  payload.set(state.subarray(XEP80_REG_OFFSET, XEP80_REG_OFFSET + XEP80_REGS_SIZE), index);
+  payload.set(
+    state.subarray(XEP80_REG_OFFSET, XEP80_REG_OFFSET + XEP80_REGS_SIZE),
+    index,
+  );
   index += XEP80_REGS_SIZE;
   payload[index] = 0xff;
 
@@ -1002,7 +1011,10 @@ function buildXep80CharFrame(
   return payload;
 }
 
-function buildXep80LiteralFrame(address: number, bytes: Uint8Array): Uint8Array {
+function buildXep80LiteralFrame(
+  address: number,
+  bytes: Uint8Array,
+): Uint8Array {
   const payload = new Uint8Array(2 + 1 + bytes.length + 1);
   let index = 0;
 
