@@ -38,9 +38,9 @@ target_sources(app PRIVATE
   src/xep80/xep80_char.c
   src/xep80/xep80_misc.c
   src/xep80/xep80_update.c
-
+  src/usbd/usbd.c
+  src/usbd/usbd_webusb.c
   src/main.c
-
 )
 
 target_include_directories(app PRIVATE

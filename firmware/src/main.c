@@ -80,11 +80,15 @@ static void event_callback(void *context, const event_t *ev)
     }
 }
 
+extern int btj_usbd_init(void);
+
 int main(void)
 {
     int err;
 
     LOG_INF("Blue2Joy %s", APP_VERSION_STRING);
+
+    btj_usbd_init();
 
     err = rgbled_init();
     if (err) {

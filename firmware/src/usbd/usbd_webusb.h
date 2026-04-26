@@ -1,0 +1,35 @@
+/*
+ * This file is part of the Blue2Joy project
+ * (https://github.com/cepetr/blue2joy).
+ * Copyright (c) 2025
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+#include <zephyr/usb/usbd.h>
+
+// Gets WebUSB class data for registration with USB device stack
+// Returns pointer to USB device class data structure
+struct usbd_class_data *btj_webusb_get_class_data(void);
+
+// Sends data via WebUSB
+int btj_webusb_send(const uint8_t *data, size_t len);
+
+// Callback is invoked in the context of usbd thread
+typedef void (*webusb_rx_callback_t)(void *context, const uint8_t *data, size_t len);
+
+// Registers callback for received WebUSB data
+// Returns 0 on success, negative errno on failure
+int btj_webusb_register_rx_callback(webusb_rx_callback_t cb, void *context);
