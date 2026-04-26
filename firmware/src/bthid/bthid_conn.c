@@ -133,6 +133,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_
 
     if (err) {
         LOG_ERR("Security level change failed {level: %u, err: %d}", level, err);
+        bthid.cb->conn_error(dev);
         return;
     }
 

@@ -107,6 +107,7 @@ devmgr_entry_t *devmgr_ensure_entry(const bt_addr_le_t *addr, bool save, bt_addr
             devmgr_entry_t temp = *entry;
             memmove(first + 1, first, (entry - first) * sizeof(*first));
             *first = temp;
+            entry = first;
             changed = true;
         }
     } else {
