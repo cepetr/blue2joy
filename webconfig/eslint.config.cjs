@@ -19,6 +19,9 @@ module.exports = [
       globals: {
         ...require('globals').browser,
         CSSStyleSheet: 'readonly',
+        USB: 'readonly',
+        USBConnectionEvent: 'readonly',
+        USBDevice: 'readonly',
         BluetoothDevice: 'readonly',
         BluetoothRemoteGATTCharacteristic: 'readonly',
       },

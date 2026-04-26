@@ -34,7 +34,7 @@ export class AppRoot extends MobxLitElement {
     return this;
   }
 
-  @state() private busyAction: "bluetooth" | "demo" | null = null;
+  @state() private busyAction: "bluetooth" | "usb" | "demo" | null = null;
   @state() private currentHash = location.hash.slice(1) || "/";
   @state() private theme: Theme = currentTheme();
 
@@ -95,6 +95,15 @@ export class AppRoot extends MobxLitElement {
     }
   };
 
+  private onUsbClick = async () => {
+    try {
+      this.busyAction = "usb";
+      await btj.scanAndConnectUsb();
+    } finally {
+      this.busyAction = null;
+    }
+  };
+
   private onDemoClick = async () => {
     try {
       this.busyAction = "demo";
@@ -131,8 +140,18 @@ export class AppRoot extends MobxLitElement {
             ?disabled=${busy}
           >
             ${this.busyAction === "bluetooth"
-              ? "Opening Bluetooth chooser…"
+              ? "Opening Bluetooth chooser..."
               : "Connect with Bluetooth"}
+          </button>
+
+          <button
+            class="btn btn-outline-primary"
+            @click=${this.onUsbClick}
+            ?disabled=${busy}
+          >
+            ${this.busyAction === "usb"
+              ? "Opening USB chooser..."
+              : "Connect with USB"}
           </button>
 
           <button

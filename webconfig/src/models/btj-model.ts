@@ -27,6 +27,7 @@ import { BtjConnection } from "../services/btj-connection";
 import { Btj } from "../services/btj-messages";
 import type { BtjTransport } from "../services/btj-transport";
 import { createDemoTransport } from "../services/virtual-transport";
+import { scanAndSelectWebUsbTransport } from "../services/webusb-transport";
 import { scanAndSelectBluetoothTransport } from "../services/web-bluetooth-transport";
 import { XEP80_STATE_SIZE, decodeXep80Update } from "../workers/xep80-worker";
 
@@ -127,6 +128,20 @@ export class BtjModel {
   async scanAndConnect(): Promise<void> {
     try {
       const transport = await scanAndSelectBluetoothTransport();
+      await this.connect(transport);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "NotFoundError") {
+        // User canceled the chooser - not an error
+        return;
+      }
+      this.logError(err, "connection");
+    }
+  }
+
+  @action
+  async scanAndConnectUsb(): Promise<void> {
+    try {
+      const transport = await scanAndSelectWebUsbTransport();
       await this.connect(transport);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "NotFoundError") {
