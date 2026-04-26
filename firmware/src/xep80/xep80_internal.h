@@ -26,7 +26,8 @@
 
 #define XEP80_ROW_SIZE 256
 
-#define XEP80_STATUS_LINE (XEP80_ROW_COUNT - 1)
+#define XEP80_STATUS_LINE         (XEP80_ROW_COUNT - 1)
+#define XEP80_UPDATE_CLIENT_COUNT (CONFIG_BT_MAX_CONN + 1)
 
 typedef struct {
     uint8_t x;
@@ -54,6 +55,14 @@ typedef struct {
     uint8_t x_scroll;
 } xep80_state_t;
 
+typedef struct xep80_update_client {
+    bool in_use;
+    void (*callback)(void *context);
+    void *context;
+    xep80_state_t synced_state;
+    size_t synced_ofs;
+} xep80_update_client_t;
+
 #define VRAM_TAB_OFFSET 0x1900
 
 typedef struct {
@@ -70,11 +79,6 @@ typedef struct {
 
     // Video RAM (25 rows * 256 chars per row, 80 chars for tabs, rest is for printer buffer)
     xep80_state_t state;
-    // VRAM buffer synchronized with PC
-    xep80_state_t synced_state;
-    //
-    size_t synced_ofs;
-
     bool burst_mode;
 
     // the next char will be printed and not processed as special char
@@ -100,10 +104,8 @@ typedef struct {
     // Mutex for synchronizing access to XEP80 state and update callback
     struct k_mutex mutex;
 
-    // Callback to be called when XEP80 state is updated
-    // and an update notification should be sent to the client
-    void (*update_callback)(void *context);
-    void *update_context;
+    // Registered update listeners, each with its own synchronization state.
+    xep80_update_client_t update_clients[XEP80_UPDATE_CLIENT_COUNT];
 
 } xep80_t;
 

@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "xep80.h"
 #include "xep80_internal.h"
 
 // RLE protocol:
@@ -150,13 +151,17 @@ size_t rle_encode(rle_buff_t *rle, const uint8_t *data, uint8_t *synced_data, si
     return ofs;
 }
 
-size_t xep80_build_update_message(uint8_t *buf, size_t buf_size)
+size_t xep80_build_update_message(uint8_t *buf, size_t buf_size, xep80_update_client_t *client)
 {
     xep80_t *xep = &g_xep80;
 
+    if (client == NULL || !client->in_use) {
+        return 0;
+    }
+
     k_mutex_lock(&xep->mutex, K_FOREVER);
 
-    if (xep->update_callback == NULL) {
+    if (!client->in_use) {
         // No callback registered, nothing to do
         k_mutex_unlock(&xep->mutex);
         return 0;
@@ -169,32 +174,70 @@ size_t xep80_build_update_message(uint8_t *buf, size_t buf_size)
         .ofs = 0,
     };
 
-    size_t ofs = xep->synced_ofs;
+    size_t ofs = client->synced_ofs;
     size_t size = sizeof(xep->state);
 
     const uint8_t *data = (const uint8_t *)&xep->state;
-    uint8_t *synced_data = (uint8_t *)&xep->synced_state;
+    uint8_t *synced_data = (uint8_t *)&client->synced_state;
 
     ofs = rle_encode(&rle_buff, data, synced_data, ofs, size);
 
-    xep->synced_ofs = (ofs < size) ? ofs : 0;
+    client->synced_ofs = (ofs < size) ? ofs : 0;
 
     k_mutex_unlock(&xep->mutex);
 
     return rle_buff.pos - rle_buff.start;
 }
 
-void xep80_set_update_callback(void (*callback)(void *context), void *context)
+int xep80_register_update_callback(xep80_update_callback_t callback, void *context,
+                                   xep80_update_client_t **client)
 {
     xep80_t *xep = &g_xep80;
+    int err = -ENOMEM;
+
+    if (client == NULL) {
+        return -EINVAL;
+    }
+
+    *client = NULL;
 
     k_mutex_lock(&xep->mutex, K_FOREVER);
 
-    xep->update_callback = callback;
-    xep->update_context = context;
+    for (size_t i = 0; i < ARRAY_SIZE(xep->update_clients); i++) {
+        xep80_update_client_t *slot = &xep->update_clients[i];
 
-    memset(&xep->synced_state, 0x00, sizeof(xep->synced_state));
-    xep->synced_ofs = 0;
+        if (slot->in_use) {
+            continue;
+        }
+
+        memset(slot, 0, sizeof(*slot));
+        slot->in_use = true;
+        slot->callback = callback;
+        slot->context = context;
+
+        *client = slot;
+        err = 0;
+        break;
+    }
+
+    k_mutex_unlock(&xep->mutex);
+
+    return err;
+}
+
+void xep80_unregister_update_callback(xep80_update_client_t *client)
+{
+    xep80_t *xep = &g_xep80;
+
+    if (client == NULL) {
+        return;
+    }
+
+    k_mutex_lock(&xep->mutex, K_FOREVER);
+
+    if (client->in_use) {
+        memset(client, 0, sizeof(*client));
+    }
 
     k_mutex_unlock(&xep->mutex);
 }

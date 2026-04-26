@@ -26,6 +26,7 @@ target_sources(app PRIVATE
   src/devmgr/devmgr_advlist.c
   src/devmgr/devmgr_devlist.c
   src/devmgr/settings.c
+  src/usbsvc/usbsvc.c
   src/io/buttons.c
   src/io/io_pin.c
   src/io/io_pot.c

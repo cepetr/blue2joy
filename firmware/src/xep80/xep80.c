@@ -31,6 +31,8 @@ xep80_t g_xep80;
 
 static void xep80_rx_callback(void *context, uint16_t rx_data);
 static void xep80_rx_work_handler(struct k_work *work);
+static void xep80_reset_update_clients_locked(xep80_t *xep);
+static void xep80_notify_update_clients_locked(xep80_t *xep);
 
 int xep80_init(void)
 {
@@ -74,12 +76,8 @@ int xep80_activate(void)
 
     k_mutex_lock(&xep->mutex, K_FOREVER);
 
-    memset(&xep->synced_state, 0, sizeof(xep->synced_state));
-    xep->synced_ofs = 0;
-
-    if (xep->update_callback) {
-        xep->update_callback(xep->update_context);
-    }
+    xep80_reset_update_clients_locked(xep);
+    xep80_notify_update_clients_locked(xep);
 
     k_mutex_unlock(&xep->mutex);
 
@@ -132,9 +130,7 @@ static void xep80_process_word(xep80_t *xep, uint16_t word)
     // LOG_INF("Cursor position: x=%d y=%d r_m=%d (curs=0x%03X)", xep->cur.x, xep->cur.y,
     //         xep->r_margin, xep->state.curs);
 
-    if (xep->update_callback) {
-        xep->update_callback(xep->update_context);
-    }
+    xep80_notify_update_clients_locked(xep);
 
     k_mutex_unlock(&xep->mutex);
 }
@@ -173,5 +169,30 @@ static void xep80_rx_callback(void *context, uint16_t word)
         }
     } else {
         LOG_ERR("XEP80 RX ring buffer full, dropping data");
+    }
+}
+
+static void xep80_reset_update_clients_locked(xep80_t *xep)
+{
+    for (size_t i = 0; i < ARRAY_SIZE(xep->update_clients); i++) {
+        xep80_update_client_t *client = &xep->update_clients[i];
+
+        if (!client->in_use) {
+            continue;
+        }
+
+        memset(&client->synced_state, 0, sizeof(client->synced_state));
+        client->synced_ofs = 0;
+    }
+}
+
+static void xep80_notify_update_clients_locked(xep80_t *xep)
+{
+    for (size_t i = 0; i < ARRAY_SIZE(xep->update_clients); i++) {
+        xep80_update_client_t *client = &xep->update_clients[i];
+
+        if (client->in_use && client->callback != NULL) {
+            client->callback(client->context);
+        }
     }
 }

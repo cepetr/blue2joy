@@ -46,6 +46,8 @@ struct webusb_data {
     bool enabled;
     webusb_rx_callback_t rx_callback;
     void *rx_context;
+    webusb_status_callback_t status_callback;
+    void *status_context;
 };
 
 // Forward declarations for descriptor arrays
@@ -123,6 +125,10 @@ static void webusb_enable(struct usbd_class_data *const c_data)
     LOG_INF("WebUSB function enabled");
 
     data->enabled = true;
+    if (data->status_callback != NULL) {
+        data->status_callback(data->status_context, true);
+    }
+
     if (webusb_queue_out(c_data) != 0) {
         LOG_WRN("Failed to queue initial OUT buffer");
     }
@@ -136,6 +142,9 @@ static void webusb_disable(struct usbd_class_data *const c_data)
     LOG_INF("WebUSB function disabled");
 
     data->enabled = false;
+    if (data->status_callback != NULL) {
+        data->status_callback(data->status_context, false);
+    }
 }
 
 // Handles control transfer to device (host-to-device)
@@ -175,6 +184,8 @@ static int webusb_init(struct usbd_class_data *const c_data)
     data->dev = ctx ? ctx->dev : NULL;
     data->rx_callback = NULL;
     data->rx_context = NULL;
+    data->status_callback = NULL;
+    data->status_context = NULL;
 
     return 0;
 }
@@ -265,6 +276,11 @@ struct usbd_class_data *btj_webusb_get_class_data(void)
     return &g_webusb;
 }
 
+bool btj_webusb_is_enabled(void)
+{
+    return g_webusb_data.enabled;
+}
+
 int btj_webusb_send(const uint8_t *data, size_t len)
 {
     struct webusb_data *wdata = &g_webusb_data;
@@ -309,6 +325,20 @@ int btj_webusb_register_rx_callback(webusb_rx_callback_t cb, void *context)
 
     wdata->rx_callback = cb;
     wdata->rx_context = context;
+
+    return 0;
+}
+
+int btj_webusb_register_status_callback(webusb_status_callback_t cb, void *context)
+{
+    struct webusb_data *wdata = &g_webusb_data;
+
+    wdata->status_callback = cb;
+    wdata->status_context = context;
+
+    if (cb != NULL) {
+        cb(context, wdata->enabled);
+    }
 
     return 0;
 }

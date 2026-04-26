@@ -51,6 +51,7 @@ typedef struct {
 
     struct k_work xep80_update_work;
     atomic_t xep80_update_pending;
+    xep80_update_client_t *xep80_client;
 
     size_t rx_size;
     uint8_t rx_buf[256];
@@ -359,7 +360,7 @@ static void xep80_update_work_handler(struct k_work *work)
     } tx_msg;
 
     size_t tx_max_size = MIN(bt_gatt_get_mtu(conn) - 4 - 3, sizeof(tx_msg.buf));
-    size_t tx_size = xep80_build_update_message(tx_msg.buf, tx_max_size);
+    size_t tx_size = xep80_build_update_message(tx_msg.buf, tx_max_size, session->xep80_client);
 
     if (tx_size == 0) {
         // Nothing to send
@@ -495,7 +496,11 @@ static void connected(struct bt_conn *conn, uint8_t err)
         return;
     }
 
-    xep80_set_update_callback(btsvc_xep80_update_cb, session);
+    err = xep80_register_update_callback(btsvc_xep80_update_cb, session, &session->xep80_client);
+    if (err) {
+        LOG_ERR("Failed to register XEP80 update callback (err %d)", err);
+        goto error;
+    }
 
     LOG_INF("Connected {peer: %s}", addr_str);
     return;
@@ -527,7 +532,8 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
     event_bus_unsubscribe(event_callback, session);
 
-    xep80_set_update_callback(NULL, NULL);
+    xep80_unregister_update_callback(session->xep80_client);
+    session->xep80_client = NULL;
 
     struct k_work_sync request_work_sync;
     struct k_work_sync event_work_sync;

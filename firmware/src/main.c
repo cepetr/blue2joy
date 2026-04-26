@@ -25,6 +25,7 @@
 
 #include <bthid/bthid.h>
 #include <btsvc/btsvc.h>
+#include <usbsvc/usbsvc.h>
 #include <io/buttons.h>
 #include <io/rgbled_seq.h>
 #include <io/io_pin.h>
@@ -141,6 +142,12 @@ int main(void)
     err = xep80_init();
     if (err) {
         LOG_ERR("XEP80 init failed {err: %d}", err);
+        return 0;
+    }
+
+    err = usbsvc_init();
+    if (err) {
+        LOG_ERR("USB service init failed {err: %d}", err);
         return 0;
     }
 
