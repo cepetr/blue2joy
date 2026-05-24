@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.0
+### Added
+- Web USB support (alternative to Web Bluetooth)
+- Zephyr shell support and improved logging
+
 ## v0.3.0
 ### Added
 - XEP80 emulator (not yet complete)
@@ -9,5 +14,3 @@
 ### Fixed
 - Improved POT emulation accuracy and reduced jitter
 - Numerous stability improvements
-
-
