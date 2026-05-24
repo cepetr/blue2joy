@@ -19,6 +19,40 @@
 import fontInternalUrl from "../assets/font_internal.png?url";
 import fontInternationalUrl from "../assets/font_international.png?url";
 import fontNormalUrl from "../assets/font_normal.png?url";
+import { deriveXep80Palette } from "./xep80-palette.js";
+
+const internalMap =
+  "Ĳ↑Ø£¤°•§ÇÑÆÄÖÅÜŒ" +
+  "ĳßàèìïùéçñæäöåüœ" +
+  " !\"#$%&'()*+,-./" +
+  "0123456789:;<=>?" +
+  "@ABCDEFGHIJKLMNO" +
+  "PQRSTUVWXYZ[\\]^_" +
+  "`abcdefghijklmno" +
+  "pqrstuvwxyz{|}~░";
+
+const normalMap =
+  "♥├│┤┐╱╲◢◣▌▐▀▄─┘█" +
+  "♣┌─┼●▄│┬┴█└ᴱ↑↓←→" +
+  " !\"#$%&'()*+,-./" +
+  "0123456789:;<=>?" +
+  "@ABCDEFGHIJKLMNO" +
+  "PQRSTUVWXYZ[\\]^_" +
+  "♦abcdefghijklmno" +
+  "pqrstuvwxyz♠|↖◄►";
+
+const internationalMap =
+  "áùÑÉçôòì£ïüäÖúóö" +
+  "ÜâûîéèñêåàÅᴱ↑↓←→" +
+  " !\"#$%&'()*+,-./" +
+  "0123456789:;<=>?" +
+  "@ABCDEFGHIJKLMNO" +
+  "PQRSTUVWXYZ[\\]^_" +
+  "¡abcdefghijklmno" +
+  "pqrstuvwxyzÄ|↖◄►";
+
+const fontMap = [normalMap, internationalMap, internalMap] as const;
+
 
 enum Nsp405Reg {
   TCP0 = 0,
@@ -118,10 +152,32 @@ export interface WorkerMessage {
   type: string;
   canvas?: OffscreenCanvas;
   state?: Uint8Array;
+  tint?: string;
 }
+
+type Xep80CellAttr = {
+  inverted: boolean;
+  blinking: boolean;
+  doubleHeight: boolean;
+  doubleWidth: boolean;
+  underline: boolean;
+  blank: boolean;
+  graphics: boolean;
+};
+
+type Xep80RenderOptions = {
+  curs: number;
+  attr: [Xep80CellAttr, Xep80CellAttr];
+  invertedScreen: boolean;
+  rows: Uint8Array;
+  colOfs: number;
+};
 
 let fonts: Array<ImageBitmap | null> = [];
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
+let renderColor = "#8ef0a7";
+let renderBackgroundColor = "#08130c";
+let fontLoadPromise: Promise<void> | null = null;
 
 // Font bitmap: 128 characters in 16x8 matrix, each character 8x12 pixels
 const FONT_CHAR_WIDTH = 8;
@@ -134,15 +190,102 @@ const DISP_CHAR_HEIGHT = 10;
 const DISP_COLS = 80;
 const DISP_ROWS = 25;
 
+export const XEP80_DISPLAY_COLS = DISP_COLS;
+export const XEP80_DISPLAY_ROWS = DISP_ROWS;
+
+function getRenderOptions(regs: Uint8Array): Xep80RenderOptions {
+  return {
+    curs: regs[Nsp405Reg.CURS] + regs[Nsp405Reg.CURS + 1] * 256,
+    attr: [
+      {
+        inverted: (regs[Nsp405Reg.AL0] & 0x01) == 0,
+        blinking: (regs[Nsp405Reg.AL0] & 0x04) == 0,
+        doubleHeight: (regs[Nsp405Reg.AL0] & 0x08) == 0,
+        doubleWidth: (regs[Nsp405Reg.AL0] & 0x10) == 0,
+        underline: (regs[Nsp405Reg.AL0] & 0x20) == 0,
+        blank: (regs[Nsp405Reg.AL0] & 0x40) == 0,
+        graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
+      },
+      {
+        inverted: (regs[Nsp405Reg.AL1] & 0x01) == 0,
+        blinking: (regs[Nsp405Reg.AL1] & 0x04) == 0,
+        doubleHeight: (regs[Nsp405Reg.AL1] & 0x08) == 0,
+        doubleWidth: (regs[Nsp405Reg.AL1] & 0x10) == 0,
+        underline: (regs[Nsp405Reg.AL1] & 0x20) == 0,
+        blank: (regs[Nsp405Reg.AL1] & 0x40) == 0,
+        graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
+      },
+    ],
+    invertedScreen: (regs[Nsp405Reg.VCR] & 0x08) != 0,
+    rows: regs.subarray(Nsp405Reg.ROW_PTR0, Nsp405Reg.ROW_PTR0 + DISP_ROWS),
+    colOfs: regs[Nsp405Reg.XSCROLL],
+  };
+}
+
+function mapXep80Char(fontIndex: number, charCode: number): string {
+  return fontMap[fontIndex]?.charAt(charCode) ?? " ";
+}
+
+export function renderXep80Text(state: Uint8Array): string {
+  const ram = state.subarray(0, XEP80_RAM_SIZE);
+  const regs = state.subarray(XEP80_RAM_SIZE, XEP80_STATE_SIZE);
+  const opt = getRenderOptions(regs);
+  const lines: string[] = [];
+
+  for (let row = 0; row < DISP_ROWS; row++) {
+    const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
+    const fontIndex = (opt.rows[row] >> 5) & 0x03;
+    let line = "";
+
+    for (let col = 0; col < DISP_COLS; col++) {
+      const ofs = rowOfs + col;
+
+      if (ofs === opt.curs) {
+        line += "█";
+        continue;
+      }
+
+      if (ram[ofs] === 0x9b) {
+        line += " ";
+        continue;
+      }
+
+      const attr = opt.attr[ram[ofs] & 0x80 ? 1 : 0];
+      line += mapXep80Char(fontIndex, ram[ofs] & 0x7f);
+
+      if (attr.doubleWidth && col + 1 < DISP_COLS) {
+        line += " ";
+        col += 1;
+      }
+    }
+
+    lines.push(line.padEnd(DISP_COLS, " "));
+  }
+
+  return lines.join("\n");
+}
+
 async function loadFont(url: string): Promise<ImageBitmap | null> {
   try {
     const response = await fetch(url);
     const blob = await response.blob();
     return await createImageBitmap(blob);
   } catch (err) {
-    console.error(`Failed to load font from ${url}:`, err);
+    console.error(`Failed to load font from ${url}: `, err);
     return null;
   }
+}
+
+async function ensureFontsLoaded(): Promise<void> {
+  if (!fontLoadPromise) {
+    fontLoadPromise = (async () => {
+      fonts[0] = await loadFont(fontNormalUrl);
+      fonts[1] = await loadFont(fontInternationalUrl);
+      fonts[2] = await loadFont(fontInternalUrl);
+    })();
+  }
+
+  await fontLoadPromise;
 }
 
 type CharAttr = {
@@ -214,19 +357,22 @@ function drawCursor(
 }
 
 self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
-  const { type, canvas, state } = event.data;
+  const { type, canvas, state, tint } = event.data;
+
+  if (tint) {
+    const palette = deriveXep80Palette(tint);
+    renderColor = palette.display;
+    renderBackgroundColor = palette.surface;
+  }
 
   if (type === "init" && canvas) {
     // Store canvas and context for reuse
     ctx = canvas.getContext("2d");
-
-    // Load font bitmap first
-    fonts[0] = await loadFont(fontNormalUrl);
-    fonts[1] = await loadFont(fontInternationalUrl);
-    fonts[2] = await loadFont(fontInternalUrl);
+    await ensureFontsLoaded();
   }
 
   if (ctx && state) {
+    await ensureFontsLoaded();
     renderFramebuffer(state, ctx);
   }
 };
@@ -237,58 +383,27 @@ function renderFramebuffer(
 ) {
   const ram = state.subarray(0, XEP80_RAM_SIZE);
   const regs = state.subarray(XEP80_RAM_SIZE, XEP80_STATE_SIZE);
-
-  const opt = {
-    home: 0,
-    begd: 0,
-    endd: 0x1800,
-    curs: regs[Nsp405Reg.CURS] + regs[Nsp405Reg.CURS + 1] * 256,
-    srow: 0x1700,
-
-    attr: [
-      {
-        inverted: (regs[Nsp405Reg.AL0] & 0x01) == 0,
-        blinking: (regs[Nsp405Reg.AL0] & 0x04) == 0,
-        doubleHeight: (regs[Nsp405Reg.AL0] & 0x08) == 0,
-        doubleWidth: (regs[Nsp405Reg.AL0] & 0x10) == 0,
-        underline: (regs[Nsp405Reg.AL0] & 0x20) == 0,
-        blank: (regs[Nsp405Reg.AL0] & 0x40) == 0,
-        graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
-      },
-      {
-        inverted: (regs[Nsp405Reg.AL1] & 0x01) == 0,
-        blinking: (regs[Nsp405Reg.AL1] & 0x04) == 0,
-        doubleHeight: (regs[Nsp405Reg.AL1] & 0x08) == 0,
-        doubleWidth: (regs[Nsp405Reg.AL1] & 0x10) == 0,
-        underline: (regs[Nsp405Reg.AL1] & 0x20) == 0,
-        blank: (regs[Nsp405Reg.AL1] & 0x40) == 0,
-        graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
-      },
-    ],
-
-    invertedScreen: (regs[Nsp405Reg.VCR] & 0x08) != 0,
-    invertedCursor: false,
-    blinkingCursor: false,
-    blinkingField: false,
-
-    rows: regs.subarray(Nsp405Reg.ROW_PTR0, Nsp405Reg.ROW_PTR0 + DISP_ROWS),
-    colOfs: regs[Nsp405Reg.XSCROLL],
-  };
+  const opt = getRenderOptions(regs);
 
   // Each character in framebuffer is represented by one byte
   // Framebuffer size should be 80 * 24 = 1920 bytes
   // 7th bit of each byte is unused
 
-  // Clear canvas
-  ctx.fillStyle = opt.invertedScreen ? "white" : "black";
-  ctx.fillRect(0, 0, 560, 250);
+  // Let the shared CSS surface provide the normal dark phosphor background.
+  // Keep the inverted-screen case opaque so reverse-video still reads correctly.
+  if (opt.invertedScreen) {
+    ctx.fillStyle = renderColor;
+    ctx.fillRect(0, 0, 560, 250);
+  } else {
+    ctx.clearRect(0, 0, 560, 250);
+  }
 
   // Draw characters from framebuffer
   for (let row = 0; row < DISP_ROWS; row++) {
     const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
     const font = fonts[(opt.rows[row] >> 5) & 0x03];
 
-    if (font === null) {
+    if (!font) {
       continue;
     }
 
@@ -329,5 +444,71 @@ function renderFramebuffer(
     }
   }
 
+  if (opt.invertedScreen) {
+    applyColorTint(ctx, renderColor);
+  } else {
+    applyPhosphorMask(ctx, renderColor);
+  }
+
   self.postMessage({ type: "rendered" });
+}
+
+function applyPhosphorMask(
+  ctx: OffscreenCanvasRenderingContext2D,
+  color: string,
+) {
+  const rgb = parseHexColor(color);
+
+  if (!rgb) {
+    return;
+  }
+
+  const imageData = ctx.getImageData(0, 0, 560, 250);
+  const { data } = imageData;
+
+  for (let index = 0; index < data.length; index += 4) {
+    const sourceAlpha = data[index + 3];
+
+    if (sourceAlpha === 0) {
+      continue;
+    }
+
+    const luminance = Math.max(data[index], data[index + 1], data[index + 2]);
+
+    data[index] = rgb[0];
+    data[index + 1] = rgb[1];
+    data[index + 2] = rgb[2];
+    data[index + 3] = Math.round((sourceAlpha * luminance) / 255);
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function applyColorTint(
+  ctx: OffscreenCanvasRenderingContext2D,
+  color: string,
+) {
+  if (color.toLowerCase() === "#ffffff") {
+    return;
+  }
+
+  ctx.save();
+  ctx.globalCompositeOperation = "multiply";
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 560, 250);
+  ctx.restore();
+}
+
+function parseHexColor(hex: string): [number, number, number] | null {
+  const normalized = hex.trim().replace(/^#/, "");
+
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) {
+    return null;
+  }
+
+  return [
+    parseInt(normalized.slice(0, 2), 16),
+    parseInt(normalized.slice(2, 4), 16),
+    parseInt(normalized.slice(4, 6), 16),
+  ];
 }

@@ -16,9 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { Btj } from "./btj-messages";
 import { BinaryReader, BinaryWriter } from "../utils/binary-io.js";
 import { HidUsage } from "../utils/hid-usage.js";
+import { Btj } from "./btj-messages";
 import {
   BtjFrameType,
   decodeBtjFrame,
@@ -73,8 +73,8 @@ const XEP80_REG_VCR = XEP80_REG_OFFSET + 17;
 const XEP80_REG_CURS = XEP80_REG_OFFSET + 28;
 const XEP80_REG_ROW_PTR0 = XEP80_REG_OFFSET + 30;
 const XEP80_REG_XSCROLL = XEP80_REG_OFFSET + 55;
-const XEP80_DEMO_LINES = ["XEP-80 0.1 installed", "", "D1:"];
-const XEP80_DEMO_TEXT = `${XEP80_DEMO_LINES.join("\n")}\n`;
+const XEP80_DEMO_LINES = ["XEP-80 0.1h installed", "", "D1:"];
+const XEP80_DEMO_TEXT = `${XEP80_DEMO_LINES.join("\n")}`;
 
 export class VirtualBtjTransport implements BtjTransport {
   private isOpen = false;
@@ -85,7 +85,7 @@ export class VirtualBtjTransport implements BtjTransport {
     private readonly responder: VirtualResponder,
     private readonly onOpen?: VirtualLifecycleHook,
     private readonly onClose?: () => void,
-  ) {}
+  ) { }
 
   setFrameHandler(handler: BtjFrameHandler | null): void {
     this.frameHandler = handler;
