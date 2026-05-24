@@ -21,7 +21,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/spi.h>
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_spi_slave, LOG_LEVEL_DBG);
 
 static const struct device *spi_dev = DEVICE_DT_GET(DT_NODELABEL(spi1));
 

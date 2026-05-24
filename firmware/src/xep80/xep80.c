@@ -24,7 +24,7 @@
 #include "xep80.h"
 #include "xep80_internal.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_xep80, LOG_LEVEL_DBG);
 
 // XEP80 state
 xep80_t g_xep80;
@@ -101,15 +101,6 @@ void xep80_deactivate(void)
 
 static void xep80_process_word(xep80_t *xep, uint16_t word)
 {
-    // !@# TODO: replace LOG_INF with LOG_DBG
-
-    if (word >= 0x20 && word <= 0x7E) {
-        // Printable ASCII
-        LOG_INF("XEP80 RX: 0x%03X '%c'", word, (char)(word & 0xFF));
-    } else {
-        LOG_INF("XEP80 RX: 0x%03X", word);
-    }
-
     k_mutex_lock(&xep->mutex, K_FOREVER);
 
     if (word & 0x100) {

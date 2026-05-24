@@ -7,7 +7,7 @@
 #include "btjp.h"
 #include "btjp_utils.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_evt, LOG_LEVEL_DBG);
 
 static size_t btjp_build_evt_sys_state_update(btjp_evt_t *evt)
 {

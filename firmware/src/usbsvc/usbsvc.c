@@ -32,7 +32,7 @@
 
 #include "usbsvc.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_usbsvc, LOG_LEVEL_DBG);
 
 #define USBSVC_FRAME_HEADER_SIZE     2
 #define USBSVC_MAX_BTJP_SIZE         (sizeof(btjp_msg_header_t) + UINT8_MAX)
@@ -120,7 +120,7 @@ static void usbsvc_handle_request(usbsvc_t *svc, const uint8_t *payload, size_t 
 
     int err = usbsvc_send_frame(tx_buf, tx_size);
     if (err != 0) {
-        LOG_ERR("Failed to send BTJP response over USB (err %d)", err);
+        LOG_ERR("Failed to send BTJP response (err %d)", err);
     }
 }
 
@@ -217,7 +217,7 @@ static void usbsvc_event_work_handler(struct k_work *work)
 
         int err = usbsvc_send_frame(tx_buf, tx_size);
         if (err != 0) {
-            LOG_ERR("Failed to send BTJP event over USB (err %d)", err);
+            LOG_ERR("Failed to send BTJP event (err %d)", err);
             return;
         }
     }

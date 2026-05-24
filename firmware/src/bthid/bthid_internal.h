@@ -25,8 +25,6 @@
 #include "report_map.h"
 #include "bthid.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
-
 typedef struct {
     uint16_t decl_handle;
     uint16_t value_handle;

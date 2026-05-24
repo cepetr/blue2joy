@@ -26,7 +26,7 @@
 
 #define SETTINGS_KEY_PREFIX "blue2joy/dev"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_DECLARE(btj_devmgr, LOG_LEVEL_DBG);
 
 typedef struct {
     bool present;

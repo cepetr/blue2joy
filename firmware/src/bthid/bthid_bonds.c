@@ -18,6 +18,8 @@
 
 #include "bthid_internal.h"
 
+LOG_MODULE_DECLARE(btj_bthid, LOG_LEVEL_DBG);
+
 static void pairing_complete(struct bt_conn *conn, bool bonded)
 {
     char addr_str[BT_ADDR_LE_STR_LEN];

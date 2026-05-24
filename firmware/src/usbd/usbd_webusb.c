@@ -26,7 +26,7 @@
 
 #include "usbd_webusb.h"
 
-LOG_MODULE_REGISTER(btj_webusb, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(btj_webusb, LOG_LEVEL_DBG);
 
 #define WEBUSB_EP_IN  0x83
 #define WEBUSB_EP_OUT 0x02

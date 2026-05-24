@@ -23,6 +23,8 @@
 
 #include "bthid_internal.h"
 
+LOG_MODULE_DECLARE(btj_bthid, LOG_LEVEL_DBG);
+
 static void mtu_exchanged(struct bt_conn *conn, uint8_t err, struct bt_gatt_exchange_params *params)
 {
     uint16_t mtu = bt_gatt_get_mtu(conn);

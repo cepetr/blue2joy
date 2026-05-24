@@ -33,7 +33,7 @@
 #include "btjp_utils.h"
 #include "btjp_msg.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_cmd, LOG_LEVEL_DBG);
 
 #define CHECK_REQ_SIZE(req, expected_size)                                                         \
     do {                                                                                           \

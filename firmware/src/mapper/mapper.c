@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_mapper, LOG_LEVEL_DBG);
 
 typedef struct {
     // Last pin value

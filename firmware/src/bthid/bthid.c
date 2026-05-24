@@ -20,6 +20,8 @@
 
 #include "bthid_internal.h"
 
+LOG_MODULE_REGISTER(btj_bthid, LOG_LEVEL_DBG);
+
 bthid_drv_t bthid;
 
 int bthid_init(const bthid_callbacks_t *callbacks)

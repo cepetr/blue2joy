@@ -38,7 +38,7 @@
 #include <event/event_bus.h>
 #include <xep80/xep80.h>
 
-LOG_MODULE_REGISTER(blue2joy);
+LOG_MODULE_REGISTER(btj, LOG_LEVEL_DBG);
 
 static int erase_storage_partition(void)
 {

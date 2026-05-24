@@ -28,7 +28,7 @@
 
 #include "io_pot.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_io_pot, LOG_LEVEL_DBG);
 
 static const nrfx_timer_t timer = NRFX_TIMER_INSTANCE(2);
 static const nrfx_gpiote_t gpiote = NRFX_GPIOTE_INSTANCE(0);

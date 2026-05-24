@@ -20,6 +20,8 @@
 
 #include "bthid_internal.h"
 
+LOG_MODULE_DECLARE(btj_bthid, LOG_LEVEL_DBG);
+
 // Checks if the advertisement data comes from a hid gamepad, mouse, keyboard, etc.
 static bool is_hid_advertisement(struct net_buf_simple *adv)
 {

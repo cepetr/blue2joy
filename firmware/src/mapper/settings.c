@@ -26,7 +26,7 @@
 
 #define SETTINGS_KEY_PREFIX "blue2joy/profile"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_DECLARE(btj_mapper, LOG_LEVEL_DBG);
 
 typedef struct {
     uint32_t source;

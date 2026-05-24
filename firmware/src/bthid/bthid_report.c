@@ -22,6 +22,8 @@
 
 #include "bthid_internal.h"
 
+LOG_MODULE_DECLARE(btj_bthid, LOG_LEVEL_DBG);
+
 static uint8_t hid_report_received(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
                                    const void *data, uint16_t length)
 {

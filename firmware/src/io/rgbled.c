@@ -26,7 +26,7 @@
 
 #include "rgbled.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_rgbled, LOG_LEVEL_DBG);
 
 K_THREAD_STACK_DEFINE(g_rgbled_drv_stack, 2048);
 

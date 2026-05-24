@@ -22,6 +22,8 @@
 
 #include "bthid_internal.h"
 
+LOG_MODULE_DECLARE(btj_bthid, LOG_LEVEL_DBG);
+
 static uint8_t report_map_read_cb(struct bt_conn *conn, uint8_t err,
                                   struct bt_gatt_read_params *params, const void *data,
                                   uint16_t length)

@@ -26,6 +26,8 @@
 #include "devmgr_internal.h"
 #include "settings.h"
 
+LOG_MODULE_REGISTER(btj_devmgr, LOG_LEVEL_DBG);
+
 // Global device manager instance
 devmgr_t g_devmgr;
 
@@ -369,7 +371,7 @@ static void on_report_subscribe_error(bthid_device_t *dev)
 static void on_report_received(bthid_device_t *dev, const uint8_t *data, size_t length)
 {
     if (data != NULL) {
-        LOG_HEXDUMP_INF(data, length, "HID report");
+        LOG_HEXDUMP_DBG(data, length, "HID report");
     } else {
         LOG_ERR("HID report data is NULL");
     }

@@ -23,7 +23,7 @@
 
 #include "io_pin.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_io_pin, LOG_LEVEL_DBG);
 
 static const struct gpio_dt_spec joy_d0 = GPIO_DT_SPEC_GET(DT_ALIAS(joy_d0), gpios);
 static const struct gpio_dt_spec joy_d1 = GPIO_DT_SPEC_GET(DT_ALIAS(joy_d1), gpios);

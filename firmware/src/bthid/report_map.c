@@ -21,7 +21,7 @@
 
 #include "report_map.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_reportmap, LOG_LEVEL_DBG);
 
 typedef enum {
     ITEM_TYPE_MAIN = 0x00,

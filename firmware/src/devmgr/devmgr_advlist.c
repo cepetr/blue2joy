@@ -18,6 +18,8 @@
 
 #include "devmgr_internal.h"
 
+LOG_MODULE_DECLARE(btj_devmgr, LOG_LEVEL_DBG);
+
 void devmgr_clear_adv_list(void)
 {
     devmgr_t *devmgr = &g_devmgr;

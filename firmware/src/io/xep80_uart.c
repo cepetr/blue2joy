@@ -16,8 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <zephyr/logging/log.h>
 #include <zephyr/irq.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include <nrfx_uart.h>
 #include <nrfx_uarte.h>
@@ -26,7 +27,7 @@
 
 #include "xep80_uart.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_xep80_uart, LOG_LEVEL_DBG);
 
 #define XEP_UART_TX_PIN NRF_GPIO_PIN_MAP(1, 15)
 #define XEP_UART_RX_PIN NRF_GPIO_PIN_MAP(1, 13)
@@ -292,6 +293,14 @@ static void xep80_rx_uart_event_handler(nrfx_uarte_event_t const *event, void *c
         xep80_uart_restart_rx();
 
         if (drv->callback) {
+
+            if (word >= 0x20 && word <= 0x7E) {
+                // Printable ASCII
+                LOG_DBG("RX: 0x%03X '%c'", word, (char)(word & 0xFF));
+            } else {
+                LOG_DBG("RX: 0x%03X", word);
+            }
+
             drv->callback(drv->callback_context, word);
         }
 

@@ -21,7 +21,7 @@
 
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(btj_usbd, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(btj_usbd, LOG_LEVEL_DBG);
 
 // Registered Blue2Joy PID at https://pid.codes/
 #define BTJ_USB_DEVICE_VID 0x1209

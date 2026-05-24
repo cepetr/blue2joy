@@ -23,7 +23,7 @@
 #include <devmgr/devmgr.h>
 #include <btsvc/btsvc.h>
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_buttons, LOG_LEVEL_DBG);
 
 static const struct gpio_dt_spec button1 = GPIO_DT_SPEC_GET(DT_ALIAS(button_1), gpios);
 static const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_ALIAS(button_2), gpios);

@@ -37,7 +37,7 @@
 
 #include "btsvc.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(btj_btsvc, LOG_LEVEL_DBG);
 
 // ------------------------------------------------------------------
 // btjp connection context
@@ -368,6 +368,8 @@ static void xep80_update_work_handler(struct k_work *work)
         bt_conn_unref(conn);
         return;
     }
+
+    LOG_DBG("Built XEP80 update message of size %u", tx_size);
 
     tx_msg.hdr.flags = BTJP_MSG_TYPE_EVENT;
     tx_msg.hdr.msg_id = BTJP_MSG_EVT_XEP80_UPDATE;

@@ -24,8 +24,6 @@
 
 #include "devmgr.h"
 
-LOG_MODULE_DECLARE(blue2joy, CONFIG_LOG_DEFAULT_LEVEL);
-
 #define DEVMGR_MAX_EVENT_LISTENERS 2
 
 typedef struct {
