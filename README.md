@@ -44,7 +44,7 @@ This repository contains complete project documentation and source code for all 
 
 ### Blue2Joy Hardware
 - Nordic nRF52840 (Cortex-M4F @ 64 MHz) with integrated Bluetooth 5 LE radio
-- USB 2.0 Full-Speed (device mode only) for firmware updates and debugging
+- USB 2.0 Full-Speed (device mode only) for firmware updates, debugging, or use as a faster alternative to Bluetooth
 - Female 9-pin D-sub connector
 - RGB LED used as a status indicator (see [details](/doc/state-signalling.md))
 - Two user push-buttons (see [details](/doc/button-functions.md))
@@ -57,13 +57,15 @@ For more details, see the [hardware](/hardware/) folder.
 - Supports bidirectional (SPI) communication with the Atari
 - Indicates device status with an RGB LED
 - Allows custom mapping of HID-device controls to joystick and paddle inputs
+- Emulates an XEP80 terminal
 
 For more details, see the [firmware](/firmware/) folder.
 
 ### Web Configuration
-- A web application that allows you to configure Blue2Joy device directly from any browser supporting the Web Bluetooth standard
+- A web application that allows you to configure the Blue2Joy device directly from any browser supporting the Web Bluetooth or Web USB standards
 - Provides an easy way to configure the mapping of HID controls to joystick port digital and analog pins
-- Configure the device even while it is connected to HID devices (e.g., gamepads, mice)
+- Allows you to configure the device even while it is connected to HID devices (e.g., gamepads, mice)
+- Emulates an XEP80 terminal
 
 The application is available at https://cepetr.github.io/blue2joy/main.
 
