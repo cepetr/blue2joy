@@ -32,14 +32,14 @@ const internalMap =
   "pqrstuvwxyz{|}~░";
 
 const normalMap =
-  "♥├│┤┐╱╲◢◣▌▐▀▄─┘█" +
-  "♣┌─┼●▄│┬┴█└ᴱ↑↓←→" +
+  "♥┣▐┛┫┓╱╲◢▗◣▝▝▀▂▖" +
+  "♣┏━╋●▄▎┳┻▌┗ᴱ↑↓←→" +
   " !\"#$%&'()*+,-./" +
   "0123456789:;<=>?" +
   "@ABCDEFGHIJKLMNO" +
   "PQRSTUVWXYZ[\\]^_" +
   "♦abcdefghijklmno" +
-  "pqrstuvwxyz♠|↖◄►";
+  "pqrstuvwxyz♠┃↖◀▶";
 
 const internationalMap =
   "áùÑÉçôòì£ïüäÖúóö" +
@@ -49,7 +49,7 @@ const internationalMap =
   "@ABCDEFGHIJKLMNO" +
   "PQRSTUVWXYZ[\\]^_" +
   "¡abcdefghijklmno" +
-  "pqrstuvwxyzÄ|↖◄►";
+  "pqrstuvwxyzÄ|↖◀▶";
 
 const fontMap = [normalMap, internationalMap, internalMap] as const;
 
