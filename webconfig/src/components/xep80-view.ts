@@ -213,11 +213,14 @@ export class Xep80View extends MobxLitElement {
       } else {
         await viewElement.requestFullscreen();
       }
-      this.showToolbox(false);
     } catch (error) {
       console.error("Failed to toggle XEP80 fullscreen mode:", error);
     }
   };
+
+  private shouldKeepToolboxVisibleForFocus(target: EventTarget | null) {
+    return target instanceof HTMLElement && target.matches(":focus-visible");
+  }
 
   private showToolbox(scheduleHide = true) {
     this.isToolboxVisible = true;
@@ -265,8 +268,8 @@ export class Xep80View extends MobxLitElement {
     this.showToolbox();
   };
 
-  private onToolboxFocusIn = () => {
-    this.showToolbox(false);
+  private onToolboxFocusIn = (event: FocusEvent) => {
+    this.showToolbox(!this.shouldKeepToolboxVisibleForFocus(event.target));
   };
 
   private onToolboxFocusOut = () => {
@@ -278,7 +281,9 @@ export class Xep80View extends MobxLitElement {
     this.resizeActiveView();
 
     if (this.isViewFullscreen()) {
-      this.showToolbox(false);
+      this.showToolbox(
+        !this.shouldKeepToolboxVisibleForFocus(document.activeElement),
+      );
     }
   };
 
