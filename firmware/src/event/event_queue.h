@@ -58,3 +58,6 @@ void event_queue_remove(event_queue_t *q, const event_t *ev);
 
 // Checks if the event queue is empty
 bool event_queue_is_empty(event_queue_t *q);
+
+// Resets the event queue, removing all events
+void event_queue_reset(event_queue_t *q);

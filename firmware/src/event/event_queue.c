@@ -33,6 +33,14 @@ int event_queue_init(event_queue_t *q)
     return 0;
 }
 
+void event_queue_reset(event_queue_t *q)
+{
+    k_mutex_lock(&q->mutex, K_FOREVER);
+    q->head = 0;
+    q->tail = 0;
+    k_mutex_unlock(&q->mutex);
+}
+
 bool event_queue_is_empty(event_queue_t *q)
 {
     k_mutex_lock(&q->mutex, K_FOREVER);
