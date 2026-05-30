@@ -289,6 +289,8 @@ export class BtjModel {
     });
     try {
       await this.conn.connect();
+      // GetApiVersion serves as a synchronization command
+      await this.conn.invoke(new Btj.GetApiVersion());
       const sysInfo = (await this.conn.invoke(new Btj.GetSysInfo())).data;
       runInAction(() => {
         this.sysInfo = sysInfo;
@@ -304,7 +306,7 @@ export class BtjModel {
     // Close underlying BLE connection if any
     if (this.conn) {
       // best-effort disconnect; do not await
-      this.conn.disconnect().catch(() => {});
+      this.conn.disconnect().catch(() => { });
     }
     this.conn = null;
     this.sysInfo = null;

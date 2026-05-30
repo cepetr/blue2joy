@@ -83,11 +83,7 @@ static int usbsvc_send_frame(const uint8_t *payload, size_t payload_len)
 
 static void usbsvc_start_session(usbsvc_t *svc)
 {
-    if (!atomic_cas(&svc->session_started, false, true)) {
-        return;
-    }
-
-    // Resert event queue and repopulate it with the current state
+    // Restart event queue and repopulate it with the current state
     // so the client gets an immediate update upon connection
     event_queue_reset(&svc->evq);
     btjp_populate_event_queue(&svc->evq);
@@ -100,7 +96,10 @@ static void usbsvc_handle_request(usbsvc_t *svc, const uint8_t *payload, size_t 
 {
     uint8_t tx_buf[USBSVC_MAX_BTJP_SIZE];
 
-    usbsvc_start_session(svc);
+    if (!atomic_cas(&svc->session_started, false, true) ||
+        btjp_is_sync_message(payload, payload_len)) {
+        usbsvc_start_session(svc);
+    }
 
     size_t tx_size = btjp_handle_message(payload, payload_len, tx_buf, sizeof(tx_buf));
     if (tx_size == 0) {

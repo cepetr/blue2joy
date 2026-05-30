@@ -344,3 +344,16 @@ size_t btjp_handle_message(const void *inbuff, size_t insize, void *outbuff, siz
 
     return sizeof(btjp_msg_header_t) + rsp->hdr.size;
 }
+
+// Checks whether the buffer contains BTJP_MSG_GET_API_VERSION
+bool btjp_is_sync_message(const uint8_t *inbuff, size_t insize)
+{
+    if (insize < sizeof(btjp_msg_header_t)) {
+        return false;
+    }
+
+    const btjp_msg_header_t *hdr = (const btjp_msg_header_t *)inbuff;
+
+    return (hdr->flags & BTJP_MSG_TYPE_MASK) == BTJP_MSG_TYPE_REQUEST &&
+           hdr->msg_id == BTJP_MSG_GET_API_VERSION;
+}

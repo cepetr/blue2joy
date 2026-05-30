@@ -23,6 +23,9 @@
 // Handles an incoming btjp message and prepares a response
 size_t btjp_handle_message(const void *inbuff, size_t insize, void *outbuff, size_t outsize);
 
+// Checks if the given message is a synchronization message that should trigger session start
+bool btjp_is_sync_message(const uint8_t *inbuff, size_t insize);
+
 // Pops an event from the event queue and builds a btjp event message
 size_t btjp_build_evt_message(void *outbuff, size_t outsize, event_queue_t *evq);
 
