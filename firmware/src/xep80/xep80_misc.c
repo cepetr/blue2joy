@@ -32,7 +32,7 @@ void xep80_reset(xep80_t *xep)
     xep->synced_cur = xep->cur;
     xep->l_margin = 0;
     xep->r_margin = XEP80_COL_COUNT - 1;
-    xep->escape = false;
+    xep->escape_next = false;
     xep->burst_mode = false;
     xep->printer_mode = false;
     xep->escape_mode = false;

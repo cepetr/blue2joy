@@ -306,7 +306,7 @@ static bool xep80_process_special_char(xep80_t *xep, char ch)
 {
     switch (ch) {
     case 0x1B:
-        xep->escape = true;
+        xep->escape_next = true;
         break;
 
     case 0x1C:
@@ -384,14 +384,13 @@ void xep80_process_char(xep80_t *xep, char ch)
         return;
     }
 
-    if (!(xep->escape || xep->escape_mode)) {
-        if (xep80_process_special_char(xep, ch)) {
-            return;
-        }
+    bool process_special = !xep->escape_next && (!xep->escape_mode || ch == (char)0x9B);
+
+    if (process_special && xep80_process_special_char(xep, ch)) {
+        // Special char processed, do not write to screen
+        return;
     }
 
-    xep->escape = false;
     write_char(xep, ch);
-
-    //xep80_sync_cursor(xep);
+    xep->escape_next = false;
 }

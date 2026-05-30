@@ -80,7 +80,7 @@ typedef struct {
     bool burst_mode;
 
     // the next char will be printed and not processed as special char
-    bool escape;
+    bool escape_next;
     // all subsequent chars will be printed and not be processed as special chars
     bool escape_mode;
 
