@@ -38,7 +38,7 @@ export class BtjConnection {
   private readyPromise: Promise<void> | null = null;
   private eventHandler: ((msgId: number, payload: DataView) => void) | null =
     null;
-  private disconnectHandler: (() => void) | null = null;
+  private disconnectHandler: ((reason?: unknown) => void) | null = null;
   private isDisconnecting = false;
 
   private reqSeq = 1;
@@ -49,7 +49,7 @@ export class BtjConnection {
   constructor(
     private transport: BtjTransport,
     eventHandler?: (msgId: number, payload: DataView) => void,
-    disconnectHandler?: () => void,
+    disconnectHandler?: (reason?: unknown) => void,
   ) {
     this.eventHandler = eventHandler ?? null;
     this.disconnectHandler = disconnectHandler ?? null;
@@ -60,15 +60,18 @@ export class BtjConnection {
 
     this.readyPromise = (async () => {
       this.transport.setFrameHandler((frame) => this.processMessage(frame));
-      this.transport.setDisconnectHandler(() => {
+      this.transport.setDisconnectHandler((reason) => {
         if (this.isDisconnecting) {
           return;
         }
-        this.resetConnectionState(new Error("Connection closed"));
-        this.disconnectHandler?.();
+        const disconnectReason = toError(reason, "Connection closed");
+        console.error("Transport disconnected", disconnectReason);
+        this.resetConnectionState(disconnectReason);
+        this.disconnectHandler?.(disconnectReason);
       });
       await this.transport.open();
     })().catch((err) => {
+      console.error("Failed to open transport", err);
       this.transport.setFrameHandler(null);
       this.transport.setDisconnectHandler(null);
       this.readyPromise = null;
@@ -131,13 +134,16 @@ export class BtjConnection {
 
   private handleTimeout() {
     if (this.reqPending) {
-      this.reqPending.reject(new Error("Command timeout"));
+      const err = new Error("Command timeout");
+      console.error("BTJ command timed out", err);
+      this.reqPending.reject(err);
       this.reqPending = null;
       this.nextCommand();
     }
   }
 
   private handleError(err: unknown) {
+    console.error("BTJ request failed", err);
     if (this.reqPending) {
       this.reqPending.reject(err);
       clearTimeout(this.reqPending.timeout);
@@ -239,4 +245,16 @@ export class BtjConnection {
     this.reqQueue = [];
     this.readyPromise = null;
   }
+}
+
+function toError(reason: unknown, fallbackMessage: string): Error {
+  if (reason instanceof Error) {
+    return reason;
+  }
+
+  if (typeof reason === "string" && reason.length > 0) {
+    return new Error(reason);
+  }
+
+  return new Error(fallbackMessage);
 }

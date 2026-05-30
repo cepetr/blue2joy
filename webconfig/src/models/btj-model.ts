@@ -106,6 +106,7 @@ export class BtjModel {
 
   @action
   logError(err: unknown, source?: string): void {
+    console.error("Blue2Joy error", { source, error: err });
     const error: ErrorEntry = {
       id: ++this._errorIdCounter,
       message: this.formatError(err),
@@ -284,7 +285,8 @@ export class BtjModel {
 
     this.clearErrors();
 
-    this.conn = new BtjConnection(transport, this.processEvent, () => {
+    this.conn = new BtjConnection(transport, this.processEvent, (reason) => {
+      this.logError(reason, "connection");
       this.disconnect();
     });
     try {
@@ -306,7 +308,9 @@ export class BtjModel {
     // Close underlying BLE connection if any
     if (this.conn) {
       // best-effort disconnect; do not await
-      this.conn.disconnect().catch(() => { });
+      this.conn.disconnect().catch((err) => {
+        console.error("Failed to disconnect Blue2Joy connection", err);
+      });
     }
     this.conn = null;
     this.sysInfo = null;
