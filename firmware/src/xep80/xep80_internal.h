@@ -70,8 +70,6 @@ typedef struct {
 
     // Work item for processing received data
     struct k_work rx_work;
-    // Set if rx_work is currently scheduled
-    atomic_t rx_work_scheduled;
     // Ring buffer for received data
     struct ring_buf rx_rb;
     // Buffer for received data (used by ring buffer)

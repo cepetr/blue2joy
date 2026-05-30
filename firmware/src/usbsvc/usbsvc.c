@@ -48,7 +48,6 @@ typedef struct {
     struct k_work status_work;
 
     struct k_work rx_work;
-    atomic_t rx_work_scheduled;
     struct ring_buf rx_rb;
     uint8_t rx_rb_storage[USBSVC_RX_RING_SIZE];
 
@@ -161,12 +160,6 @@ static void usbsvc_rx_work_handler(struct k_work *work)
     while ((read_len = ring_buf_get(&svc->rx_rb, chunk, sizeof(chunk))) > 0) {
         usbsvc_process_rx_chunk(svc, chunk, read_len);
     }
-
-    atomic_set(&svc->rx_work_scheduled, false);
-
-    if (!ring_buf_is_empty(&svc->rx_rb) && atomic_cas(&svc->rx_work_scheduled, false, true)) {
-        k_work_submit(&svc->rx_work);
-    }
 }
 
 static void usbsvc_rx_callback(void *context, const uint8_t *data, size_t len)
@@ -182,9 +175,7 @@ static void usbsvc_rx_callback(void *context, const uint8_t *data, size_t len)
         LOG_ERR("USB RX ring buffer overflow (%u/%u)", written, len);
     }
 
-    if (atomic_cas(&svc->rx_work_scheduled, false, true)) {
-        k_work_submit(&svc->rx_work);
-    }
+    k_work_submit(&svc->rx_work);
 }
 
 static void usbsvc_event_callback(void *context, const event_t *ev)
@@ -352,15 +343,15 @@ int usbsvc_init(void)
     memset(svc, 0, sizeof(*svc));
 
     ring_buf_init(&svc->rx_rb, sizeof(svc->rx_rb_storage), svc->rx_rb_storage);
-    err = event_queue_init(&svc->evq);
-    if (err != 0) {
-        return err;
-    }
-
     k_work_init(&svc->status_work, usbsvc_status_work_handler);
     k_work_init(&svc->rx_work, usbsvc_rx_work_handler);
     k_work_init_delayable(&svc->event_work, usbsvc_event_work_handler);
     k_work_init_delayable(&svc->xep80_update_work, usbsvc_xep80_update_work_handler);
+
+    err = event_queue_init(&svc->evq);
+    if (err != 0) {
+        return err;
+    }
 
     err = btj_webusb_register_callbacks(usbsvc_rx_callback, usbsvc_status_callback, svc);
     if (err != 0) {

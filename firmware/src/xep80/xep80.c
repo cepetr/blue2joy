@@ -137,11 +137,8 @@ static void xep80_rx_work_handler(struct k_work *work)
         xep80_process_word(xep, data);
     }
 
-    // Allow scheduling next work item
-    atomic_set(&xep->rx_work_scheduled, 0);
-
     // If new data arrived while we were processing, schedule another work item
-    if (!ring_buf_is_empty(&xep->rx_rb) && atomic_cas(&xep->rx_work_scheduled, 0, 1)) {
+    if (!ring_buf_is_empty(&xep->rx_rb)) {
         k_work_submit(&xep->rx_work);
     }
 }
@@ -155,9 +152,7 @@ static void xep80_rx_callback(void *context, uint16_t word)
 
     // If we successfully put the word into the buffer, schedule deferred processing
     if (written == sizeof(word)) {
-        if (atomic_cas(&xep->rx_work_scheduled, 0, 1)) {
-            k_work_submit(&xep->rx_work);
-        }
+        k_work_submit(&xep->rx_work);
     } else {
         LOG_ERR("XEP80 RX ring buffer full, dropping data");
     }
