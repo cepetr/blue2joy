@@ -87,13 +87,6 @@ export class WebUsbTransport implements BtjTransport {
       };
       usb.addEventListener("disconnect", this.disconnectListener);
     }
-
-    this.readLoopPromise = this.readLoop().catch((err) => {
-      if (this.closing || isTransferCancelled(err)) {
-        return;
-      }
-      void this.handleDisconnect(err);
-    });
   }
 
   async close(): Promise<void> {
@@ -104,12 +97,6 @@ export class WebUsbTransport implements BtjTransport {
     this.readLoopPromise = null;
 
     try {
-      try {
-        await this.device.clearHalt("in", this.inEndpointNumber ?? 0);
-      } catch {
-        // Ignore endpoint cleanup failures during shutdown.
-      }
-
       if (this.claimedInterfaceNumber !== null) {
         try {
           await this.device.releaseInterface(this.claimedInterfaceNumber);
@@ -149,6 +136,15 @@ export class WebUsbTransport implements BtjTransport {
     );
     if (result.status !== "ok") {
       throw new Error(`USB write failed: ${result.status}`);
+    }
+
+    if (!this.readLoopPromise) {
+      this.readLoopPromise = this.readLoop().catch((err) => {
+        if (this.closing || isTransferCancelled(err)) {
+          return;
+        }
+        void this.handleDisconnect(err);
+      });
     }
   }
 

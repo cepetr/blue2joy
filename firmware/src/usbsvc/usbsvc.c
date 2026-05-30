@@ -96,11 +96,6 @@ static void usbsvc_handle_request(usbsvc_t *svc, const uint8_t *payload, size_t 
 {
     uint8_t tx_buf[USBSVC_MAX_BTJP_SIZE];
 
-    if (!atomic_cas(&svc->session_started, false, true) ||
-        btjp_is_sync_message(payload, payload_len)) {
-        usbsvc_start_session(svc);
-    }
-
     size_t tx_size = btjp_handle_message(payload, payload_len, tx_buf, sizeof(tx_buf));
     if (tx_size == 0) {
         return;
@@ -109,6 +104,11 @@ static void usbsvc_handle_request(usbsvc_t *svc, const uint8_t *payload, size_t 
     int err = usbsvc_send_frame(tx_buf, tx_size);
     if (err != 0) {
         LOG_ERR("Failed to send BTJP response (err %d)", err);
+    }
+
+    if (!atomic_cas(&svc->session_started, false, true) ||
+        btjp_is_sync_message(payload, payload_len)) {
+        usbsvc_start_session(svc);
     }
 }
 
