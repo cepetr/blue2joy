@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.0
+### Fixed
+- Web USB stability improvements
+
 ## v0.4.0
 ### Added
 - Web USB support (alternative to Web Bluetooth)
