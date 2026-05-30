@@ -56,6 +56,10 @@ type ElementBoxInsets = {
 
 @customElement("xep80-view")
 export class Xep80View extends MobxLitElement {
+  private static readonly renderModeStorageKey = "xep80-render-mode";
+
+  private static readonly colorIdStorageKey = "xep80-color-id";
+
   private static readonly colorOptions: Xep80ColorOption[] = [
     {
       id: "green",
@@ -117,7 +121,7 @@ export class Xep80View extends MobxLitElement {
   private worker: Worker | null = null;
 
   @state()
-  private renderMode: Xep80RenderMode = "bitmap";
+  private renderMode: Xep80RenderMode = this.loadRenderMode();
 
   @state()
   private textScreen = Array.from(
@@ -129,7 +133,7 @@ export class Xep80View extends MobxLitElement {
   private isToolboxVisible = false;
 
   @state()
-  private colorId: Xep80ColorId = "green";
+  private colorId: Xep80ColorId = this.loadColorId();
 
   private resizeObserver?: ResizeObserver;
 
@@ -147,9 +151,15 @@ export class Xep80View extends MobxLitElement {
 
   private onRenderModeChange = (mode: Xep80RenderMode) => {
     this.renderMode = mode;
+    localStorage.setItem(Xep80View.renderModeStorageKey, mode);
     this.showToolbox();
     this.updateComplete.then(() => this.resizeActiveView());
   };
+
+  private loadRenderMode(): Xep80RenderMode {
+    const stored = localStorage.getItem(Xep80View.renderModeStorageKey);
+    return stored === "text" ? "text" : "bitmap";
+  }
 
   private getCurrentColorOption() {
     return Xep80View.colorOptions.find(({ id }) => id === this.colorId)
@@ -166,6 +176,7 @@ export class Xep80View extends MobxLitElement {
     );
     const nextIndex = (currentIndex + 1) % Xep80View.colorOptions.length;
     this.colorId = Xep80View.colorOptions[nextIndex].id;
+    localStorage.setItem(Xep80View.colorIdStorageKey, this.colorId);
     this.showToolbox();
 
     if (this.worker && this.lastFramebufferState.length > 0) {
@@ -177,6 +188,13 @@ export class Xep80View extends MobxLitElement {
       this.worker.postMessage(msg);
     }
   };
+
+  private loadColorId(): Xep80ColorId {
+    const stored = localStorage.getItem(Xep80View.colorIdStorageKey);
+    return Xep80View.colorOptions.some(({ id }) => id === stored)
+      ? (stored as Xep80ColorId)
+      : "green";
+  }
 
   private isViewFullscreen() {
     return document.fullscreenElement === this.viewElement;
@@ -317,6 +335,10 @@ export class Xep80View extends MobxLitElement {
     }
 
     this.resizeActiveView();
+
+    if (btj.xep80State.length > 0) {
+      this.renderFramebuffer(btj.xep80State);
+    }
   }
 
   private handleResize = () => {
