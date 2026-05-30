@@ -27,16 +27,18 @@
 #define BTJP_MSG_TYPE_RESPONSE 2
 #define BTJP_MSG_TYPE_ERROR    3
 
+#define BTJP_MAX_PAYLOAD_SIZE UINT8_MAX
+
 typedef struct {
-    uint8_t flags;
-    uint8_t msg_id;
-    uint8_t seq;
-    uint8_t size;
+    uint8_t flags;  // BTJP_MSG_TYPE_xxx
+    uint8_t msg_id; // BTJP_MSG_xxx
+    uint8_t seq;    // Sequence number for matching requests and responses
+    uint8_t size;   // Size of payload following the header
 
 } btjp_msg_header_t;
 
 typedef struct {
-    uint8_t code;
+    uint8_t code; // Error code (BTJP_ERR_xxx)
 } btjp_rsp_error_t;
 
 typedef enum {

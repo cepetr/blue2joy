@@ -48,5 +48,5 @@ int xep80_register_update_callback(xep80_update_callback_t callback, void *conte
 // Unregisters a previously registered update callback.
 void xep80_unregister_update_callback(xep80_update_client_t *client);
 
-// Restarts the client, causing it to resend the entire state
-void xep80_client_restart(xep80_update_client_t *client);
+// Resets the client's sync snapshot so subsequent updates resend the full state.
+void xep80_client_reset_sync_state(xep80_update_client_t *client);

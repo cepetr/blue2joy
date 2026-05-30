@@ -60,6 +60,11 @@ export class Xep80View extends MobxLitElement {
 
   private static readonly colorIdStorageKey = "xep80-color-id";
 
+  private static readonly blankTextScreen = Array.from(
+    { length: XEP80_DISPLAY_ROWS },
+    () => " ".repeat(XEP80_DISPLAY_COLS),
+  ).join("\n");
+
   private static readonly colorOptions: Xep80ColorOption[] = [
     {
       id: "green",
@@ -124,10 +129,7 @@ export class Xep80View extends MobxLitElement {
   private renderMode: Xep80RenderMode = this.loadRenderMode();
 
   @state()
-  private textScreen = Array.from(
-    { length: XEP80_DISPLAY_ROWS },
-    () => " ".repeat(XEP80_DISPLAY_COLS),
-  ).join("\n");
+  private textScreen = Xep80View.blankTextScreen;
 
   @state()
   private isToolboxVisible = false;
@@ -140,6 +142,11 @@ export class Xep80View extends MobxLitElement {
   private toolboxHideTimer?: number;
 
   private lastFramebufferState = new Uint8Array(0);
+
+  private clearFramebuffer() {
+    this.lastFramebufferState = new Uint8Array(0);
+    this.textScreen = Xep80View.blankTextScreen;
+  }
 
   private isXep80Active(): boolean {
     return btj.joyPort?.mode === Btj.JoyPortMode.UART;
@@ -342,7 +349,7 @@ export class Xep80View extends MobxLitElement {
     this.resizeActiveView();
 
     if (btj.xep80State.length > 0) {
-      this.renderFramebuffer(btj.xep80State);
+      this.renderFramebuffer(btj.xep80State, btj.xep80Synced);
     }
   }
 
@@ -536,13 +543,16 @@ export class Xep80View extends MobxLitElement {
     this.textScreenElement.style.height = `${renderHeight}px`;
   }
 
-  public renderFramebuffer(state: Uint8Array) {
-    if (state.length > 0) {
-      this.lastFramebufferState = state.slice();
-      this.textScreen = renderXep80Text(state);
+  public renderFramebuffer(state: Uint8Array, synced = btj.xep80Synced) {
+    if (!synced || state.length === 0) {
+      this.clearFramebuffer();
+      return;
     }
 
-    if (this.worker && state.length > 0) {
+    this.lastFramebufferState = state.slice();
+    this.textScreen = renderXep80Text(state);
+
+    if (this.worker) {
       const msg: WorkerMessage = {
         type: "render",
         state: this.lastFramebufferState.slice(),
@@ -633,9 +643,23 @@ export class Xep80View extends MobxLitElement {
     `;
   }
 
+  private renderSyncPrompt() {
+    return html`
+      <div class="xep80-activation-prompt">
+        <div class="xep80-activation-card">
+          <p class="mb-0">
+            Waiting for XEP80 sync from Blue2Joy.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
   private renderDisplaySurface(mode: Xep80RenderMode) {
     const isBitmap = mode === "bitmap";
     const isXep80Enabled = this.isXep80Active();
+    const isXep80Synced = btj.xep80Synced;
+    const isDisplaySuppressed = !isXep80Enabled || !isXep80Synced;
 
     return html`
       <div
@@ -648,16 +672,25 @@ export class Xep80View extends MobxLitElement {
       >
         ${isBitmap
         ? html`
-              <div class="xep80-surface xep80-surface--bitmap">
+              <div
+                class="xep80-surface xep80-surface--bitmap ${isDisplaySuppressed
+            ? "xep80-surface--inactive"
+            : ""}"
+              >
                 <canvas width="560" height="250" class="xep80-canvas"></canvas>
               </div>
             `
         : html`
-              <div class="xep80-surface xep80-surface--text">
+              <div
+                class="xep80-surface xep80-surface--text ${isDisplaySuppressed
+            ? "xep80-surface--inactive"
+            : ""}"
+              >
                 <pre class="xep80-text-screen">${this.textScreen}</pre>
               </div>
             `}
         ${!isXep80Enabled ? this.renderActivationPrompt() : null}
+        ${isXep80Enabled && !isXep80Synced ? this.renderSyncPrompt() : null}
         ${this.renderToolbox()}
       </div>
     `;
@@ -731,6 +764,11 @@ export class Xep80View extends MobxLitElement {
           );
           mix-blend-mode: screen;
           opacity: 0.75;
+        }
+
+        .xep80-surface--inactive .xep80-canvas,
+        .xep80-surface--inactive .xep80-text-screen {
+          visibility: hidden;
         }
 
         .xep80-canvas {

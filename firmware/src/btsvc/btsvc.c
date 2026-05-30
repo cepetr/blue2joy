@@ -56,6 +56,7 @@ typedef struct {
     size_t rx_size;
     uint8_t rx_buf[256];
 
+    atomic_t request_pending;
     atomic_t txq_ready;
     event_queue_t evq;
 
@@ -175,6 +176,7 @@ static ssize_t btjp_rxq_write(struct bt_conn *conn, const struct bt_gatt_attr *a
         btjp_msg_header_t *hdr = (btjp_msg_header_t *)session->rx_buf;
         if (session->rx_size == sizeof(btjp_msg_header_t) + hdr->size) {
             // complete message received
+            atomic_set(&session->request_pending, true);
             k_work_submit(&session->request_work);
         }
     }
@@ -208,6 +210,34 @@ const struct bt_gatt_attr *btjp_svc_txq_attr;
 // by request processed in btsvc connection context
 static __thread bool handling_own_request = false;
 
+static void btsvc_schedule_events(btjp_session_t *session, k_timeout_t delay)
+{
+    if (!atomic_get(&session->txq_ready) || atomic_get(&session->request_pending)) {
+        return;
+    }
+
+    k_work_reschedule(&session->event_work, delay);
+}
+
+static void btsvc_schedule_xep80_update(btjp_session_t *session)
+{
+    if (!atomic_get(&session->xep80_update_pending) || atomic_get(&session->request_pending)) {
+        return;
+    }
+
+    k_work_submit(&session->xep80_update_work);
+}
+
+static void btsvc_resync_session(btjp_session_t *session)
+{
+    event_queue_reset(&session->evq);
+    btjp_populate_event_queue(&session->evq);
+
+    btsvc_schedule_events(session, K_NO_WAIT);
+
+    xep80_client_reset_sync_state(session->xep80_client);
+}
+
 // Processes a received request and sends a response
 static void request_work_handler(struct k_work *work)
 {
@@ -217,12 +247,11 @@ static void request_work_handler(struct k_work *work)
     struct bt_conn *conn = session_conn_ref(session);
 
     if (conn == NULL) {
+        atomic_set(&session->request_pending, false);
         return;
     }
 
-    if (!atomic_set(&session->txq_ready, true)) {
-        k_work_reschedule(&session->event_work, K_MSEC(0));
-    }
+    atomic_set(&session->txq_ready, true);
 
     handling_own_request = true;
 
@@ -232,6 +261,7 @@ static void request_work_handler(struct k_work *work)
 
     if (tx_size == 0) {
         // Nothing to send
+        atomic_set(&session->request_pending, false);
         bt_conn_unref(conn);
         return;
     }
@@ -239,8 +269,21 @@ static void request_work_handler(struct k_work *work)
     int err = bt_gatt_notify(conn, btjp_svc_txq_attr, tx_buf, tx_size);
     bt_conn_unref(conn);
     if (err) {
+        atomic_set(&session->request_pending, false);
         LOG_ERR("Failed to notify response: %d", err);
+        return;
     }
+
+    atomic_set(&session->request_pending, false);
+
+    if (btjp_is_sync_request(session->rx_buf, session->rx_size)) {
+        btsvc_resync_session(session);
+        btsvc_schedule_xep80_update(session);
+        return;
+    }
+
+    btsvc_schedule_xep80_update(session);
+    btsvc_schedule_events(session, K_NO_WAIT);
 }
 
 // Callback invoked when a notification has been sent
@@ -257,7 +300,7 @@ static void notify_sent_cb(struct bt_conn *conn, void *user_data)
 
     if (!event_queue_is_empty(&session->evq)) {
         // Schedule sending next event
-        k_work_reschedule(&session->event_work, K_MSEC(0));
+        btsvc_schedule_events(session, K_NO_WAIT);
     }
 }
 
@@ -282,6 +325,10 @@ static void event_work_handler(struct k_work *work_)
     struct k_work_delayable *work = (struct k_work_delayable *)work_;
 
     btjp_session_t *session = CONTAINER_OF(work, btjp_session_t, event_work);
+
+    if (atomic_get(&session->request_pending)) {
+        return;
+    }
 
     uint8_t tx_buf[CONFIG_BT_L2CAP_TX_MTU];
     struct bt_conn *conn = session_conn_ref(session);
@@ -319,9 +366,7 @@ static void event_callback(void *context, const event_t *ev)
 
     event_queue_push(&session->evq, ev);
 
-    if (atomic_get(&session->txq_ready)) {
-        k_work_reschedule(&session->event_work, K_MSEC(20));
-    }
+    btsvc_schedule_events(session, K_MSEC(20));
 }
 
 // ------------------------------------------------------------------
@@ -340,12 +385,17 @@ static void xep80_update_sent_cb(struct bt_conn *conn, void *user_data)
         return;
     }
 
-    k_work_submit(&session->xep80_update_work);
+    btsvc_schedule_xep80_update(session);
 }
 
 static void xep80_update_work_handler(struct k_work *work)
 {
     btjp_session_t *session = CONTAINER_OF(work, btjp_session_t, xep80_update_work);
+
+    if (atomic_get(&session->request_pending)) {
+        return;
+    }
+
     struct bt_conn *conn = session_conn_ref(session);
 
     if (conn == NULL) {
@@ -356,7 +406,7 @@ static void xep80_update_work_handler(struct k_work *work)
     // Build and send XEP80 update notification
     struct {
         btjp_msg_header_t hdr;
-        uint8_t buf[CONFIG_BT_L2CAP_TX_MTU - sizeof(btjp_msg_header_t)];
+        uint8_t buf[MIN(CONFIG_BT_L2CAP_TX_MTU - sizeof(btjp_msg_header_t), BTJP_MAX_PAYLOAD_SIZE)];
     } tx_msg;
 
     size_t tx_max_size = MIN(bt_gatt_get_mtu(conn) - 4 - 3, sizeof(tx_msg.buf));
@@ -374,7 +424,7 @@ static void xep80_update_work_handler(struct k_work *work)
     tx_msg.hdr.flags = BTJP_MSG_TYPE_EVENT;
     tx_msg.hdr.msg_id = BTJP_MSG_EVT_XEP80_UPDATE;
     tx_msg.hdr.seq = 0;
-    tx_msg.hdr.size = tx_size;
+    tx_msg.hdr.size = (uint8_t)tx_size;
 
     LOG_INF("Sending XEP80 update (size=%d)", tx_size);
 
@@ -404,7 +454,7 @@ static void btsvc_xep80_update_cb(void *context)
     }
 
     if (!atomic_set(&session->xep80_update_pending, true)) {
-        k_work_submit(&session->xep80_update_work);
+        btsvc_schedule_xep80_update(session);
     }
 }
 
@@ -478,8 +528,6 @@ static void connected(struct bt_conn *conn, uint8_t err)
         LOG_ERR("Failed to create event queue");
         goto error;
     }
-
-    btjp_populate_event_queue(&session->evq);
 
     err = event_bus_subscribe(event_callback, session);
     if (err) {

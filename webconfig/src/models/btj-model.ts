@@ -27,8 +27,8 @@ import { BtjConnection } from "../services/btj-connection";
 import { Btj } from "../services/btj-messages";
 import type { BtjTransport } from "../services/btj-transport";
 import { createDemoTransport } from "../services/virtual-transport";
-import { scanAndSelectWebUsbTransport } from "../services/webusb-transport";
 import { scanAndSelectBluetoothTransport } from "../services/web-bluetooth-transport";
+import { scanAndSelectWebUsbTransport } from "../services/webusb-transport";
 import { XEP80_STATE_SIZE, decodeXep80Update } from "../workers/xep80-worker";
 
 export interface DeviceEntry {
@@ -50,7 +50,7 @@ export interface ErrorEntry {
 }
 
 type Xep80ViewElement = HTMLElement & {
-  renderFramebuffer(state: Uint8Array): void;
+  renderFramebuffer(state: Uint8Array, synced?: boolean): void;
 };
 
 export class BtjModel {
@@ -88,6 +88,9 @@ export class BtjModel {
 
   @observable
   xep80State: Uint8Array = new Uint8Array(XEP80_STATE_SIZE);
+
+  @observable
+  xep80Synced = false;
 
   @computed
   get connected(): boolean {
@@ -231,6 +234,9 @@ export class BtjModel {
     const evt = new Btj.JoyPortUpdateEvent();
     evt.parseMessage(payload);
     this.joyPort = evt.data;
+    if (evt.data.mode !== Btj.JoyPortMode.UART) {
+      this.resetXep80TransportState();
+    }
   }
 
   @action
@@ -241,11 +247,12 @@ export class BtjModel {
       payload.byteLength,
     );
     decodeXep80Update(data, this.xep80State);
+    this.xep80Synced = true;
 
     // Update the XEP80 view with the new state
     const view = document.querySelector<Xep80ViewElement>("xep80-view");
     if (view?.renderFramebuffer) {
-      view.renderFramebuffer(this.xep80State);
+      view.renderFramebuffer(this.xep80State, this.xep80Synced);
     }
   }
 
@@ -281,7 +288,7 @@ export class BtjModel {
   async connect(transport: BtjTransport): Promise<void> {
     this.removeAllDevices();
     this.removeAllProfiles();
-    this.resetXep80State();
+    this.resetXep80TransportState();
 
     this.clearErrors();
 
@@ -292,6 +299,7 @@ export class BtjModel {
     try {
       await this.conn.connect();
       // GetApiVersion serves as a synchronization command
+      this.resetXep80TransportState();
       await this.conn.invoke(new Btj.GetApiVersion());
       const sysInfo = (await this.conn.invoke(new Btj.GetSysInfo())).data;
       runInAction(() => {
@@ -315,12 +323,18 @@ export class BtjModel {
     this.conn = null;
     this.sysInfo = null;
     this.sysState = null;
-    this.resetXep80State();
+    this.resetXep80TransportState();
   }
 
   @action
-  private resetXep80State() {
+  private resetXep80TransportState() {
     this.xep80State = new Uint8Array(XEP80_STATE_SIZE);
+    this.xep80Synced = false;
+
+    const view = document.querySelector<Xep80ViewElement>("xep80-view");
+    if (view?.renderFramebuffer) {
+      view.renderFramebuffer(this.xep80State, this.xep80Synced);
+    }
   }
 
   getProfile(id: number): ProfileEntry | undefined {
@@ -458,7 +472,7 @@ export class BtjModel {
     if (!this.conn) throw new Error("Not connected");
     try {
       if (mode === Btj.JoyPortMode.UART) {
-        this.resetXep80State();
+        this.resetXep80TransportState();
       }
       await this.conn.invoke(new Btj.SetJoyPortMode(mode));
     } catch (err: unknown) {

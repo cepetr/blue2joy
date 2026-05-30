@@ -89,7 +89,7 @@ static void usbsvc_start_session(usbsvc_t *svc)
     btjp_populate_event_queue(&svc->evq);
     k_work_reschedule(&svc->event_work, K_NO_WAIT);
 
-    xep80_client_restart(svc->xep80_client);
+    xep80_client_reset_sync_state(svc->xep80_client);
 }
 
 static void usbsvc_handle_request(usbsvc_t *svc, const uint8_t *payload, size_t payload_len)
@@ -107,7 +107,7 @@ static void usbsvc_handle_request(usbsvc_t *svc, const uint8_t *payload, size_t 
     }
 
     if (!atomic_cas(&svc->session_started, false, true) ||
-        btjp_is_sync_message(payload, payload_len)) {
+        btjp_is_sync_request(payload, payload_len)) {
         usbsvc_start_session(svc);
     }
 }
@@ -209,10 +209,6 @@ static void usbsvc_xep80_update_cb(void *context)
 {
     usbsvc_t *svc = (usbsvc_t *)context;
 
-    if (!atomic_get(&svc->session_started)) {
-        return;
-    }
-
     if (!atomic_set(&svc->xep80_update_pending, true)) {
         k_work_reschedule(&svc->xep80_update_work, K_MSEC(USBSVC_XEP80_UPDATE_DELAY_MS));
     }
@@ -232,7 +228,7 @@ static void usbsvc_xep80_update_work_handler(struct k_work *work)
     while (true) {
         struct {
             btjp_msg_header_t hdr;
-            uint8_t buf[256];
+            uint8_t buf[BTJP_MAX_PAYLOAD_SIZE];
         } tx_msg;
 
         size_t tx_size =
@@ -247,7 +243,7 @@ static void usbsvc_xep80_update_work_handler(struct k_work *work)
         tx_msg.hdr.flags = BTJP_MSG_TYPE_EVENT;
         tx_msg.hdr.msg_id = BTJP_MSG_EVT_XEP80_UPDATE;
         tx_msg.hdr.seq = 0;
-        tx_msg.hdr.size = tx_size;
+        tx_msg.hdr.size = (uint8_t)tx_size;
 
         int err = usbsvc_send_frame((const uint8_t *)&tx_msg, sizeof(tx_msg.hdr) + tx_msg.hdr.size);
         if (err != 0) {

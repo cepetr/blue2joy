@@ -242,7 +242,7 @@ void xep80_unregister_update_callback(xep80_update_client_t *client)
     k_mutex_unlock(&xep->mutex);
 }
 
-void xep80_client_restart(xep80_update_client_t *client)
+void xep80_client_reset_sync_state(xep80_update_client_t *client)
 {
     if (client == NULL) {
         return;
