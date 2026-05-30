@@ -362,12 +362,7 @@ int usbsvc_init(void)
     k_work_init_delayable(&svc->event_work, usbsvc_event_work_handler);
     k_work_init_delayable(&svc->xep80_update_work, usbsvc_xep80_update_work_handler);
 
-    err = btj_webusb_register_rx_callback(usbsvc_rx_callback, svc);
-    if (err != 0) {
-        return err;
-    }
-
-    err = btj_webusb_register_status_callback(usbsvc_status_callback, svc);
+    err = btj_webusb_register_callbacks(usbsvc_rx_callback, usbsvc_status_callback, svc);
     if (err != 0) {
         return err;
     }

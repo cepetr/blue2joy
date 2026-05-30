@@ -36,10 +36,7 @@ typedef void (*webusb_rx_callback_t)(void *context, const uint8_t *data, size_t 
 // Callback is invoked in the context of usbd thread when the host configures or disables WebUSB.
 typedef void (*webusb_status_callback_t)(void *context, bool enabled);
 
-// Registers callback for received WebUSB data
+// Registers callbacks for received WebUSB data and status changes
 // Returns 0 on success, negative errno on failure
-int btj_webusb_register_rx_callback(webusb_rx_callback_t cb, void *context);
-
-// Registers callback for WebUSB status changes.
-// The callback is invoked immediately with the current state.
-int btj_webusb_register_status_callback(webusb_status_callback_t cb, void *context);
+int btj_webusb_register_callbacks(webusb_rx_callback_t rx_cb, webusb_status_callback_t status_cb,
+                                  void *context);

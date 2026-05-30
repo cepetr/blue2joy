@@ -37,6 +37,7 @@
 #include <devmgr/devmgr.h>
 #include <event/event_bus.h>
 #include <xep80/xep80.h>
+#include <usbd/usbd_init.h>
 
 LOG_MODULE_REGISTER(btj, LOG_LEVEL_DBG);
 
@@ -81,15 +82,11 @@ static void event_callback(void *context, const event_t *ev)
     }
 }
 
-extern int btj_usbd_init(void);
-
 int main(void)
 {
     int err;
 
     LOG_INF("Blue2Joy %s", APP_VERSION_STRING);
-
-    btj_usbd_init();
 
     err = rgbled_init();
     if (err) {
@@ -145,12 +142,6 @@ int main(void)
         return 0;
     }
 
-    err = usbsvc_init();
-    if (err) {
-        LOG_ERR("USB service init failed {err: %d}", err);
-        return 0;
-    }
-
     mapper_set_profile(0, &profile_joy_analog, false);
     // mapper_set_profile(0, &profile_mouse, false);
 
@@ -171,9 +162,23 @@ int main(void)
         LOG_ERR("Failed to load settings {err: %d}", err);
     }
 
+    err = usbsvc_init();
+    if (err) {
+        LOG_ERR("USB service init failed {err: %d}", err);
+        return 0;
+    }
+
     err = btsvc_init();
     if (err) {
         LOG_ERR("Bluetooth service init failed {err: %d}", err);
+        return 0;
+    }
+
+    // Finally enable USB
+
+    err = btj_usbd_init();
+    if (err) {
+        LOG_ERR("USB device init failed {err: %d}", err);
         return 0;
     }
 

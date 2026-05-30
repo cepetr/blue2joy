@@ -43,11 +43,10 @@ struct webusb_if_descriptor {
 struct webusb_data {
     struct usbd_class_data *c_data;
     const struct device *dev;
-    bool enabled;
+    atomic_t enabled;
     webusb_rx_callback_t rx_callback;
-    void *rx_context;
     webusb_status_callback_t status_callback;
-    void *status_context;
+    void *callback_context;
 };
 
 // Forward declarations for descriptor arrays
@@ -99,7 +98,7 @@ static int webusb_request(struct usbd_class_data *const c_data, struct net_buf *
         LOG_DBG("OUT transfer completed on EP 0x%02x, len %u", bi->ep, buf->len);
 
         if (data->rx_callback != NULL) {
-            data->rx_callback(data->rx_context, buf->data, buf->len);
+            data->rx_callback(data->callback_context, buf->data, buf->len);
         }
 
         net_buf_reset(buf);
@@ -124,9 +123,10 @@ static void webusb_enable(struct usbd_class_data *const c_data)
 
     LOG_INF("WebUSB function enabled");
 
-    data->enabled = true;
+    atomic_set(&data->enabled, true);
+
     if (data->status_callback != NULL) {
-        data->status_callback(data->status_context, true);
+        data->status_callback(data->callback_context, true);
     }
 
     if (webusb_queue_out(c_data) != 0) {
@@ -141,9 +141,10 @@ static void webusb_disable(struct usbd_class_data *const c_data)
 
     LOG_INF("WebUSB function disabled");
 
-    data->enabled = false;
+    atomic_set(&data->enabled, false);
+
     if (data->status_callback != NULL) {
-        data->status_callback(data->status_context, false);
+        data->status_callback(data->callback_context, false);
     }
 }
 
@@ -179,13 +180,10 @@ static int webusb_init(struct usbd_class_data *const c_data)
 
     LOG_INF("Initializing WebUSB class instance %p", c_data);
 
-    data->enabled = false;
+    atomic_set(&data->enabled, false);
+
     data->c_data = c_data;
     data->dev = ctx ? ctx->dev : NULL;
-    data->rx_callback = NULL;
-    data->rx_context = NULL;
-    data->status_callback = NULL;
-    data->status_context = NULL;
 
     return 0;
 }
@@ -195,8 +193,16 @@ static void webusb_shutdown(struct usbd_class_data *const c_data)
 {
     struct webusb_data *data = usbd_class_get_private(c_data);
 
+    bool was_enabled = atomic_set(&data->enabled, false);
+
     LOG_INF("Shutting down WebUSB class instance");
-    data->enabled = false;
+
+    data->c_data = c_data;
+    data->dev = NULL;
+
+    if (was_enabled && data->status_callback != NULL) {
+        data->status_callback(data->callback_context, false);
+    }
 }
 
 static int webusb_queue_out(struct usbd_class_data *const c_data)
@@ -278,7 +284,7 @@ struct usbd_class_data *btj_webusb_get_class_data(void)
 
 bool btj_webusb_is_enabled(void)
 {
-    return g_webusb_data.enabled;
+    return atomic_get(&g_webusb_data.enabled);
 }
 
 int btj_webusb_send(const uint8_t *data, size_t len)
@@ -289,7 +295,7 @@ int btj_webusb_send(const uint8_t *data, size_t len)
         return -EINVAL;
     }
 
-    if (!wdata->enabled || wdata->c_data == NULL) {
+    if (!atomic_get(&wdata->enabled) || wdata->c_data == NULL) {
         return -EACCES;
     }
 
@@ -319,26 +325,14 @@ int btj_webusb_send(const uint8_t *data, size_t len)
     return 0;
 }
 
-int btj_webusb_register_rx_callback(webusb_rx_callback_t cb, void *context)
+int btj_webusb_register_callbacks(webusb_rx_callback_t rx_cb, webusb_status_callback_t status_cb,
+                                  void *context)
 {
     struct webusb_data *wdata = &g_webusb_data;
 
-    wdata->rx_callback = cb;
-    wdata->rx_context = context;
-
-    return 0;
-}
-
-int btj_webusb_register_status_callback(webusb_status_callback_t cb, void *context)
-{
-    struct webusb_data *wdata = &g_webusb_data;
-
-    wdata->status_callback = cb;
-    wdata->status_context = context;
-
-    if (cb != NULL) {
-        cb(context, wdata->enabled);
-    }
+    wdata->rx_callback = rx_cb;
+    wdata->status_callback = status_cb;
+    wdata->callback_context = context;
 
     return 0;
 }
