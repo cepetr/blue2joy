@@ -855,7 +855,7 @@ export class Xep80View extends MobxLitElement {
           margin: 0;
           overflow: hidden;
           color: var(--xep80-display-color);
-          font-family: ui-monospace, monospace;
+          font-family: "DejaVu Mono", "DejaVu Sans Mono", ui-monospace, monospace;
           font-size: 1rem;
           line-height: ${Xep80View.textLineHeight};
           white-space: pre;
