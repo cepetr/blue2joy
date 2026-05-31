@@ -1,6 +1,6 @@
 # 🕹️ Blue2Joy
 
-**Blue2Joy** is an adapter that lets you use modern Bluetooth controllers with Atari 8-bit computers. It emulates **digital joysticks**, **analog paddles**, and supports **bidirectional communication** and much more.
+**Blue2Joy** is an adapter that lets you use modern Bluetooth controllers with Atari 8-bit computers. It emulates **digital joysticks**, **analog paddles**, and supports **bidirectional communication** and much more. Try the live demo: https://cepetr.github.io/blue2joy/main.
 
 While primarily intended for gamepads, the device is not limited to them - in principle, any BLE HID device, such as a keyboard or mouse, can be connected.
 
@@ -13,9 +13,15 @@ While primarily intended for gamepads, the device is not limited to them - in pr
   <img width="24%" src="doc/images/blue2joy-set.jpg">
 </div>
 
-Have a look at the potentiometer emulation demo:
+<div>
+  <img width="49%" src="doc/images/800xe+tablet.jpg">
+  <img width="49%" src="doc/images/800xl+tablet.jpg">
+</div>
+
+## Have a look at some demos:
 
 [![](https://img.youtube.com/vi/nXR6tCQPxGU/0.jpg)](https://youtu.be/nXR6tCQPxGU)
+[![](https://img.youtube.com/vi/oCuMOWX2rxg/0.jpg)](https://youtu.be/oCuMOWX2rxg)
 
 ## Use Cases
 While there are other adapters that let Bluetooth controllers act as digital joysticks, Blue2Joy goes further. Besides standard and expected use cases, there are a few new possible ones that utilize analog input emulation or bidirectional communication:
