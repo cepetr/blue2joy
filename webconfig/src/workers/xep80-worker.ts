@@ -95,7 +95,6 @@ export function decodeXep80Update(data: Uint8Array, state: Uint8Array): void {
 
     const op = cmd & 0xf0;
     const low = cmd & 0x0f;
-
     switch (op) {
       case 0x80: {
         // 8X YY - repeat byte YY for X + 1 times
@@ -173,6 +172,16 @@ type Xep80RenderOptions = {
   colOfs: number;
 };
 
+export type Xep80TextCell = {
+  text: string;
+  inverted: boolean;
+  underline: boolean;
+  doubleWidth: boolean;
+  cursor: boolean;
+};
+
+export type Xep80TextRow = Xep80TextCell[];
+
 let fonts: Array<ImageBitmap | null> = [];
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let renderColor = "#8ef0a7";
@@ -226,43 +235,60 @@ function mapXep80Char(fontIndex: number, charCode: number): string {
   return fontMap[fontIndex]?.charAt(charCode) ?? " ";
 }
 
-export function renderXep80Text(state: Uint8Array): string {
+function createTextCell(
+  text: string,
+  attr: Xep80CellAttr,
+  invertedScreen: boolean,
+  cursor = false,
+): Xep80TextCell {
+  return {
+    text,
+    inverted: attr.inverted !== invertedScreen,
+    underline: attr.underline,
+    doubleWidth: attr.doubleWidth,
+    cursor,
+  };
+}
+
+export function renderXep80Text(state: Uint8Array): Xep80TextRow[] {
   const ram = state.subarray(0, XEP80_RAM_SIZE);
   const regs = state.subarray(XEP80_RAM_SIZE, XEP80_STATE_SIZE);
   const opt = getRenderOptions(regs);
-  const lines: string[] = [];
+  const lines: Xep80TextRow[] = [];
 
   for (let row = 0; row < DISP_ROWS; row++) {
     const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
     const fontIndex = (opt.rows[row] >> 5) & 0x03;
-    let line = "";
+    const line: Xep80TextRow = [];
 
     for (let col = 0; col < DISP_COLS; col++) {
       const ofs = rowOfs + col;
+      const cursor = ofs === opt.curs;
 
-      if (ofs === opt.curs) {
-        line += "█";
-        continue;
+      let attr = opt.attr[0];
+      let text = " ";
+
+      if (ram[ofs] !== 0x9b) {
+        attr = opt.attr[ram[ofs] & 0x80 ? 1 : 0];
+        text = attr.blank ? " " : mapXep80Char(fontIndex, ram[ofs] & 0x7f);
       }
 
-      if (ram[ofs] === 0x9b) {
-        line += " ";
-        continue;
-      }
+      const doubleWidth = attr.doubleWidth && col + 1 < DISP_COLS;
 
-      const attr = opt.attr[ram[ofs] & 0x80 ? 1 : 0];
-      line += mapXep80Char(fontIndex, ram[ofs] & 0x7f);
+      line.push({
+        ...createTextCell(text, attr, opt.invertedScreen, cursor),
+        doubleWidth,
+      });
 
-      if (attr.doubleWidth && col + 1 < DISP_COLS) {
-        line += " ";
+      if (doubleWidth) {
         col += 1;
       }
     }
 
-    lines.push(line.padEnd(DISP_COLS, " "));
+    lines.push(line);
   }
 
-  return lines.join("\n");
+  return lines;
 }
 
 async function loadFont(url: string): Promise<ImageBitmap | null> {

@@ -30,6 +30,7 @@ import {
   XEP80_DISPLAY_COLS,
   XEP80_DISPLAY_ROWS,
   type WorkerMessage,
+  type Xep80TextRow,
 } from "../workers/xep80-worker.js";
 
 type Xep80RenderMode = "bitmap" | "text";
@@ -60,10 +61,17 @@ export class Xep80View extends MobxLitElement {
 
   private static readonly colorIdStorageKey = "xep80-color-id";
 
-  private static readonly blankTextScreen = Array.from(
-    { length: XEP80_DISPLAY_ROWS },
-    () => " ".repeat(XEP80_DISPLAY_COLS),
-  ).join("\n");
+  private static createBlankTextScreen(): Xep80TextRow[] {
+    return Array.from({ length: XEP80_DISPLAY_ROWS }, () =>
+      Array.from({ length: XEP80_DISPLAY_COLS }, () => ({
+        text: " ",
+        inverted: false,
+        underline: false,
+        doubleWidth: false,
+        cursor: false,
+      }))
+    );
+  }
 
   private static readonly colorOptions: Xep80ColorOption[] = [
     {
@@ -117,7 +125,7 @@ export class Xep80View extends MobxLitElement {
   private textSurface?: HTMLDivElement;
 
   @query(".xep80-text-screen")
-  private textScreenElement?: HTMLPreElement;
+  private textScreenElement?: HTMLDivElement;
 
   @query(".xep80-view")
   private viewElement?: HTMLDivElement;
@@ -129,7 +137,7 @@ export class Xep80View extends MobxLitElement {
   private renderMode: Xep80RenderMode = this.loadRenderMode();
 
   @state()
-  private textScreen = Xep80View.blankTextScreen;
+  private textScreen: Xep80TextRow[] = Xep80View.createBlankTextScreen();
 
   @state()
   private isToolboxVisible = false;
@@ -145,7 +153,7 @@ export class Xep80View extends MobxLitElement {
 
   private clearFramebuffer() {
     this.lastFramebufferState = new Uint8Array(0);
-    this.textScreen = Xep80View.blankTextScreen;
+    this.textScreen = Xep80View.createBlankTextScreen();
   }
 
   private isXep80Active(): boolean {
@@ -655,6 +663,19 @@ export class Xep80View extends MobxLitElement {
     `;
   }
 
+  private renderTextScreen() {
+    return html`<div class="xep80-text-screen">${this.textScreen.map((row) =>
+      html`<div class="xep80-text-row">${row.map((cell) => html`<span
+            class=${[
+          "x80c",
+          cell.doubleWidth ? "x80c--dw" : "",
+          cell.inverted ? "x80c--inv" : "",
+          cell.underline ? "x80c--ul" : "",
+          cell.cursor ? "x80c--cur" : "",
+        ].filter(Boolean).join(" ")}
+          ><span class="x80c__g">${cell.text === " " ? "\u00a0" : cell.text}</span></span>`)}${""}</div>`)}${""}</div>`;
+  }
+
   private renderDisplaySurface(mode: Xep80RenderMode) {
     const isBitmap = mode === "bitmap";
     const isXep80Enabled = this.isXep80Active();
@@ -686,7 +707,7 @@ export class Xep80View extends MobxLitElement {
             ? "xep80-surface--inactive"
             : ""}"
               >
-                <pre class="xep80-text-screen">${this.textScreen}</pre>
+                ${this.renderTextScreen()}
               </div>
             `}
         ${!isXep80Enabled ? this.renderActivationPrompt() : null}
@@ -854,16 +875,76 @@ export class Xep80View extends MobxLitElement {
           z-index: 1;
           margin: 0;
           overflow: hidden;
+          display: block;
           color: var(--xep80-display-color);
           font-family: "DejaVu Mono", "DejaVu Sans Mono", ui-monospace, monospace;
           font-size: 1rem;
           line-height: ${Xep80View.textLineHeight};
-          white-space: pre;
+          white-space: normal;
           tab-size: 1;
           font-variant-ligatures: none;
           text-shadow:
             0 0 0.35rem var(--xep80-glow-color),
             0 0 0.85rem color-mix(in srgb, var(--xep80-glow-color) 70%, transparent);
+        }
+
+        .xep80-text-row {
+          display: flex;
+          flex-wrap: nowrap;
+        }
+
+        .x80c {
+          position: relative;
+          display: inline-block;
+          box-sizing: border-box;
+          flex: 0 0 auto;
+          width: 1ch;
+          min-width: 1ch;
+          text-align: left;
+          overflow: hidden;
+        }
+
+        .x80c--dw {
+          width: 2ch;
+          min-width: 2ch;
+        }
+
+        .x80c__g {
+          position: relative;
+          display: inline-block;
+          width: 100%;
+          transform-origin: left center;
+        }
+
+        .x80c--dw .x80c__g {
+          transform: scaleX(2);
+        }
+
+        .x80c--inv {
+          color: var(--xep80-surface-background);
+          background: var(--xep80-display-color);
+        }
+
+        .x80c--inv .x80c__g {
+          text-shadow: none;
+        }
+
+        .x80c--ul {
+          text-decoration: underline;
+          text-decoration-thickness: 1px;
+        }
+
+        .x80c--cur::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: color-mix(
+            in srgb,
+            var(--xep80-display-color) 50%,
+            transparent
+          );
+          pointer-events: none;
+          z-index: 2;
         }
       </style>
       <div class="col-12 xep80-view">
