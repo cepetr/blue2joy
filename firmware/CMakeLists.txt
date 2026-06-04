@@ -40,6 +40,7 @@ target_sources(app PRIVATE
   src/xep80/xep80_misc.c
   src/xep80/xep80_update.c
   src/usbd/usbd_init.c
+  src/usbd/usbd_winusb.c
   src/usbd/usbd_webusb.c
   src/main.c
 )

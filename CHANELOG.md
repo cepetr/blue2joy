@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.5.1
+### Fixed
+- Added WinUSB auto-binding for WebUSB via MS OS 2.0 BOS; no Zadig/INF needed.
+
 ## v0.5.0
 ### Fixed
 - Web USB stability improvements

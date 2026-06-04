@@ -21,6 +21,8 @@
 
 #include <zephyr/logging/log.h>
 
+#include "usbd_winusb.h"
+
 LOG_MODULE_REGISTER(btj_usbd, LOG_LEVEL_DBG);
 
 // Registered Blue2Joy PID at https://pid.codes/
@@ -49,6 +51,13 @@ int btj_usbd_init(void)
 {
     int err;
 
+    /* BOS descriptors are exposed only when bcdUSB >= 0x0201 in device_next. */
+    err = usbd_device_set_bcd_usb(&btj_usbd, USBD_SPEED_FS, 0x0210);
+    if (err) {
+        LOG_ERR("Failed to set bcdUSB to 2.10 (%d)", err);
+        return err;
+    }
+
     err = usbd_add_descriptor(&btj_usbd, &btj_usbd_lang);
     if (err) {
         LOG_ERR("Failed to initialize language descriptor (%d)", err);
@@ -71,6 +80,12 @@ int btj_usbd_init(void)
 
     if (err) {
         LOG_ERR("Failed to initialize SN descriptor (%d)", err);
+        return err;
+    }
+
+    err = btj_usbd_register_winusb(&btj_usbd);
+    if (err) {
+        LOG_ERR("Failed to add WinUSB MS OS 2.0 descriptors (%d)", err);
         return err;
     }
 
