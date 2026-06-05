@@ -114,9 +114,14 @@ static void xep80_process_word(xep80_t *xep, uint16_t word)
         xep->last_char = word & 0xFF;
     }
 
-    // Update cursor address
-    xep->state.curs =
-        (xep->state.rows[xep->cur.y] & 0x1F) * XEP80_ROW_SIZE + xep->cur.x + xep->state.x_scroll;
+    if (xep->cursor_on) {
+        // Update cursor address
+        xep->state.curs = (xep->state.rows[xep->cur.y] & 0x1F) * XEP80_ROW_SIZE + xep->cur.x +
+                          xep->state.x_scroll;
+    } else {
+        // Disable cursor by setting an invalid address
+        xep->state.curs = 0xFFFF;
+    }
 
     // LOG_INF("Cursor position: x=%d y=%d r_m=%d (curs=0x%03X)", xep->cur.x, xep->cur.y,
     //         xep->r_margin, xep->state.curs);

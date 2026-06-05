@@ -86,6 +86,8 @@ typedef struct {
 
     bool printer_mode;
 
+    // Whether the cursor is currently on or off
+    bool cursor_on;
     // Current cursor position
     cursor_t cur;
     // Cursor position synchronized with Atari

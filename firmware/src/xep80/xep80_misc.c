@@ -27,6 +27,7 @@ void xep80_reset(xep80_t *xep)
     memset(xep->state.vram, 0, sizeof(xep->state.vram));
     memset(xep->state.vram, 0x9B, XEP80_ROW_COUNT * XEP80_ROW_SIZE);
 
+    xep->cursor_on = true;
     xep->cur.x = 0;
     xep->cur.y = 0;
     xep->synced_cur = xep->cur;

@@ -158,22 +158,25 @@ void xep80_process_cmd(xep80_t *xep, uint16_t cmd)
 
     case 0x1D7:
         // Modify text display to 50Hz
-        // !@# TODO
+        // TODO
         break;
 
     case 0x1D8:
         // Cursor off
-        // !@# TODO
+        xep->state.vcr |= 0x02; // Static cursor
+        xep->cursor_on = false;
         break;
 
     case 0x1D9:
         // Cursor on
-        // !@# TODO
+        xep->state.vcr |= 0x02; // Static cursor
+        xep->cursor_on = true;
         break;
 
     case 0x1DA:
-        // Cursor blink off
-        // !@# TODO
+        // Cursor blink on
+        xep->state.vcr &= ~0x02; // Blinking cursor
+        xep->cursor_on = true;
         break;
 
     case 0x1DB:
@@ -181,8 +184,8 @@ void xep80_process_cmd(xep80_t *xep, uint16_t cmd)
         break;
 
     case 0x1DC:
-        // Scroll window`
-        // !@# TODO
+        // Set scroll window to current cursor x position
+        xep->state.x_scroll = xep->cur.x;
         break;
 
     case 0x1DD:
@@ -233,7 +236,7 @@ void xep80_process_cmd(xep80_t *xep, uint16_t cmd)
         } else if (cmd == 0x198) {
             // Set status line
 
-            // XEP80.SYS driver occasinaly sends unexpected 0x198 command
+            // The XEP80.SYS driver occasionally sends an unexpected 0x198 command
             // that completely messes up the screen, so ignore it for now.
             // TODO: investigate and fix the root cause.
 
