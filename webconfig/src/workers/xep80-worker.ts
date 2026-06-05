@@ -185,7 +185,6 @@ export type Xep80TextRow = Xep80TextCell[];
 let fonts: Array<ImageBitmap | null> = [];
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let renderColor = "#8ef0a7";
-let renderBackgroundColor = "#08130c";
 let fontLoadPromise: Promise<void> | null = null;
 
 // Font bitmap: 128 characters in 16x8 matrix, each character 8x12 pixels
@@ -388,7 +387,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   if (tint) {
     const palette = deriveXep80Palette(tint);
     renderColor = palette.display;
-    renderBackgroundColor = palette.surface;
   }
 
   if (type === "init" && canvas) {
