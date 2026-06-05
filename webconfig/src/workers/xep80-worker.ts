@@ -21,16 +21,6 @@ import fontInternationalUrl from "../assets/font_international.png?url";
 import fontNormalUrl from "../assets/font_normal.png?url";
 import { deriveXep80Palette } from "./xep80-palette.js";
 
-const internalMap =
-  "Ĳ↑Ø£¤°•§ÇÑÆÄÖÅÜŒ" +
-  "ĳßàèìïùéçñæäöåüœ" +
-  " !\"#$%&'()*+,-./" +
-  "0123456789:;<=>?" +
-  "@ABCDEFGHIJKLMNO" +
-  "PQRSTUVWXYZ[\\]^_" +
-  "`abcdefghijklmno" +
-  "pqrstuvwxyz{|}~░";
-
 const normalMap =
   "♥┣▐┛┫┓╱╲◢▗◣▝▝▀▂▖" +
   "♣┏━╋●▄▎┳┻▌┗ᴱ↑↓←→" +
@@ -51,8 +41,20 @@ const internationalMap =
   "¡abcdefghijklmno" +
   "pqrstuvwxyzÄ|↖◀▶";
 
+const internalMap =
+  "Ĳ↑Ø£¤°•§ÇÑÆÄÖÅÜŒ" +
+  "ĳßàèìïùéçñæäöåüœ" +
+  " !\"#$%&'()*+,-./" +
+  "0123456789:;<=>?" +
+  "@ABCDEFGHIJKLMNO" +
+  "PQRSTUVWXYZ[\\]^_" +
+  "`abcdefghijklmno" +
+  "pqrstuvwxyz{|}~░";
+
 const fontMap = [normalMap, internationalMap, internalMap] as const;
 
+const FONT_NORMAL = 0;
+const FONT_INTERNATIONAL = 1;
 
 enum Nsp405Reg {
   TCP0 = 0,
@@ -252,13 +254,19 @@ function createTextCell(
 export function renderXep80Text(state: Uint8Array): Xep80TextRow[] {
   const ram = state.subarray(0, XEP80_RAM_SIZE);
   const regs = state.subarray(XEP80_RAM_SIZE, XEP80_STATE_SIZE);
-  const opt = getRenderOptions(regs);
   const lines: Xep80TextRow[] = [];
 
   for (let row = 0; row < DISP_ROWS; row++) {
+    const opt = getRenderOptions(regs);
     const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
     const fontIndex = (opt.rows[row] >> 5) & 0x03;
     const line: Xep80TextRow = [];
+
+    if (fontIndex === FONT_NORMAL || fontIndex === FONT_INTERNATIONAL) {
+      // Normal and international fonts have the inverted attribute bit flipped 
+      // compared to the internal font, so invert it back here for text rendering.
+      opt.attr[1].inverted = !opt.attr[1].inverted;
+    }
 
     for (let col = 0; col < DISP_COLS; col++) {
       const ofs = rowOfs + col;
@@ -425,10 +433,18 @@ function renderFramebuffer(
   // Draw characters from framebuffer
   for (let row = 0; row < DISP_ROWS; row++) {
     const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
-    const font = fonts[(opt.rows[row] >> 5) & 0x03];
+    const fontIndex = (opt.rows[row] >> 5) & 0x03;
+    const font = fonts[fontIndex];
 
     if (!font) {
       continue;
+    }
+
+    let rowAttr: [Xep80CellAttr, Xep80CellAttr] = opt.attr;
+    if (fontIndex === FONT_NORMAL || fontIndex === FONT_INTERNATIONAL) {
+      // Normal and international fonts have the inverted attribute bit flipped 
+      // compared to the internal font, so invert it back here for rendering.
+      rowAttr = [opt.attr[0], { ...opt.attr[1], inverted: !opt.attr[1].inverted }];
     }
 
     for (let col = 0; col < DISP_COLS; col++) {
@@ -438,10 +454,10 @@ function renderFramebuffer(
       let char;
 
       if (ram[ofs] != 0x9b) {
-        attr = opt.attr[ram[ofs] & 0x80 ? 1 : 0];
+        attr = rowAttr[ram[ofs] & 0x80 ? 1 : 0];
         char = ram[ofs] & 0x7f;
       } else {
-        attr = opt.attr[0];
+        attr = rowAttr[0];
         char = 0x20;
       }
 
