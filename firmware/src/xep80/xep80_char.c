@@ -226,7 +226,7 @@ static void delete_char_from_row(xep80_t *xep, uint8_t x, uint8_t y, char ch)
     xep80_vram_set(xep, xep->r_margin, y, ch);
 }
 
-// Delete char at current position, move all chars in the logical line to    left.
+// Delete char at current position, move all chars in the logical line to the left.
 // Current position is not changed.
 static void delete_char(xep80_t *xep)
 {
@@ -238,19 +238,21 @@ static void delete_char(xep80_t *xep)
     uint8_t y = xep->cur.y;
 
     while (y < XEP80_STATUS_LINE) {
-        char ch = 0x9B;
 
-        if (!xep80_last_row_in_line(xep, y)) {
+        if (xep80_last_row_in_line(xep, y)) {
+            delete_char_from_row(xep, x, y, 0x9B);
+            break;
+        } else {
             // char at the start of the next row is moved
             // to the end of the current row
-            ch = xep80_vram_get(xep, xep->l_margin, y + 1);
-        }
-
-        delete_char_from_row(xep, x, y, ch);
-
-        if (ch == 0x9B && xep80_vram_get(xep, xep->l_margin, y) == 0x9B) {
-            delete_row_and_scroll(xep, y);
-            break;
+            char ch = xep80_vram_get(xep, xep->l_margin, y + 1);
+            delete_char_from_row(xep, x, y, ch);
+            // If we shifted the EOL char, the next row becomes empty
+            // and we can delete it
+            if (ch == 0x9B) {
+                delete_row_and_scroll(xep, y + 1);
+                break;
+            }
         }
 
         x = xep->l_margin;
