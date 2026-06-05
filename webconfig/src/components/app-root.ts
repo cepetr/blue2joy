@@ -22,7 +22,7 @@ import { customElement, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
 import "../styles/bootstrap";
-import { toggleTheme, currentTheme, type Theme } from "../styles/bootstrap.js";
+import { currentTheme, toggleTheme, type Theme } from "../styles/bootstrap.js";
 
 import "./devices-view.js";
 import "./profiles-view.js";
@@ -125,49 +125,105 @@ export class AppRoot extends MobxLitElement {
     window.location.hash = path;
   };
 
+  private renderBluetoothConnectBox(busy: boolean) {
+    return html`
+      <div class="col-12">
+        <div
+          class="border rounded-3 p-3 text-start bg-body-tertiary mx-auto"
+          style="max-width: 42rem;"
+        >
+          <div class="d-flex align-items-center justify-content-between gap-3">
+            <div class="flex-grow-1">
+              <h5 class="mb-1">Bluetooth</h5>
+              <p class="text-body-secondary mb-0">
+                For wireless setup from this device.
+              </p>
+              <p class="small text-warning mb-0 mt-1">
+                Before connecting, press button 2 on your Blue2Joy device so it
+                becomes discoverable.
+              </p>
+            </div>
+            <button
+              class="btn btn-primary"
+              @click=${this.onScanClick}
+              ?disabled=${busy}
+            >
+              Connect via Bluetooth
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderUsbConnectBox(busy: boolean) {
+    return html`
+      <div class="col-12">
+        <div
+          class="border rounded-3 p-3 text-start bg-body-tertiary mx-auto"
+          style="max-width: 42rem;"
+        >
+          <div class="d-flex align-items-center justify-content-between gap-3">
+            <div class="flex-grow-1">
+              <h5 class="mb-1">USB</h5>
+              <p class="text-body-secondary mb-0">
+                For best performance with lower lag (recommended for XEP80).
+              </p>
+            </div>
+            <button
+              class="btn btn-primary"
+              @click=${this.onUsbClick}
+              ?disabled=${busy}
+            >
+              Connect via USB
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderDemoConnectBox(busy: boolean) {
+    return html`
+      <div class="col-12">
+        <div
+          class="border rounded-3 p-3 text-start bg-body-tertiary mx-auto"
+          style="max-width: 42rem;"
+        >
+          <div class="d-flex align-items-center justify-content-between gap-3">
+            <div class="flex-grow-1">
+              <h5 class="mb-1">Demo Mode</h5>
+              <p class="text-body-secondary mb-0">
+                Try the app without hardware using a virtual Blue2Joy device.
+              </p>
+            </div>
+            <button
+              class="btn btn-outline-primary"
+              @click=${this.onDemoClick}
+              ?disabled=${busy}
+            >
+              Start Demo Mode
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   private renderNotConnected() {
     const busy = this.busyAction !== null;
 
     return html`
       <div class="text-center pt-4">
-        <h3>No device is connected.</h3>
-        <p>Choose a transport to connect to hardware or open the demo mode.</p>
-
-        <div class="d-grid gap-2 mx-auto" style="width: min(100%, 12rem);">
-          <button
-            class="btn btn-primary"
-            @click=${this.onScanClick}
-            ?disabled=${busy}
-          >
-            ${this.busyAction === "bluetooth"
-              ? "Opening Bluetooth chooser..."
-              : "Connect with Bluetooth"}
-          </button>
-
-          <button
-            class="btn btn-outline-primary"
-            @click=${this.onUsbClick}
-            ?disabled=${busy}
-          >
-            ${this.busyAction === "usb"
-              ? "Opening USB chooser..."
-              : "Connect with USB"}
-          </button>
-
-          <button
-            class="btn btn-outline-secondary"
-            @click=${this.onDemoClick}
-            ?disabled=${busy}
-          >
-            ${this.busyAction === "demo"
-              ? "Starting demo mode…"
-              : "Open Demo Mode"}
-          </button>
-        </div>
-
-        <p class="text-body-secondary mt-3 mb-0">
-          Demo mode uses the virtual transport for UI testing and presentations.
+        <h3>Connect to Blue2Joy</h3>
+        <p class="mb-4">
+          Choose a connection method for hardware, or start Demo Mode.
         </p>
+
+        <div class="row g-3 justify-content-center">
+          ${this.renderBluetoothConnectBox(busy)}
+          ${this.renderUsbConnectBox(busy)} ${this.renderDemoConnectBox(busy)}
+        </div>
 
         ${this.renderErrors()}
       </div>
@@ -179,7 +235,7 @@ export class AppRoot extends MobxLitElement {
     return html`
       <div class="mt-3">
         ${btj.errors.map(
-          (err) => html`
+      (err) => html`
             <div
               class="alert alert-danger alert-dismissible fade show"
               role="alert"
@@ -196,7 +252,7 @@ export class AppRoot extends MobxLitElement {
               ></button>
             </div>
           `,
-        )}
+    )}
       </div>
     `;
   }
@@ -271,10 +327,10 @@ export class AppRoot extends MobxLitElement {
         <li class="nav-item dropdown ${hasProfiles ? "" : "d-none"}">
           <a
             class="nav-link dropdown-toggle ${profileIds.some((id) =>
-              isProfile(id),
-            )
-              ? "active"
-              : ""}"
+      isProfile(id),
+    )
+        ? "active"
+        : ""}"
             href="#"
             role="button"
             data-bs-toggle="dropdown"
@@ -284,7 +340,7 @@ export class AppRoot extends MobxLitElement {
           </a>
           <ul class="dropdown-menu">
             ${profileIds.map(
-              (id) => html`
+          (id) => html`
                 <li>
                   <a
                     class="dropdown-item ${isProfile(id) ? "active" : ""}"
@@ -294,7 +350,7 @@ export class AppRoot extends MobxLitElement {
                   </a>
                 </li>
               `,
-            )}
+        )}
           </ul>
         </li>
 
@@ -348,8 +404,8 @@ export class AppRoot extends MobxLitElement {
       <nav class="nav nav-pills flex-column gap-1">
         <a
           class="nav-link ${btj.connected ? "" : "disabled"} ${isDevices
-            ? "active"
-            : ""}"
+        ? "active"
+        : ""}"
           data-bs-dismiss="offcanvas"
           @click=${() => this.onNavLinkClick(this.buildPath("/devices"))}
         >
@@ -358,8 +414,8 @@ export class AppRoot extends MobxLitElement {
 
         <a
           class="nav-link ${btj.connected ? "" : "disabled"} ${isXep80
-            ? "active"
-            : ""}"
+        ? "active"
+        : ""}"
           data-bs-dismiss="offcanvas"
           @click=${() => this.onNavLinkClick(this.buildPath("/xep80"))}
         >
@@ -367,24 +423,24 @@ export class AppRoot extends MobxLitElement {
         </a>
 
         ${hasProfiles
-          ? html`
+        ? html`
               <div class="mt-2 text-muted">Profiles</div>
               ${profileIds.map(
-                (id) => html`
+          (id) => html`
                   <a
                     class="nav-link ${isProfile(id) ? "active" : ""}"
                     data-bs-dismiss="offcanvas"
                     @click=${() =>
-                      this.onNavLinkClick(this.buildPath(`/profiles/${id}`))}
+              this.onNavLinkClick(this.buildPath(`/profiles/${id}`))}
                   >
                     Profile ${id}
                   </a>
                 `,
-              )}
+        )}
             `
-          : null}
+        : null}
         ${btj.connected && btj.joyPort?.mode === Btj.JoyPortMode.UART
-          ? html`
+        ? html`
               <button
                 class="btn btn-outline-danger w-100 mt-2"
                 data-bs-dismiss="offcanvas"
@@ -393,7 +449,7 @@ export class AppRoot extends MobxLitElement {
                 Disable XEP80
               </button>
             `
-          : ""}
+        : ""}
 
         <div class="mt-3">
           <button
@@ -434,7 +490,7 @@ export class AppRoot extends MobxLitElement {
           </div>
 
           ${btj.connected
-            ? html`
+        ? html`
                 <a
                   class="navbar-toggler d-lg-none"
                   type="button"
@@ -447,7 +503,7 @@ export class AppRoot extends MobxLitElement {
                   <span class="navbar-toggler-icon"></span>
                 </a>
               `
-            : null}
+        : null}
         </div>
       </nav>
     `;
