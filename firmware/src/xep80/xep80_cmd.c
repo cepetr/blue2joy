@@ -204,6 +204,11 @@ void xep80_process_cmd(xep80_t *xep, uint16_t cmd)
         xep->state.vcr |= 0x08; // Reverse video flag
         break;
 
+    case 0x1ED:
+        // Set VCR register
+        xep->state.vcr = xep->last_char;
+        break;
+
     case 0x1F4:
         // Set attribute latch 0
         xep->state.attr0 = xep->last_char;
@@ -212,6 +217,17 @@ void xep80_process_cmd(xep80_t *xep, uint16_t cmd)
     case 0x1F5:
         // Set attribute latch 1
         xep->state.attr1 = xep->last_char;
+        break;
+
+    case 0x1F6:
+        // Set TCP register
+        xep->tcp_register = xep->last_char & 0xF;
+        break;
+
+    case 0x1F7:
+        // Write TCP register
+        xep->state.tcp[xep->tcp_register] = xep->last_char;
+        xep->tcp_register = (xep->tcp_register + 1) & 0xF;
         break;
 
     default:

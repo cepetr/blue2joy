@@ -37,6 +37,7 @@ void xep80_reset(xep80_t *xep)
     xep->burst_mode = false;
     xep->printer_mode = false;
     xep->escape_mode = false;
+    xep->tcp_register = 0;
 
     xep->state.vcr = 0x00;
     xep->state.attr0 = 0xFF;
