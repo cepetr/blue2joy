@@ -863,8 +863,8 @@ export class Xep80View extends MobxLitElement {
           padding: 1.25rem 1.5rem;
           text-align: center;
           color: var(--bs-body-color);
-          background: rgba(255, 255, 255, 0.94);
-          border: 1px solid rgba(60, 80, 140, 0.15);
+          background: rgba(var(--bs-body-bg-rgb), 0.94);
+          border: 1px solid var(--bs-border-color-translucent);
           border-radius: 0.9rem;
           box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
           pointer-events: auto;
