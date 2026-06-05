@@ -101,8 +101,10 @@ typedef struct {
     // Most recently receive character with 9th bit not set
     char last_char;
 
-    // TCP register index
+    // Temporary value used as TCP register index
     uint8_t tcp_register;
+    // Temporary value used for commands that require two inputs
+    uint8_t extra_byte;
 
     // Mutex for synchronizing access to XEP80 state and update callback
     struct k_mutex mutex;

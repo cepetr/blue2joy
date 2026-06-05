@@ -204,6 +204,17 @@ void xep80_process_cmd(xep80_t *xep, uint16_t cmd)
         xep->state.vcr |= 0x08; // Reverse video flag
         break;
 
+    case 0x1E1:
+    case 0x1E4:
+    case 0x1E6:
+    case 0x1EE:
+    case 0x1F0:
+    case 0x1F2:
+    case 0x1F9:
+        // Set extra byte
+        xep->extra_byte = xep->last_char;
+        break;
+
     case 0x1ED:
         // Set VCR register
         xep->state.vcr = xep->last_char;
@@ -228,6 +239,26 @@ void xep80_process_cmd(xep80_t *xep, uint16_t cmd)
         // Write TCP register
         xep->state.tcp[xep->tcp_register] = xep->last_char;
         xep->tcp_register = (xep->tcp_register + 1) & 0xF;
+        break;
+
+    case 0x1FA:
+        // Set PSR register
+        // TODO
+        break;
+
+    case 0x1FB:
+        // Set UCR regisgter
+        // TODO
+        break;
+
+    case 0x1FC:
+        // Set UMX register
+        // TODO
+        break;
+
+    case 0x1FD:
+        // Retransmit last character
+        xep80_uart_send(xep->last_char);
         break;
 
     default:
