@@ -49,6 +49,8 @@ export interface ErrorEntry {
   source?: string; // e.g., 'connection', 'device', 'profile'
 }
 
+export type ConnectionTransport = "bluetooth" | "usb" | "demo";
+
 type Xep80ViewElement = HTMLElement & {
   renderFramebuffer(state: Uint8Array, synced?: boolean): void;
 };
@@ -67,6 +69,9 @@ export class BtjModel {
 
   @observable
   errors: ErrorEntry[] = [];
+
+  @observable
+  lastTransport: ConnectionTransport | null = null;
 
   @observable
   sysInfo: Btj.SysInfo | null = null;
@@ -132,6 +137,7 @@ export class BtjModel {
   async scanAndConnect(): Promise<void> {
     try {
       const transport = await scanAndSelectBluetoothTransport();
+      this.lastTransport = "bluetooth";
       await this.connect(transport);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "NotFoundError") {
@@ -146,6 +152,7 @@ export class BtjModel {
   async scanAndConnectUsb(): Promise<void> {
     try {
       const transport = await scanAndSelectWebUsbTransport();
+      this.lastTransport = "usb";
       await this.connect(transport);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "NotFoundError") {
@@ -159,9 +166,27 @@ export class BtjModel {
   @action
   async connectDemo(): Promise<void> {
     try {
+      this.lastTransport = "demo";
       await this.connect(createDemoTransport());
     } catch (err: unknown) {
       this.logError(err, "connection");
+    }
+  }
+
+  @action
+  async reconnectLastTransport(): Promise<void> {
+    switch (this.lastTransport) {
+      case "bluetooth":
+        await this.scanAndConnect();
+        break;
+      case "usb":
+        await this.scanAndConnectUsb();
+        break;
+      case "demo":
+        await this.connectDemo();
+        break;
+      default:
+        this.logError("No previous transport available", "connection");
     }
   }
 

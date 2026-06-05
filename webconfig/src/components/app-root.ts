@@ -125,6 +125,23 @@ export class AppRoot extends MobxLitElement {
     window.location.hash = path;
   };
 
+  private onDismissErrors = () => {
+    btj.clearErrors();
+  };
+
+  private onReconnectClick = async () => {
+    if (!btj.lastTransport) {
+      return;
+    }
+
+    try {
+      this.busyAction = btj.lastTransport;
+      await btj.reconnectLastTransport();
+    } finally {
+      this.busyAction = null;
+    }
+  };
+
   private renderBluetoothConnectBox(busy: boolean) {
     return html`
       <div class="col-12">
@@ -211,6 +228,10 @@ export class AppRoot extends MobxLitElement {
   }
 
   private renderNotConnected() {
+    if (btj.errors.length > 0) {
+      return this.renderErrorState();
+    }
+
     const busy = this.busyAction !== null;
 
     return html`
@@ -224,35 +245,60 @@ export class AppRoot extends MobxLitElement {
           ${this.renderBluetoothConnectBox(busy)}
           ${this.renderUsbConnectBox(busy)} ${this.renderDemoConnectBox(busy)}
         </div>
-
-        ${this.renderErrors()}
       </div>
     `;
   }
 
-  private renderErrors() {
-    if (btj.errors.length === 0) return null;
+  private renderErrorState() {
+    const busy = this.busyAction !== null;
+
     return html`
-      <div class="mt-3">
+      <div class="text-center pt-4">
+        <h3>Connection failed</h3>
+        <p class="mb-4">Check the messages below, then try again.</p>
+
+        <div class="row g-3 justify-content-center">
         ${btj.errors.map(
       (err) => html`
-            <div
-              class="alert alert-danger alert-dismissible fade show"
-              role="alert"
-            >
-              <strong> ${err.source ? `${err.source}: ` : ""} </strong>
-
-              ${err.message}
-
-              <button
-                type="button"
-                class="btn-close"
-                @click=${() => btj.removeError(err.id)}
-                aria-label="Close"
-              ></button>
+            <div class="col-12">
+              <div
+                class="border rounded-3 p-3 text-start bg-body-tertiary mx-auto"
+                style="max-width: 42rem;"
+              >
+                <h5 class="mb-1 text-danger">
+                  ${err.source ? `${err.source}` : "Connection error"}
+                </h5>
+                <p class="mb-0">${err.message}</p>
+              </div>
             </div>
           `,
     )}
+        </div>
+
+        <div class="mx-auto mt-3" style="max-width: 42rem;">
+          <div class="d-flex justify-content-end">
+            <button
+              type="button"
+              class="btn btn-outline-primary me-2"
+              ?disabled=${busy}
+              @click=${this.onDismissErrors}
+            >
+              Choose another method
+            </button>
+            ${btj.lastTransport
+              ? html`
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    @click=${this.onReconnectClick}
+                    ?disabled=${busy}
+                  >
+                    Try again
+                  </button>
+                `
+              : null}
+          </div>
+        </div>
       </div>
     `;
   }
