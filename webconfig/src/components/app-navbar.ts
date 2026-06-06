@@ -112,6 +112,47 @@ export class AppNavbar extends MobxLitElement {
     `;
   }
 
+  private renderActionButtons() {
+    return html`
+      <button
+        class="btn btn-sm btn-link p-1 navbar-theme-btn"
+        @click=${this.onThemeToggle}
+        title="Toggle theme"
+        aria-label="Toggle theme"
+      >
+        <i
+          class="bi ${this.theme === "dark" ? "bi-sun" : "bi-moon"} fs-5"
+        ></i>
+      </button>
+
+      ${btj.connected && btj.joyPort?.mode === Btj.JoyPortMode.UART
+        ? html`
+            <button
+              class="btn btn-sm btn-link p-1 text-danger"
+              @click=${this.onDisableXep80}
+              title="Deactivate XEP80"
+              aria-label="Deactivate XEP80"
+            >
+              <i class="bi bi-terminal-x fs-5"></i>
+            </button>
+          `
+        : nothing}
+
+      ${btj.connected
+        ? html`
+            <button
+              class="btn btn-sm btn-link p-1"
+              @click=${this.disconnect}
+              title="Disconnect"
+              aria-label="Disconnect"
+            >
+              <i class="bi bi-power fs-5"></i>
+            </button>
+          `
+        : nothing}
+    `;
+  }
+
   private renderTopbarMenu() {
     const { isDevices, isProfile, isXep80, profileIds, hasProfiles } =
       this.getNavState();
@@ -130,13 +171,13 @@ export class AppNavbar extends MobxLitElement {
         <li class="nav-item dropdown ${hasProfiles ? "" : "d-none"}">
           <a
             class="nav-link dropdown-toggle ${profileIds.some((id) =>
-              isProfile(id),
-            )
-              ? "active"
-              : ""}"
+      isProfile(id),
+    )
+        ? "active"
+        : ""}"
             href=${this.lastProfileId !== null
-              ? this.buildPath(`/profiles/${this.lastProfileId}`)
-              : nothing}
+        ? this.buildPath(`/profiles/${this.lastProfileId}`)
+        : nothing}
             role="button"
             aria-expanded="false"
           >
@@ -144,7 +185,7 @@ export class AppNavbar extends MobxLitElement {
           </a>
           <ul class="dropdown-menu">
             ${profileIds.map(
-              (id) => html`
+          (id) => html`
                 <li>
                   <a
                     class="dropdown-item ${isProfile(id) ? "active" : id === this.lastProfileId ? "app-last-visited" : ""}"
@@ -154,7 +195,7 @@ export class AppNavbar extends MobxLitElement {
                   </a>
                 </li>
               `,
-            )}
+        )}
           </ul>
         </li>
 
@@ -169,60 +210,35 @@ export class AppNavbar extends MobxLitElement {
         </li>
       </ul>
 
-      ${btj.connected && btj.joyPort?.mode === Btj.JoyPortMode.UART
-        ? html`
-            <button
-              class="btn btn-sm btn-link ms-2 p-1 text-danger"
-              @click=${this.onDisableXep80}
-              title="Deactivate XEP80"
-              aria-label="Deactivate XEP80"
-            >
-              <i class="bi bi-terminal-x fs-5"></i>
-            </button>
-          `
-        : ""}
-      ${btj.connected
-        ? html`
-            <button
-              class="btn btn-sm btn-link ms-2 p-1"
-              @click=${this.disconnect}
-              title="Disconnect"
-              aria-label="Disconnect"
-            >
-              <i class="bi bi-box-arrow-right fs-5"></i>
-            </button>
-          `
-        : html` <span class="navbar-text ms-3">NOT CONNECTED</span> `}
+      ${!btj.connected
+        ? html`<span class="navbar-text">NOT CONNECTED</span>`
+        : nothing}
 
-      <button
-        class="btn btn-sm btn-link ms-2 p-1 navbar-theme-btn"
-        @click=${this.onThemeToggle}
-        title="Toggle theme"
-        aria-label="Toggle theme"
-      >
-        <i class="bi ${this.theme === "dark" ? "bi-sun" : "bi-moon"} fs-5"></i>
-      </button>
+      <div class="d-flex align-items-center gap-1">
+        ${this.renderActionButtons()}
+      </div>
     `;
   }
 
   private renderSidebarInfo() {
     if (!btj.sysInfo || !btj.sysState) return null;
     return html`
-      <ul class="list-unstyled mb-0">
-        <li>
-          <strong>Device:</strong>
-          ${btj.sysInfo.hw_id}
-        </li>
-        <li>
-          <strong>Firmware:</strong>
-          ${btj.sysInfo.sw_version}
-        </li>
-        <li>
-          <strong>Current Mode:</strong>
+      <dl
+        class="mb-0 small"
+        style="display:grid; grid-template-columns:auto 1fr; column-gap:0.75rem;"
+      >
+        <dt class="fw-normal text-muted">Device</dt>
+        <dd class="mb-0">${btj.sysInfo.hw_id}</dd>
+
+        <dt class="fw-normal text-muted">Firmware</dt>
+        <dd class="mb-0">${btj.sysInfo.sw_version}</dd>
+
+        <dt class="fw-normal text-muted">Mode</dt>
+        <dd class="mb-0">
           ${Btj.SysMode[btj.sysState.mode]}
           ${btj.sysState?.scanning ? "SCANNING" : ""}
-        </li>
-      </ul>
+        </dd>
+      </dl>
     `;
   }
 
@@ -233,62 +249,45 @@ export class AppNavbar extends MobxLitElement {
       <nav class="nav nav-pills flex-column gap-1">
         <a
           class="nav-link ${btj.connected ? "" : "disabled"} ${isDevices
-            ? "active"
-            : ""}"
+        ? "active"
+        : ""}"
           data-bs-dismiss="offcanvas"
           @click=${() => this.onNavLinkClick(this.buildPath("/devices"))}
         >
           Devices
         </a>
 
+        ${hasProfiles
+        ? html`
+              <div
+                class="nav-link disabled small fw-semibold text-muted mt-1 py-1"
+              >
+                Profiles
+              </div>
+              ${profileIds.map(
+          (id) => html`
+                  <a
+                    class="nav-link ps-5 ${isProfile(id) ? "active" : ""}"
+                    data-bs-dismiss="offcanvas"
+                    @click=${() =>
+              this.onNavLinkClick(this.buildPath(`/profiles/${id}`))}
+                  >
+                    Profile ${id}
+                  </a>
+                `,
+        )}
+            `
+        : null}
+
         <a
           class="nav-link ${btj.connected ? "" : "disabled"} ${isXep80
-            ? "active"
-            : ""}"
+        ? "active"
+        : ""}"
           data-bs-dismiss="offcanvas"
           @click=${() => this.onNavLinkClick(this.buildPath("/xep80"))}
         >
           XEP80
         </a>
-
-        ${hasProfiles
-          ? html`
-              <div class="mt-2 text-muted">Profiles</div>
-              ${profileIds.map(
-                (id) => html`
-                  <a
-                    class="nav-link ${isProfile(id) ? "active" : ""}"
-                    data-bs-dismiss="offcanvas"
-                    @click=${() =>
-                      this.onNavLinkClick(this.buildPath(`/profiles/${id}`))}
-                  >
-                    Profile ${id}
-                  </a>
-                `,
-              )}
-            `
-          : null}
-        ${btj.connected && btj.joyPort?.mode === Btj.JoyPortMode.UART
-          ? html`
-              <button
-                class="btn btn-outline-danger w-100 mt-2"
-                data-bs-dismiss="offcanvas"
-                @click=${this.onDisableXep80}
-              >
-                <i class="bi bi-terminal-x me-2"></i>Deactivate XEP80
-              </button>
-            `
-          : ""}
-
-        <div class="mt-3">
-          <button
-            class="btn btn-outline-secondary w-100"
-            data-bs-dismiss="offcanvas"
-            @click=${this.disconnect}
-          >
-            <i class="bi bi-box-arrow-right me-2"></i>Disconnect
-          </button>
-        </div>
       </nav>
     `;
   }
@@ -348,37 +347,33 @@ export class AppNavbar extends MobxLitElement {
             <span>Blue2Joy</span>
           </a>
 
-          <button
-            class="btn btn-sm btn-link ms-auto me-2 d-lg-none p-1 navbar-theme-btn"
-            @click=${this.onThemeToggle}
-            title="Toggle theme"
-            aria-label="Toggle theme"
-          >
-            <i
-              class="bi ${this.theme === "dark" ? "bi-sun" : "bi-moon"} fs-5"
-            ></i>
-          </button>
+          <div class="ms-auto d-flex align-items-center gap-1 d-lg-none">
+            ${!btj.connected
+        ? html`<span class="navbar-text">NOT CONNECTED</span>`
+        : nothing}
+            ${this.renderActionButtons()}
+            ${btj.connected
+        ? html`
+                  <span class="vr mx-1"></span>
+                  <button
+                    class="btn btn-sm btn-link p-1"
+                    type="button"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#appNavOffcanvas"
+                    aria-controls="appNavOffcanvas"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation"
+                  >
+                    <i class="bi bi-list fs-5"></i>
+                  </button>
+                `
+        : null}
+          </div>
 
           <div class="d-none d-lg-flex w-100">
             <div class="d-flex gap-3">${this.renderTopbarInfo()}</div>
             <div class="d-flex ms-auto gap-3">${this.renderTopbarMenu()}</div>
           </div>
-
-          ${btj.connected
-            ? html`
-                <a
-                  class="navbar-toggler d-lg-none"
-                  type="button"
-                  data-bs-toggle="offcanvas"
-                  data-bs-target="#appNavOffcanvas"
-                  aria-controls="appNavOffcanvas"
-                  aria-expanded="false"
-                  aria-label="Toggle navigation"
-                >
-                  <span class="navbar-toggler-icon"></span>
-                </a>
-              `
-            : null}
         </div>
       </nav>
 
