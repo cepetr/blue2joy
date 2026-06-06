@@ -90,13 +90,17 @@ export class ConnectView extends MobxLitElement {
                 becomes discoverable.
               </p>
             </div>
-            <button
-              class="btn btn-primary"
-              @click=${this.onScanClick}
-              ?disabled=${busy}
-            >
-              Connect via Bluetooth
-            </button>
+            <div style="width:8.75rem;flex-shrink:0;">
+              <button
+                class="btn btn-primary w-100"
+                style="padding-block: 0.5625rem;"
+                @click=${this.onScanClick}
+                ?disabled=${busy}
+              >
+                <span class="d-block">Connect</span>
+                <span class="d-block small">via Bluetooth</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -117,13 +121,17 @@ export class ConnectView extends MobxLitElement {
                 For best performance with lower lag (recommended for XEP80).
               </p>
             </div>
-            <button
-              class="btn btn-primary"
-              @click=${this.onUsbClick}
-              ?disabled=${busy}
-            >
-              Connect via USB
-            </button>
+            <div style="width:8.75rem;flex-shrink:0;">
+              <button
+                class="btn btn-primary w-100"
+                style="padding-block: 0.5625rem;"
+                @click=${this.onUsbClick}
+                ?disabled=${busy}
+              >
+                <span class="d-block">Connect</span>
+                <span class="d-block small">via USB</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -144,13 +152,17 @@ export class ConnectView extends MobxLitElement {
                 Try the app without hardware using a virtual Blue2Joy device.
               </p>
             </div>
-            <button
-              class="btn btn-outline-primary"
-              @click=${this.onDemoClick}
-              ?disabled=${busy}
-            >
-              Start Demo Mode
-            </button>
+            <div style="width:8.75rem;flex-shrink:0;">
+              <button
+                class="btn btn-outline-primary w-100"
+                style="padding-block: 0.5625rem;"
+                @click=${this.onDemoClick}
+                ?disabled=${busy}
+              >
+                <span class="d-block">Start</span>
+                <span class="d-block small">Demo Mode</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
