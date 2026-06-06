@@ -21,6 +21,10 @@ import {
   getXep80Charset,
   mapXep80Char,
 } from "./xep80-charset.js";
+import {
+  getRenderOptions,
+  type Xep80CellAttr,
+} from "./xep80-regs.js";
 
 import {
   XEP80_RAM_SIZE,
@@ -35,48 +39,12 @@ import {
   XEP80_DEFAULT_TINT,
 } from "./xep80-palette.js";
 
-enum Nsp405Reg {
-  TCP0 = 0,
-  TCP14 = 14,
-  SCR = 16,
-  VCR = 17,
-  HOME = 18,
-  BEGD = 20,
-  ENDD = 22,
-  SROW = 24,
-  AL0 = 26,
-  AL1 = 27,
-  CURS = 28,
-  ROW_PTR0 = 30,
-  ROW_PTR1 = 31,
-  ROW_PTR24 = 54,
-  XSCROLL = 55,
-}
-
 export interface WorkerMessage {
   type: string;
   canvas?: OffscreenCanvas;
   state?: Uint8Array;
   tint?: string;
 }
-
-type Xep80CellAttr = {
-  inverted: boolean;
-  blinking: boolean;
-  doubleHeight: boolean;
-  doubleWidth: boolean;
-  underline: boolean;
-  blank: boolean;
-  graphics: boolean;
-};
-
-type Xep80RenderOptions = {
-  curs: number;
-  attr: [Xep80CellAttr, Xep80CellAttr];
-  invertedScreen: boolean;
-  rows: Uint8Array;
-  colOfs: number;
-};
 
 export type Xep80TextCell = {
   text: string;
@@ -104,35 +72,6 @@ const DISP_ROWS = 25;
 
 export const XEP80_DISPLAY_COLS = DISP_COLS;
 export const XEP80_DISPLAY_ROWS = DISP_ROWS;
-
-function getRenderOptions(regs: Uint8Array): Xep80RenderOptions {
-  return {
-    curs: regs[Nsp405Reg.CURS] + regs[Nsp405Reg.CURS + 1] * 256,
-    attr: [
-      {
-        inverted: (regs[Nsp405Reg.AL0] & 0x01) == 0,
-        blinking: (regs[Nsp405Reg.AL0] & 0x04) == 0,
-        doubleHeight: (regs[Nsp405Reg.AL0] & 0x08) == 0,
-        doubleWidth: (regs[Nsp405Reg.AL0] & 0x10) == 0,
-        underline: (regs[Nsp405Reg.AL0] & 0x20) == 0,
-        blank: (regs[Nsp405Reg.AL0] & 0x40) == 0,
-        graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
-      },
-      {
-        inverted: (regs[Nsp405Reg.AL1] & 0x01) == 0,
-        blinking: (regs[Nsp405Reg.AL1] & 0x04) == 0,
-        doubleHeight: (regs[Nsp405Reg.AL1] & 0x08) == 0,
-        doubleWidth: (regs[Nsp405Reg.AL1] & 0x10) == 0,
-        underline: (regs[Nsp405Reg.AL1] & 0x20) == 0,
-        blank: (regs[Nsp405Reg.AL1] & 0x40) == 0,
-        graphics: (regs[Nsp405Reg.AL1] & 0x80) == 0,
-      },
-    ],
-    invertedScreen: (regs[Nsp405Reg.VCR] & 0x08) != 0,
-    rows: regs.subarray(Nsp405Reg.ROW_PTR0, Nsp405Reg.ROW_PTR0 + DISP_ROWS),
-    colOfs: regs[Nsp405Reg.XSCROLL],
-  };
-}
 
 function createTextCell(
   text: string,
