@@ -369,21 +369,6 @@ export class Xep80View extends MobxLitElement {
           overflow: hidden;
         }
 
-        .xep80-surface::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          pointer-events: none;
-          background: linear-gradient(
-            180deg,
-            color-mix(in srgb, var(--xep80-glow-color) 22%, transparent),
-            transparent 22%
-          );
-          mix-blend-mode: screen;
-          opacity: 0.75;
-        }
-
         .xep80-surface--inactive .xep80-canvas {
           visibility: hidden;
         }

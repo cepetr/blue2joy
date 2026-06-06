@@ -99,6 +99,18 @@ export class Xep80ToolboxConfig extends EventTarget {
     return true;
   }
 
+  setColorId(colorId: Xep80ColorId): boolean {
+    if (this.currentColorId === colorId) {
+      return false;
+    }
+
+    this.currentColorId = colorId;
+    localStorage.setItem(colorIdStorageKey, this.currentColorId);
+    this.dispatchChange();
+
+    return true;
+  }
+
   cycleColor(): Xep80ColorId {
     this.currentColorId = this.getNextColorOption().id;
     localStorage.setItem(colorIdStorageKey, this.currentColorId);
@@ -178,8 +190,8 @@ export class Xep80Toolbox extends LitElement {
     xep80ToolboxConfig.setMode(mode);
   };
 
-  private onCycleColor = () => {
-    xep80ToolboxConfig.cycleColor();
+  private onColorClick = (colorId: Xep80ColorId) => {
+    xep80ToolboxConfig.setColorId(colorId);
   };
 
   private onToggleFullscreen = () => {
@@ -189,28 +201,86 @@ export class Xep80Toolbox extends LitElement {
     }));
   };
 
-  override render() {
+  private renderModeControls() {
     const items: Array<{ mode: Xep80RenderMode; label: string }> = [
-      { mode: "bitmap", label: "Original" },
-      { mode: "text", label: "Modern" },
+      { mode: "bitmap", label: "1987" },
+      { mode: "text", label: "2026" },
     ];
-    const currentIndex = xep80ColorOptions.findIndex(
-      ({ id }) => id === this.colorId,
-    );
-    const nextColor =
-      xep80ColorOptions[(currentIndex + 1) % xep80ColorOptions.length];
 
+    return html`
+      <section class="xep80-toolbox__group" aria-labelledby="xep80-toolbox-view-label">
+        <span id="xep80-toolbox-view-label" class="xep80-toolbox__label">View Mode</span>
+        <div class="xep80-toolbox__controls" role="group" aria-label="View mode">
+          ${items.map(
+      ({ mode, label }) => html`
+              <button
+                type="button"
+                class="xep80-toolbox__button xep80-toolbox__button--segmented ${this.mode === mode ? "xep80-toolbox__button--active" : ""}"
+                aria-pressed=${this.mode === mode}
+                @click=${() => this.onModeClick(mode)}
+              >
+                ${label}
+              </button>
+            `,
+    )}
+        </div>
+      </section>
+    `;
+  }
+
+  private renderTintControls() {
+    return html`
+      <section class="xep80-toolbox__group" aria-labelledby="xep80-toolbox-tint-label">
+        <span id="xep80-toolbox-tint-label" class="xep80-toolbox__label">Display Tint</span>
+        <div class="xep80-toolbox__controls" role="group" aria-label="Display tint">
+          ${xep80ColorOptions.map(
+      ({ id, label, tint }) => html`
+              <button
+                type="button"
+                class="xep80-toolbox__button xep80-toolbox__button--segmented ${this.colorId === id ? "xep80-toolbox__button--active" : ""}"
+                aria-pressed=${this.colorId === id}
+                @click=${() => this.onColorClick(id)}
+              >
+                <span class="xep80-toolbox__swatch" style=${`background:${tint}`}></span>
+                ${label}
+              </button>
+            `,
+    )}
+        </div>
+      </section>
+    `;
+  }
+
+  private renderWindowControls() {
+    return html`
+      <section class="xep80-toolbox__group xep80-toolbox__group--window" aria-labelledby="xep80-toolbox-window-label">
+        <span id="xep80-toolbox-window-label" class="xep80-toolbox__label">Window</span>
+        <div class="xep80-toolbox__controls">
+          <button
+            type="button"
+            class="xep80-toolbox__button"
+            @click=${this.onToggleFullscreen}
+          >
+            ${this.fullscreen ? "Exit Full Screen" : "Enter Full Screen"}
+          </button>
+        </div>
+      </section>
+    `;
+  }
+
+  override render() {
     return html`
       <style>
         .xep80-toolbox {
           position: absolute;
           left: 50%;
-          bottom: calc(var(--xep80-surface-bottom-spacing, 8px) + 0.5rem);
-          transform: translate(-50%, 0.5rem);
+          bottom: calc(var(--xep80-surface-bottom-spacing, 8px) + 0.75rem);
+          width: min(100% - 1.5rem, 52rem);
+          transform: translate(-50%, 0.75rem);
           opacity: 0;
           pointer-events: none;
-          transition: opacity 150ms ease, transform 150ms ease;
-          z-index: 1;
+          transition: opacity 180ms ease, transform 180ms ease;
+          z-index: 3;
         }
 
         .xep80-toolbox--visible {
@@ -219,71 +289,150 @@ export class Xep80Toolbox extends LitElement {
           transform: translate(-50%, 0);
         }
 
-        .xep80-toolbox-group {
-          padding: 0.25rem;
-          border: 1px solid rgba(255, 255, 255, 0.78);
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        .xep80-toolbox .btn {
-          color: #1a2033;
-          border-color: rgba(60, 80, 140, 0.28);
+        .xep80-toolbox__panel {
+          padding: 0;
+          color: var(--bs-body-color);
           background: transparent;
+          border: 0;
+          border-radius: 0;
+          backdrop-filter: none;
+          -webkit-backdrop-filter: none;
+        }
+
+        .xep80-toolbox__grid {
+          display: flex;
+          align-items: stretch;
+          justify-content: space-between;
+          gap: 0.75rem;
+          min-width: 0;
+        }
+
+        .xep80-toolbox__group {
+          display: flex;
+          flex: 1 1 0;
+          flex-direction: column;
+          min-width: 0;
+          padding: 0.75rem 0.8rem;
+          border: 1px solid var(--bs-border-color);
+          border-radius: 0.85rem;
+          background: rgba(var(--bs-body-bg-rgb), 0.6);
+        }
+
+        .xep80-toolbox__group--window {
+          flex: 0 0 auto;
+        }
+
+        .xep80-toolbox__label {
+          display: block;
+          margin-bottom: 0.55rem;
+          color: rgba(var(--bs-body-color-rgb), 0.62);
+          font-size: 0.74rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .xep80-toolbox__controls {
+          display: flex;
+          gap: 0.5rem;
+          min-width: 0;
+        }
+
+        .xep80-toolbox__button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.45rem;
+          min-height: 2.5rem;
+          padding: 0.55rem 0.8rem;
+          color: var(--bs-body-color);
+          border: 1px solid var(--bs-border-color);
+          background: rgba(var(--bs-body-bg-rgb), 0.78);
+          border-radius: 0.75rem;
+          font-size: 0.92rem;
+          font-weight: 600;
+          line-height: 1.2;
+          transition:
+            background-color 150ms ease,
+            border-color 150ms ease,
+            color 150ms ease,
+            transform 150ms ease;
+        }
+
+        .xep80-toolbox__button:hover,
+        .xep80-toolbox__button:focus-visible {
+          color: var(--bs-body-color);
+          border-color: rgba(var(--bs-primary-rgb), 0.38);
+          background: rgba(var(--bs-primary-rgb), 0.1);
+        }
+
+        .xep80-toolbox__button:active {
+          transform: translateY(1px);
+        }
+
+        .xep80-toolbox__button--segmented {
+          flex: 1 1 0;
+          min-width: 0;
+        }
+
+        .xep80-toolbox__button--active {
+          color: var(--bs-body-bg);
+          border-color: var(--bs-primary);
+          background: var(--bs-primary);
+        }
+
+        .xep80-toolbox__button--active:hover,
+        .xep80-toolbox__button--active:focus-visible,
+        .xep80-toolbox__button--active:active {
+          color: var(--bs-body-bg);
+          border-color: var(--bs-primary);
+          background: var(--bs-primary);
+          transform: none;
+        }
+
+        .xep80-toolbox__swatch {
+          display: inline-block;
+          flex: 0 0 auto;
+          width: 0.8rem;
+          height: 0.8rem;
+          border: 1px solid rgba(var(--bs-body-color-rgb), 0.2);
           border-radius: 999px;
         }
 
-        .xep80-toolbox .btn:hover,
-        .xep80-toolbox .btn:focus-visible {
-          color: #1a2033;
-          border-color: rgba(60, 80, 140, 0.42);
-          background: rgba(37, 99, 235, 0.08);
-        }
+        @media (max-width: 720px) {
+          .xep80-toolbox {
+            width: min(100% - 1rem, 30rem);
+          }
 
-        .xep80-toolbox .btn.active,
-        .xep80-toolbox .btn:active {
-          color: #ffffff;
-          border-color: #2563eb;
-          background: #2563eb;
+          .xep80-toolbox__grid {
+            flex-direction: column;
+          }
+
+          .xep80-toolbox__group,
+          .xep80-toolbox__group--window {
+            flex: 1 1 auto;
+          }
+
+          .xep80-toolbox__controls {
+            flex-direction: column;
+          }
+
+          .xep80-toolbox__button--segmented {
+            width: 100%;
+          }
         }
       </style>
       <div
         class="xep80-toolbox ${this.visible ? "xep80-toolbox--visible" : ""}"
+        ?inert=${!this.visible}
+        aria-hidden=${String(!this.visible)}
       >
-        <div
-          class="btn-group xep80-toolbox-group"
-          role="group"
-          aria-label="XEP80 toolbox"
-        >
-          ${items.map(
-      ({ mode, label }) => html`
-              <button
-                type="button"
-                class="btn btn-outline-secondary ${this.mode === mode ? "active" : ""}"
-                aria-pressed=${this.mode === mode}
-                @click=${() => this.onModeClick(mode)}
-              >
-                ${label}
-              </button>
-            `,
-    )}
-          <button
-            type="button"
-            class="btn btn-outline-secondary"
-            @click=${this.onCycleColor}
-          >
-            ${nextColor.label}
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-secondary"
-            @click=${this.onToggleFullscreen}
-          >
-            ${this.fullscreen ? "Windowed" : "Full Screen"}
-          </button>
+        <div class="xep80-toolbox__panel" role="group" aria-label="XEP80 toolbox">
+          <div class="xep80-toolbox__grid">
+            ${this.renderModeControls()}
+            ${this.renderTintControls()}
+            ${this.renderWindowControls()}
+          </div>
         </div>
       </div>
     `;
