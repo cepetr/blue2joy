@@ -17,7 +17,7 @@
  */
 
 import { MobxLitElement } from "@adobe/lit-mobx";
-import { html } from "lit";
+import { html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
@@ -31,6 +31,7 @@ export class AppNavbar extends MobxLitElement {
 
   @state() private currentHash = location.hash.slice(1) || "/";
   @state() private theme: Theme = currentTheme();
+  @state() private lastProfileId: number | null = null;
 
   override connectedCallback() {
     super.connectedCallback();
@@ -46,6 +47,10 @@ export class AppNavbar extends MobxLitElement {
 
   private handleHashChange = () => {
     this.currentHash = location.hash.slice(1) || "/";
+    const profileMatch = this.currentHash.match(/^\/profiles\/(\d+)$/);
+    if (profileMatch) {
+      this.lastProfileId = parseInt(profileMatch[1], 10);
+    }
   };
 
   private handleThemeChange = () => {
@@ -111,7 +116,7 @@ export class AppNavbar extends MobxLitElement {
     const { isDevices, isProfile, isXep80, profileIds, hasProfiles } =
       this.getNavState();
     return html`
-      <ul class="nav nav-tabs">
+      <ul class="nav app-topbar-nav">
         <li class="nav-item ${btj.connected ? "" : "d-none"}">
           <a
             class="nav-link ${isDevices ? "active" : ""}"
@@ -129,9 +134,10 @@ export class AppNavbar extends MobxLitElement {
             )
               ? "active"
               : ""}"
-            href="#"
+            href=${this.lastProfileId !== null
+              ? this.buildPath(`/profiles/${this.lastProfileId}`)
+              : nothing}
             role="button"
-            data-bs-toggle="dropdown"
             aria-expanded="false"
           >
             Profiles
@@ -141,7 +147,7 @@ export class AppNavbar extends MobxLitElement {
               (id) => html`
                 <li>
                   <a
-                    class="dropdown-item ${isProfile(id) ? "active" : ""}"
+                    class="dropdown-item ${isProfile(id) ? "active" : id === this.lastProfileId ? "app-last-visited" : ""}"
                     href="${this.buildPath(`/profiles/${id}`)}"
                   >
                     Profile ${id}
@@ -313,6 +319,28 @@ export class AppNavbar extends MobxLitElement {
 
   override render() {
     return html`
+      <style>
+        .app-topbar-nav .nav-link {
+          border-radius: 0.375rem;
+          transition: background-color 0.15s ease;
+        }
+        .app-topbar-nav .nav-link.active {
+          background-color: rgba(var(--bs-emphasis-color-rgb), 0.08);
+          font-weight: 600;
+        }
+        .app-topbar-nav .nav-link:not(.active):hover {
+          background-color: rgba(var(--bs-emphasis-color-rgb), 0.05);
+        }
+        .app-topbar-nav .dropdown:hover > .dropdown-menu {
+          display: block;
+          margin-top: 0;
+        }
+        .app-topbar-nav .dropdown-item.app-last-visited {
+          background-color: rgba(var(--bs-emphasis-color-rgb), 0.05);
+          font-weight: 500;
+        }
+      </style>
+
       <nav class="navbar navbar-expand-lg fixed-top bg-body-tertiary">
         <div class="container-fluid">
           <a class="navbar-brand d-flex gap-2" href="${this.buildPath("/")}">
