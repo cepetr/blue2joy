@@ -24,6 +24,7 @@ import {
   XEP80_DEFAULT_TINT,
 } from "./palette.js";
 import { renderXep80Bitmap } from "./render-bitmap.js";
+import type { WorkerMessage } from "./worker-protocol.js";
 export type {
   Xep80TextCell,
   Xep80TextRow
@@ -33,13 +34,6 @@ export {
   XEP80_DISPLAY_COLS,
   XEP80_DISPLAY_ROWS
 } from "./render-text.js";
-
-export interface WorkerMessage {
-  type: string;
-  canvas?: OffscreenCanvas;
-  state?: Uint8Array;
-  tint?: string;
-}
 
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let renderColor = XEP80_DEFAULT_TINT;

@@ -35,6 +35,18 @@ export type Xep80TextCell = {
 export type Xep80TextRow = Xep80TextCell[];
 export { XEP80_DISPLAY_COLS, XEP80_DISPLAY_ROWS };
 
+export function createBlankXep80TextScreen(): Xep80TextRow[] {
+  return Array.from({ length: XEP80_DISPLAY_ROWS }, () =>
+    Array.from({ length: XEP80_DISPLAY_COLS }, () => ({
+      text: " ",
+      inverted: false,
+      underline: false,
+      doubleWidth: false,
+      cursor: false,
+    }))
+  );
+}
+
 function createTextCell(
   text: string,
   attr: Xep80CellAttr,

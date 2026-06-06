@@ -25,11 +25,12 @@ import {
   deriveXep80Palette,
   type Xep80Palette,
 } from "../xep80/palette.js";
+import { createBlankXep80TextScreen } from "../xep80/render-text.js";
+import type { WorkerMessage } from "../xep80/worker-protocol.js";
 import {
   renderXep80Text,
   XEP80_DISPLAY_COLS,
   XEP80_DISPLAY_ROWS,
-  type WorkerMessage,
   type Xep80TextRow,
 } from "../xep80/worker.js";
 
@@ -60,18 +61,6 @@ export class Xep80View extends MobxLitElement {
   private static readonly renderModeStorageKey = "xep80-render-mode";
 
   private static readonly colorIdStorageKey = "xep80-color-id";
-
-  private static createBlankTextScreen(): Xep80TextRow[] {
-    return Array.from({ length: XEP80_DISPLAY_ROWS }, () =>
-      Array.from({ length: XEP80_DISPLAY_COLS }, () => ({
-        text: " ",
-        inverted: false,
-        underline: false,
-        doubleWidth: false,
-        cursor: false,
-      }))
-    );
-  }
 
   private static readonly colorOptions: Xep80ColorOption[] = [
     {
@@ -137,7 +126,7 @@ export class Xep80View extends MobxLitElement {
   private renderMode: Xep80RenderMode = this.loadRenderMode();
 
   @state()
-  private textScreen: Xep80TextRow[] = Xep80View.createBlankTextScreen();
+  private textScreen: Xep80TextRow[] = createBlankXep80TextScreen();
 
   @state()
   private isToolboxVisible = false;
@@ -153,7 +142,7 @@ export class Xep80View extends MobxLitElement {
 
   private clearFramebuffer() {
     this.lastFramebufferState = new Uint8Array(0);
-    this.textScreen = Xep80View.createBlankTextScreen();
+    this.textScreen = createBlankXep80TextScreen();
   }
 
   private isXep80Active(): boolean {
