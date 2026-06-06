@@ -33,6 +33,8 @@ import {
   XEP80_DISPLAY_ROWS,
   type Xep80TextRow,
 } from "../xep80/worker.js";
+import "./xep80-bitmap.js";
+import "./xep80-text.js";
 import "./xep80-toolbox.js";
 
 type Xep80RenderMode = "bitmap" | "text";
@@ -140,6 +142,8 @@ export class Xep80View extends MobxLitElement {
   private toolboxHideTimer?: number;
 
   private lastFramebufferState = new Uint8Array(0);
+
+  private workerCanvasInitialized = false;
 
   private clearFramebuffer() {
     this.lastFramebufferState = new Uint8Array(0);
@@ -326,6 +330,7 @@ export class Xep80View extends MobxLitElement {
       this.worker.terminate();
       this.worker = null;
     }
+    this.workerCanvasInitialized = false;
   }
 
   private initWorker() {
@@ -339,16 +344,40 @@ export class Xep80View extends MobxLitElement {
     }
   }
 
-  override firstUpdated() {
-    if (this.canvasElement && this.worker) {
-      const offscreenCanvas = this.canvasElement.transferControlToOffscreen();
-      const msg: WorkerMessage = {
-        type: "init",
-        canvas: offscreenCanvas,
-        tint: this.getCurrentColorOption().tint,
-      };
-      this.worker.postMessage(msg, [offscreenCanvas]);
+  private tryInitWorkerCanvas() {
+    if (!this.canvasElement || !this.worker || this.workerCanvasInitialized) {
+      return false;
     }
+
+    const offscreenCanvas = this.canvasElement.transferControlToOffscreen();
+    const msg: WorkerMessage = {
+      type: "init",
+      canvas: offscreenCanvas,
+      tint: this.getCurrentColorOption().tint,
+    };
+    this.worker.postMessage(msg, [offscreenCanvas]);
+    this.workerCanvasInitialized = true;
+    return true;
+  }
+
+  private async initWorkerCanvasWhenReady() {
+    const bitmapElement = this.querySelector("xep80-bitmap") as
+      | (HTMLElement & { updateComplete?: Promise<unknown> })
+      | null;
+
+    if (bitmapElement?.updateComplete) {
+      await bitmapElement.updateComplete;
+    }
+
+    if (!this.tryInitWorkerCanvas()) {
+      requestAnimationFrame(() => {
+        this.tryInitWorkerCanvas();
+      });
+    }
+  }
+
+  override firstUpdated() {
+    void this.initWorkerCanvasWhenReady();
 
     if (this.canvasWrap) {
       this.resizeObserver = new ResizeObserver(() => this.resizeActiveView());
@@ -608,19 +637,6 @@ export class Xep80View extends MobxLitElement {
     `;
   }
 
-  private renderTextScreen() {
-    return html`<div class="xep80-text-screen">${this.textScreen.map((row) =>
-      html`<div class="xep80-text-row">${row.map((cell) => html`<span
-            class=${[
-          "x80c",
-          cell.doubleWidth ? "x80c--dw" : "",
-          cell.inverted ? "x80c--inv" : "",
-          cell.underline ? "x80c--ul" : "",
-          cell.cursor ? "x80c--cur" : "",
-        ].filter(Boolean).join(" ")}
-          ><span class="x80c__g">${cell.text === " " ? "\u00a0" : cell.text}</span></span>`)}${""}</div>`)}${""}</div>`;
-  }
-
   private renderDisplaySurface(mode: Xep80RenderMode) {
     const isBitmap = mode === "bitmap";
     const isXep80Enabled = this.isXep80Active();
@@ -646,22 +662,13 @@ export class Xep80View extends MobxLitElement {
       >
         ${isBitmap
         ? html`
-              <div
-                class="xep80-surface xep80-surface--bitmap ${isDisplaySuppressed
-            ? "xep80-surface--inactive"
-            : ""}"
-              >
-                <canvas width="560" height="250" class="xep80-canvas"></canvas>
-              </div>
+              <xep80-bitmap .suppressed=${isDisplaySuppressed}></xep80-bitmap>
             `
         : html`
-              <div
-                class="xep80-surface xep80-surface--text ${isDisplaySuppressed
-            ? "xep80-surface--inactive"
-            : ""}"
-              >
-                ${this.renderTextScreen()}
-              </div>
+              <xep80-text
+                .rows=${this.textScreen}
+                .suppressed=${isDisplaySuppressed}
+              ></xep80-text>
             `}
         ${!isXep80Enabled ? this.renderActivationPrompt() : null}
         ${isXep80Enabled && !isXep80Synced ? this.renderSyncPrompt() : null}
@@ -690,6 +697,7 @@ export class Xep80View extends MobxLitElement {
           --xep80-surface-background: ${palette.surface};
           --xep80-border-color: ${palette.border};
           --xep80-glow-color: ${palette.glow};
+          --xep80-surface-bottom-spacing: ${Xep80View.surfaceBottomSpacingPx}px;
           overflow: hidden;
         }
 
@@ -750,8 +758,7 @@ export class Xep80View extends MobxLitElement {
           opacity: 0.75;
         }
 
-        .xep80-surface--inactive .xep80-canvas,
-        .xep80-surface--inactive .xep80-text-screen {
+        .xep80-surface--inactive .xep80-canvas {
           visibility: hidden;
         }
 
@@ -760,54 +767,6 @@ export class Xep80View extends MobxLitElement {
           z-index: 1;
           display: block;
           image-rendering: pixelated;
-        }
-
-        .xep80-toolbox {
-          position: absolute;
-          left: 50%;
-          bottom: calc(${Xep80View.surfaceBottomSpacingPx}px + 0.5rem);
-          transform: translate(-50%, 0.5rem);
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity 150ms ease, transform 150ms ease;
-          z-index: 1;
-        }
-
-        .xep80-toolbox--visible {
-          opacity: 1;
-          pointer-events: auto;
-          transform: translate(-50%, 0);
-        }
-
-        .xep80-toolbox-group {
-          padding: 0.25rem;
-          border: 1px solid rgba(255, 255, 255, 0.78);
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        .xep80-toolbox .btn {
-          color: #1a2033;
-          border-color: rgba(60, 80, 140, 0.28);
-          background: transparent;
-          border-radius: 999px;
-        }
-
-        .xep80-toolbox .btn:hover,
-        .xep80-toolbox .btn:focus-visible {
-          color: #1a2033;
-          border-color: rgba(60, 80, 140, 0.42);
-          background: rgba(37, 99, 235, 0.08);
-        }
-
-        .xep80-toolbox .btn.active,
-        .xep80-toolbox .btn:active {
-          color: #ffffff;
-          border-color: #2563eb;
-          background: #2563eb;
         }
 
         .xep80-activation-prompt {
@@ -833,82 +792,6 @@ export class Xep80View extends MobxLitElement {
           pointer-events: auto;
         }
 
-        .xep80-text-screen {
-          position: relative;
-          z-index: 1;
-          margin: 0;
-          overflow: hidden;
-          display: block;
-          color: var(--xep80-display-color);
-          font-family: "DejaVu Mono", "DejaVu Sans Mono", ui-monospace, monospace;
-          font-size: 1rem;
-          line-height: ${Xep80View.textLineHeight};
-          white-space: normal;
-          tab-size: 1;
-          font-variant-ligatures: none;
-          text-shadow:
-            0 0 0.35rem var(--xep80-glow-color),
-            0 0 0.85rem color-mix(in srgb, var(--xep80-glow-color) 70%, transparent);
-        }
-
-        .xep80-text-row {
-          display: flex;
-          flex-wrap: nowrap;
-        }
-
-        .x80c {
-          position: relative;
-          display: inline-block;
-          box-sizing: border-box;
-          flex: 0 0 auto;
-          width: 1ch;
-          min-width: 1ch;
-          text-align: left;
-          overflow: hidden;
-        }
-
-        .x80c--dw {
-          width: 2ch;
-          min-width: 2ch;
-        }
-
-        .x80c__g {
-          position: relative;
-          display: inline-block;
-          width: 100%;
-          transform-origin: left center;
-        }
-
-        .x80c--dw .x80c__g {
-          transform: scaleX(2);
-        }
-
-        .x80c--inv {
-          color: var(--xep80-surface-background);
-          background: var(--xep80-display-color);
-        }
-
-        .x80c--inv .x80c__g {
-          text-shadow: none;
-        }
-
-        .x80c--ul {
-          text-decoration: underline;
-          text-decoration-thickness: 1px;
-        }
-
-        .x80c--cur::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: color-mix(
-            in srgb,
-            var(--xep80-display-color) 50%,
-            transparent
-          );
-          pointer-events: none;
-          z-index: 2;
-        }
       </style>
       <div class="col-12 xep80-view">
         ${this.renderDisplaySurface("bitmap")}

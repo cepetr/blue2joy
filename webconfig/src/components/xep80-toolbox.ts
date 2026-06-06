@@ -72,6 +72,55 @@ export class Xep80Toolbox extends LitElement {
     ];
 
     return html`
+      <style>
+        .xep80-toolbox {
+          position: absolute;
+          left: 50%;
+          bottom: calc(var(--xep80-surface-bottom-spacing, 8px) + 0.5rem);
+          transform: translate(-50%, 0.5rem);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 150ms ease, transform 150ms ease;
+          z-index: 1;
+        }
+
+        .xep80-toolbox--visible {
+          opacity: 1;
+          pointer-events: auto;
+          transform: translate(-50%, 0);
+        }
+
+        .xep80-toolbox-group {
+          padding: 0.25rem;
+          border: 1px solid rgba(255, 255, 255, 0.78);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .xep80-toolbox .btn {
+          color: #1a2033;
+          border-color: rgba(60, 80, 140, 0.28);
+          background: transparent;
+          border-radius: 999px;
+        }
+
+        .xep80-toolbox .btn:hover,
+        .xep80-toolbox .btn:focus-visible {
+          color: #1a2033;
+          border-color: rgba(60, 80, 140, 0.42);
+          background: rgba(37, 99, 235, 0.08);
+        }
+
+        .xep80-toolbox .btn.active,
+        .xep80-toolbox .btn:active {
+          color: #ffffff;
+          border-color: #2563eb;
+          background: #2563eb;
+        }
+      </style>
       <div
         class="xep80-toolbox ${this.visible ? "xep80-toolbox--visible" : ""}"
       >
