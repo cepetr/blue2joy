@@ -23,6 +23,13 @@ import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
 import { Xep80FrameController } from "../xep80/frame-controller.js";
 import {
+  computeContentSize,
+  computeTextRenderMetrics,
+  fitSizeWithinViewport,
+  type ElementBoxInsets,
+  type ViewportSize,
+} from "../xep80/layout.js";
+import {
   deriveXep80Palette,
   type Xep80Palette,
 } from "../xep80/palette.js";
@@ -44,18 +51,6 @@ type Xep80ColorOption = {
   id: Xep80ColorId;
   label: string;
   tint: string;
-};
-
-type ViewportSize = {
-  width: number;
-  height: number;
-};
-
-type ElementBoxInsets = {
-  horizontalPadding: number;
-  verticalPadding: number;
-  horizontalBorders: number;
-  verticalBorders: number;
 };
 
 @customElement("xep80-view")
@@ -390,21 +385,6 @@ export class Xep80View extends MobxLitElement {
     container.style.height = `${availableHeight + verticalPadding}px`;
   }
 
-  private fitSizeWithinViewport(
-    available: ViewportSize,
-    content: ViewportSize,
-  ): ViewportSize {
-    const scale = Math.min(
-      available.width / content.width,
-      available.height / content.height,
-    );
-
-    return {
-      width: Math.floor(content.width * scale),
-      height: Math.floor(content.height * scale),
-    };
-  }
-
   private getElementBoxInsets(element: HTMLElement): ElementBoxInsets {
     const computed = window.getComputedStyle(element);
 
@@ -431,36 +411,17 @@ export class Xep80View extends MobxLitElement {
 
     if (!availableSize) return;
 
-    const {
-      horizontalPadding,
-      verticalPadding,
-      horizontalBorders,
-      verticalBorders,
-    } = this.getElementBoxInsets(this.bitmapSurface);
-
-    const contentWidth = Math.max(
-      0,
-      availableSize.width -
-      horizontalPadding -
-      horizontalBorders -
-      Xep80View.contentFitSafetyPx,
-    );
-    const contentHeight = Math.max(
-      0,
-      availableSize.height -
-      verticalPadding -
-      verticalBorders -
+    const contentSize = computeContentSize(
+      availableSize,
+      this.getElementBoxInsets(this.bitmapSurface),
       Xep80View.contentFitSafetyPx,
     );
 
-    if (contentWidth <= 0 || contentHeight <= 0) return;
+    if (!contentSize) return;
 
     this.setWrapHeight(this.canvasWrap, availableSize.height);
 
-    const renderSize = this.fitSizeWithinViewport({
-      width: contentWidth,
-      height: contentHeight,
-    }, {
+    const renderSize = fitSizeWithinViewport(contentSize, {
       width: baseWidth,
       height: baseHeight,
     });
@@ -476,31 +437,15 @@ export class Xep80View extends MobxLitElement {
 
     if (!availableSize) return;
 
-    const {
-      horizontalPadding,
-      verticalPadding,
-      horizontalBorders,
-      verticalBorders,
-    } = this.getElementBoxInsets(this.textSurface);
-
     const computed = window.getComputedStyle(this.textScreenElement);
 
-    const contentWidth = Math.max(
-      0,
-      availableSize.width -
-      horizontalPadding -
-      horizontalBorders -
-      Xep80View.contentFitSafetyPx,
-    );
-    const contentHeight = Math.max(
-      0,
-      availableSize.height -
-      verticalPadding -
-      verticalBorders -
+    const contentSize = computeContentSize(
+      availableSize,
+      this.getElementBoxInsets(this.textSurface),
       Xep80View.contentFitSafetyPx,
     );
 
-    if (contentWidth <= 0 || contentHeight <= 0) return;
+    if (!contentSize) return;
 
     this.setWrapHeight(this.textWrap, availableSize.height);
 
@@ -516,30 +461,21 @@ export class Xep80View extends MobxLitElement {
     const charWidth = measurementContext.measureText(sample).width / sample.length;
     const lineHeight = baseFontSize * Xep80View.textLineHeight;
 
-    if (charWidth <= 0 || lineHeight <= 0) return;
-
-    const contentSize = this.fitSizeWithinViewport(
-      {
-        width: contentWidth,
-        height: contentHeight,
-      },
-      {
-        width: XEP80_DISPLAY_COLS * charWidth,
-        height: XEP80_DISPLAY_ROWS * lineHeight,
-      },
-    );
-    const scale = contentSize.width / (XEP80_DISPLAY_COLS * charWidth);
-    const fontSize = Math.max(8, Math.floor(baseFontSize * scale * 100) / 100);
-    const renderWidth = Math.floor(
-      XEP80_DISPLAY_COLS * charWidth * (fontSize / baseFontSize),
-    );
-    const renderHeight = Math.floor(
-      XEP80_DISPLAY_ROWS * lineHeight * (fontSize / baseFontSize),
+    const renderMetrics = computeTextRenderMetrics(
+      contentSize,
+      XEP80_DISPLAY_COLS,
+      XEP80_DISPLAY_ROWS,
+      charWidth,
+      lineHeight,
+      baseFontSize,
+      8,
     );
 
-    this.textScreenElement.style.fontSize = `${fontSize}px`;
-    this.textScreenElement.style.width = `${renderWidth}px`;
-    this.textScreenElement.style.height = `${renderHeight}px`;
+    if (!renderMetrics) return;
+
+    this.textScreenElement.style.fontSize = `${renderMetrics.fontSize}px`;
+    this.textScreenElement.style.width = `${renderMetrics.renderWidth}px`;
+    this.textScreenElement.style.height = `${renderMetrics.renderHeight}px`;
   }
 
   public renderFramebuffer(state: Uint8Array, synced = btj.xep80Synced) {
