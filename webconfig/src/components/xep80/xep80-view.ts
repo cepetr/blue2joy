@@ -19,32 +19,32 @@
 import { MobxLitElement } from "@adobe/lit-mobx";
 import { html } from "lit";
 import { customElement, query, state } from "lit/decorators.js";
-import { btj } from "../models/btj-model.js";
-import { Btj } from "../services/btj-messages.js";
-import { Xep80FrameController } from "../xep80/frame-controller.js";
+import { btj } from "../../models/btj-model.js";
+import { Btj } from "../../services/btj-messages.js";
+import { Xep80FrameController } from "../../xep80/frame-controller.js";
 import {
   deriveXep80Palette,
   type Xep80Palette,
-} from "../xep80/palette.js";
-import { createBlankXep80TextScreen } from "../xep80/render-text.js";
+} from "../../xep80/palette.js";
+import { createBlankXep80TextScreen } from "../../xep80/render-text.js";
 import {
   resizeXep80BitmapSurface,
   resizeXep80TextSurface,
-} from "../xep80/view-resize.js";
+} from "../../xep80/view-resize.js";
 import {
   type Xep80TextRow,
-} from "../xep80/worker.js";
-import "./xep80/xep80-bitmap.js";
-import "./xep80/xep80-prompts.js";
-import "./xep80/xep80-text.js";
-import { Xep80ToolboxVisibilityController } from "./xep80/xep80-toolbox-visibility.js";
+} from "../../xep80/worker.js";
+import "./render-text.js";
+import "./xep80-bitmap.js";
+import "./xep80-prompts.js";
+import { Xep80ToolboxVisibilityController } from "./xep80-toolbox-visibility.js";
 import {
   xep80ColorOptions,
   xep80ToolboxConfig,
   xep80ToolboxConfigChangeEvent,
   type Xep80ColorId,
   type Xep80RenderMode,
-} from "./xep80/xep80-toolbox.js";
+} from "./xep80-toolbox.js";
 
 @customElement("xep80-view")
 export class Xep80View extends MobxLitElement {
@@ -59,8 +59,6 @@ export class Xep80View extends MobxLitElement {
   private static readonly surfaceBottomSpacingPx = 8;
 
   private static readonly contentFitSafetyPx = 4;
-
-  private static readonly toolboxHideDelayMs = 1800;
 
   protected override createRenderRoot() {
     return this;
@@ -101,12 +99,9 @@ export class Xep80View extends MobxLitElement {
 
   private resizeObserver?: ResizeObserver;
 
-  private toolboxVisibilityController = new Xep80ToolboxVisibilityController({
-    hideDelayMs: Xep80View.toolboxHideDelayMs,
-    onVisibilityChange: (visible) => {
-      this.isToolboxVisible = visible;
-    },
-  });
+  private toolboxVisibilityController = new Xep80ToolboxVisibilityController(
+    (visible) => { this.isToolboxVisible = visible; },
+  );
 
   private frameController = new Xep80FrameController();
 

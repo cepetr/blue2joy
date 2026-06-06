@@ -26,7 +26,7 @@ import { currentTheme, toggleTheme, type Theme } from "../styles/bootstrap.js";
 
 import "./devices-view.js";
 import "./profiles-view.js";
-import "./xep80-view.js";
+import "./xep80/xep80-view.js";
 
 @customElement("app-root")
 export class AppRoot extends MobxLitElement {
@@ -286,7 +286,7 @@ export class AppRoot extends MobxLitElement {
               Choose another method
             </button>
             ${btj.lastTransport
-              ? html`
+        ? html`
                   <button
                     type="button"
                     class="btn btn-primary"
@@ -296,7 +296,7 @@ export class AppRoot extends MobxLitElement {
                     Try again
                   </button>
                 `
-              : null}
+        : null}
           </div>
         </div>
       </div>

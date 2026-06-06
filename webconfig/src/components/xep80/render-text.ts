@@ -18,7 +18,7 @@
 
 import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { Xep80TextRow } from "../xep80/worker.js";
+import type { Xep80TextRow } from "../../xep80/worker.js";
 
 @customElement("xep80-text")
 export class Xep80Text extends LitElement {
