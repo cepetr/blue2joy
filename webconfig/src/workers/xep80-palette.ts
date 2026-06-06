@@ -22,6 +22,10 @@ export type Xep80Palette = {
   glow: string;
 };
 
+export const XEP80_DEFAULT_TINT = "#8ef0a7";
+export const XEP80_CURSOR_COLOR = "green";
+export const XEP80_NEUTRAL_TINT = "#ffffff";
+
 const DISPLAY_LUMINANCE = 0.78;
 const BORDER_LUMINANCE = 0.01;
 const SURFACE_LUMINANCE = 0.005;
@@ -35,6 +39,10 @@ export function deriveXep80Palette(tint: string): Xep80Palette {
     surface: scaleColorToLuminance(tint, SURFACE_LUMINANCE),
     glow: rgb ? rgbToRgba(rgb, 0.15) : tint,
   };
+}
+
+export function isNeutralTint(color: string): boolean {
+  return color.toLowerCase() === XEP80_NEUTRAL_TINT;
 }
 
 function scaleColorToLuminance(hex: string, targetLuminance: number): string {
@@ -65,7 +73,7 @@ function scaleColorToLuminance(hex: string, targetLuminance: number): string {
   return rgbToHex(srgb[0], srgb[1], srgb[2]);
 }
 
-function parseHexColor(hex: string): [number, number, number] | null {
+export function parseHexColor(hex: string): [number, number, number] | null {
   const normalized = hex.trim().replace(/^#/, "");
 
   if (!/^[0-9a-f]{6}$/i.test(normalized)) {

@@ -21,7 +21,13 @@ import {
   getXep80Charset,
   mapXep80Char,
 } from "./xep80-charset.js";
-import { deriveXep80Palette } from "./xep80-palette.js";
+import {
+  deriveXep80Palette,
+  isNeutralTint,
+  parseHexColor,
+  XEP80_CURSOR_COLOR,
+  XEP80_DEFAULT_TINT,
+} from "./xep80-palette.js";
 
 enum Nsp405Reg {
   TCP0 = 0,
@@ -152,7 +158,7 @@ export type Xep80TextCell = {
 export type Xep80TextRow = Xep80TextCell[];
 
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
-let renderColor = "#8ef0a7";
+let renderColor = XEP80_DEFAULT_TINT;
 
 // Font bitmap: 128 characters in 16x8 matrix, each character 8x12 pixels
 const FONT_CHAR_WIDTH = 8;
@@ -322,7 +328,7 @@ function drawCursor(
   y: number,
 ) {
   ctx.save();
-  ctx.fillStyle = "green";
+  ctx.fillStyle = XEP80_CURSOR_COLOR;
   ctx.globalCompositeOperation = "difference";
   ctx.fillRect(x, y, DISP_CHAR_WIDTH, DISP_CHAR_HEIGHT);
   ctx.restore();
@@ -468,7 +474,7 @@ function applyColorTint(
   ctx: OffscreenCanvasRenderingContext2D,
   color: string,
 ) {
-  if (color.toLowerCase() === "#ffffff") {
+  if (isNeutralTint(color)) {
     return;
   }
 
@@ -477,18 +483,4 @@ function applyColorTint(
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, 560, 250);
   ctx.restore();
-}
-
-function parseHexColor(hex: string): [number, number, number] | null {
-  const normalized = hex.trim().replace(/^#/, "");
-
-  if (!/^[0-9a-f]{6}$/i.test(normalized)) {
-    return null;
-  }
-
-  return [
-    parseInt(normalized.slice(0, 2), 16),
-    parseInt(normalized.slice(2, 4), 16),
-    parseInt(normalized.slice(4, 6), 16),
-  ];
 }
