@@ -17,7 +17,7 @@
  */
 
 import { MobxLitElement } from "@adobe/lit-mobx";
-import { html } from "lit";
+import { html, nothing } from "lit";
 import { customElement, query, state } from "lit/decorators.js";
 import { btj } from "../../models/btj-model.js";
 import { Btj } from "../../services/btj-messages.js";
@@ -315,13 +315,17 @@ export class Xep80View extends MobxLitElement {
             .synced=${isXep80Synced}
             @xep80-prompts-activate=${this.onEnableXep80}
           ></xep80-prompts>
-        <xep80-toolbox
-          .visible=${this.isToolboxVisible}
-          .fullscreen=${this.isViewFullscreen()}
-          @focusin=${this.toolboxVisibilityController.onFocusIn}
-          @focusout=${this.toolboxVisibilityController.onFocusOut}
-          @xep80-toolbox-toggle-fullscreen=${this.onToolboxToggleFullscreen}
-        ></xep80-toolbox>
+        ${isXep80Enabled
+        ? html`
+              <xep80-toolbox
+                .visible=${this.isToolboxVisible}
+                .fullscreen=${this.isViewFullscreen()}
+                @focusin=${this.toolboxVisibilityController.onFocusIn}
+                @focusout=${this.toolboxVisibilityController.onFocusOut}
+                @xep80-toolbox-toggle-fullscreen=${this.onToolboxToggleFullscreen}
+              ></xep80-toolbox>
+            `
+        : nothing}
       </div>
     `;
   }
