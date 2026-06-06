@@ -24,6 +24,7 @@ import { Btj } from "../services/btj-messages.js";
 import "../styles/bootstrap";
 import { currentTheme, toggleTheme, type Theme } from "../styles/bootstrap.js";
 
+import "./connect-view.js";
 import "./devices-view.js";
 import "./profiles-view.js";
 import "./xep80/xep80-view.js";
@@ -34,7 +35,6 @@ export class AppRoot extends MobxLitElement {
     return this;
   }
 
-  @state() private busyAction: "bluetooth" | "usb" | "demo" | null = null;
   @state() private currentHash = location.hash.slice(1) || "/";
   @state() private theme: Theme = currentTheme();
 
@@ -86,33 +86,6 @@ export class AppRoot extends MobxLitElement {
     return html`<devices-view></devices-view>`;
   }
 
-  private onScanClick = async () => {
-    try {
-      this.busyAction = "bluetooth";
-      await btj.scanAndConnect();
-    } finally {
-      this.busyAction = null;
-    }
-  };
-
-  private onUsbClick = async () => {
-    try {
-      this.busyAction = "usb";
-      await btj.scanAndConnectUsb();
-    } finally {
-      this.busyAction = null;
-    }
-  };
-
-  private onDemoClick = async () => {
-    try {
-      this.busyAction = "demo";
-      await btj.connectDemo();
-    } finally {
-      this.busyAction = null;
-    }
-  };
-
   private disconnect = () => {
     btj.disconnect();
   };
@@ -124,184 +97,6 @@ export class AppRoot extends MobxLitElement {
   private onNavLinkClick = (path: string) => {
     window.location.hash = path;
   };
-
-  private onDismissErrors = () => {
-    btj.clearErrors();
-  };
-
-  private onReconnectClick = async () => {
-    if (!btj.lastTransport) {
-      return;
-    }
-
-    try {
-      this.busyAction = btj.lastTransport;
-      await btj.reconnectLastTransport();
-    } finally {
-      this.busyAction = null;
-    }
-  };
-
-  private renderBluetoothConnectBox(busy: boolean) {
-    return html`
-      <div class="col-12">
-        <div
-          class="border rounded-3 p-3 text-start bg-body-tertiary mx-auto"
-          style="max-width: 42rem;"
-        >
-          <div class="d-flex align-items-center justify-content-between gap-3">
-            <div class="flex-grow-1">
-              <h5 class="mb-1">Bluetooth</h5>
-              <p class="text-body-secondary mb-0">
-                For wireless setup from this device.
-              </p>
-              <p class="small text-warning mb-0 mt-1">
-                Before connecting, press button 2 on your Blue2Joy device so it
-                becomes discoverable.
-              </p>
-            </div>
-            <button
-              class="btn btn-primary"
-              @click=${this.onScanClick}
-              ?disabled=${busy}
-            >
-              Connect via Bluetooth
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  private renderUsbConnectBox(busy: boolean) {
-    return html`
-      <div class="col-12">
-        <div
-          class="border rounded-3 p-3 text-start bg-body-tertiary mx-auto"
-          style="max-width: 42rem;"
-        >
-          <div class="d-flex align-items-center justify-content-between gap-3">
-            <div class="flex-grow-1">
-              <h5 class="mb-1">USB</h5>
-              <p class="text-body-secondary mb-0">
-                For best performance with lower lag (recommended for XEP80).
-              </p>
-            </div>
-            <button
-              class="btn btn-primary"
-              @click=${this.onUsbClick}
-              ?disabled=${busy}
-            >
-              Connect via USB
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  private renderDemoConnectBox(busy: boolean) {
-    return html`
-      <div class="col-12">
-        <div
-          class="border rounded-3 p-3 text-start bg-body-tertiary mx-auto"
-          style="max-width: 42rem;"
-        >
-          <div class="d-flex align-items-center justify-content-between gap-3">
-            <div class="flex-grow-1">
-              <h5 class="mb-1">Demo Mode</h5>
-              <p class="text-body-secondary mb-0">
-                Try the app without hardware using a virtual Blue2Joy device.
-              </p>
-            </div>
-            <button
-              class="btn btn-outline-primary"
-              @click=${this.onDemoClick}
-              ?disabled=${busy}
-            >
-              Start Demo Mode
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  private renderNotConnected() {
-    if (btj.errors.length > 0) {
-      return this.renderErrorState();
-    }
-
-    const busy = this.busyAction !== null;
-
-    return html`
-      <div class="text-center pt-4">
-        <h3>Connect to Blue2Joy</h3>
-        <p class="mb-4">
-          Choose a connection method for hardware, or start Demo Mode.
-        </p>
-
-        <div class="row g-3 justify-content-center">
-          ${this.renderBluetoothConnectBox(busy)}
-          ${this.renderUsbConnectBox(busy)} ${this.renderDemoConnectBox(busy)}
-        </div>
-      </div>
-    `;
-  }
-
-  private renderErrorState() {
-    const busy = this.busyAction !== null;
-
-    return html`
-      <div class="text-center pt-4">
-        <h3>Connection failed</h3>
-        <p class="mb-4">Check the messages below, then try again.</p>
-
-        <div class="row g-3 justify-content-center">
-        ${btj.errors.map(
-      (err) => html`
-            <div class="col-12">
-              <div
-                class="border rounded-3 p-3 text-start bg-body-tertiary mx-auto"
-                style="max-width: 42rem;"
-              >
-                <h5 class="mb-1 text-danger">
-                  ${err.source ? `${err.source}` : "Connection error"}
-                </h5>
-                <p class="mb-0">${err.message}</p>
-              </div>
-            </div>
-          `,
-    )}
-        </div>
-
-        <div class="mx-auto mt-3" style="max-width: 42rem;">
-          <div class="d-flex justify-content-end">
-            <button
-              type="button"
-              class="btn btn-outline-primary me-2"
-              ?disabled=${busy}
-              @click=${this.onDismissErrors}
-            >
-              Choose another method
-            </button>
-            ${btj.lastTransport
-        ? html`
-                  <button
-                    type="button"
-                    class="btn btn-primary"
-                    @click=${this.onReconnectClick}
-                    ?disabled=${busy}
-                  >
-                    Try again
-                  </button>
-                `
-        : null}
-          </div>
-        </div>
-      </div>
-    `;
-  }
 
   private renderTopbarInfo() {
     if (!btj.sysInfo || !btj.sysState) return null;
@@ -594,7 +389,7 @@ export class AppRoot extends MobxLitElement {
 
       <div class="container-fluid content-with-offset">
         <div class="row">
-          ${btj.connected ? this.renderRoute() : this.renderNotConnected()}
+          ${btj.connected ? this.renderRoute() : html`<connect-view></connect-view>`}
         </div>
       </div>
     `;
