@@ -33,6 +33,7 @@ import {
   XEP80_DISPLAY_ROWS,
   type Xep80TextRow,
 } from "../xep80/worker.js";
+import "./xep80-toolbox.js";
 
 type Xep80RenderMode = "bitmap" | "text";
 
@@ -278,6 +279,22 @@ export class Xep80View extends MobxLitElement {
 
   private onToolboxFocusOut = () => {
     this.scheduleToolboxHide();
+  };
+
+  private onToolboxModeChange = (event: Event) => {
+    const detail = (event as CustomEvent<{ mode?: string }>).detail;
+
+    if (detail.mode === "bitmap" || detail.mode === "text") {
+      this.onRenderModeChange(detail.mode);
+    }
+  };
+
+  private onToolboxCycleColor = () => {
+    this.onCycleColor();
+  };
+
+  private onToolboxToggleFullscreen = () => {
+    this.onToggleFullscreen();
   };
 
   private onFullscreenChange = () => {
@@ -559,67 +576,6 @@ export class Xep80View extends MobxLitElement {
     }
   }
 
-  private renderToolbox() {
-    const currentColor = this.getCurrentColorOption();
-    const currentColorIndex = Xep80View.colorOptions.findIndex(
-      ({ id }) => id === currentColor.id,
-    );
-    const isFullscreen = this.isViewFullscreen();
-    const nextColor =
-      Xep80View.colorOptions[
-      (currentColorIndex + 1) % Xep80View.colorOptions.length
-      ];
-    const items: Array<{ mode: Xep80RenderMode; label: string }> = [
-      { mode: "bitmap", label: "Original" },
-      { mode: "text", label: "Modern" },
-    ];
-
-    return html`
-      <div
-        class="xep80-toolbox ${this.isToolboxVisible
-        ? "xep80-toolbox--visible"
-        : ""}"
-        @focusin=${this.onToolboxFocusIn}
-        @focusout=${this.onToolboxFocusOut}
-      >
-        <div
-          class="btn-group xep80-toolbox-group"
-          role="group"
-          aria-label="XEP80 toolbox"
-        >
-          ${items.map(
-          ({ mode, label }) => html`
-              <button
-                type="button"
-                class="btn btn-outline-secondary ${this.renderMode === mode
-              ? "active"
-              : ""}"
-                aria-pressed=${this.renderMode === mode}
-                @click=${() => this.onRenderModeChange(mode)}
-              >
-                ${label}
-              </button>
-            `,
-        )}
-          <button
-            type="button"
-            class="btn btn-outline-secondary"
-            @click=${this.onCycleColor}
-          >
-            ${nextColor.label}
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-secondary"
-            @click=${this.onToggleFullscreen}
-          >
-            ${isFullscreen ? "Windowed" : "Full Screen"}
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
   private renderActivationPrompt() {
     return html`
       <div class="xep80-activation-prompt">
@@ -670,6 +626,14 @@ export class Xep80View extends MobxLitElement {
     const isXep80Enabled = this.isXep80Active();
     const isXep80Synced = btj.xep80Synced;
     const isDisplaySuppressed = !isXep80Enabled || !isXep80Synced;
+    const currentColor = this.getCurrentColorOption();
+    const currentColorIndex = Xep80View.colorOptions.findIndex(
+      ({ id }) => id === currentColor.id,
+    );
+    const nextColor =
+      Xep80View.colorOptions[
+      (currentColorIndex + 1) % Xep80View.colorOptions.length
+      ];
 
     return html`
       <div
@@ -701,7 +665,17 @@ export class Xep80View extends MobxLitElement {
             `}
         ${!isXep80Enabled ? this.renderActivationPrompt() : null}
         ${isXep80Enabled && !isXep80Synced ? this.renderSyncPrompt() : null}
-        ${this.renderToolbox()}
+        <xep80-toolbox
+          .visible=${this.isToolboxVisible}
+          .mode=${this.renderMode}
+          .nextColorLabel=${nextColor.label}
+          .fullscreen=${this.isViewFullscreen()}
+          @focusin=${this.onToolboxFocusIn}
+          @focusout=${this.onToolboxFocusOut}
+          @xep80-toolbox-mode-change=${this.onToolboxModeChange}
+          @xep80-toolbox-cycle-color=${this.onToolboxCycleColor}
+          @xep80-toolbox-toggle-fullscreen=${this.onToolboxToggleFullscreen}
+        ></xep80-toolbox>
       </div>
     `;
   }
