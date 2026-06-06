@@ -40,6 +40,7 @@ import {
   type Xep80TextRow,
 } from "../xep80/worker.js";
 import "./xep80-bitmap.js";
+import "./xep80-prompts.js";
 import "./xep80-text.js";
 import "./xep80-toolbox.js";
 
@@ -486,38 +487,6 @@ export class Xep80View extends MobxLitElement {
     );
   }
 
-  private renderActivationPrompt() {
-    return html`
-      <div class="xep80-activation-prompt">
-        <div class="xep80-activation-card">
-          <p class="mb-3">
-            Joystick port is currently not in XEP80 mode. Press the button to
-            activate XEP80 emulation.
-          </p>
-          <button
-            type="button"
-            class="btn btn-primary"
-            @click=${this.onEnableXep80}
-          >
-            Activate XEP80
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  private renderSyncPrompt() {
-    return html`
-      <div class="xep80-activation-prompt">
-        <div class="xep80-activation-card">
-          <p class="mb-0">
-            Waiting for XEP80 sync from Blue2Joy.
-          </p>
-        </div>
-      </div>
-    `;
-  }
-
   private renderDisplaySurface(mode: Xep80RenderMode) {
     const isBitmap = mode === "bitmap";
     const isXep80Enabled = this.isXep80Active();
@@ -551,8 +520,11 @@ export class Xep80View extends MobxLitElement {
                 .suppressed=${isDisplaySuppressed}
               ></xep80-text>
             `}
-        ${!isXep80Enabled ? this.renderActivationPrompt() : null}
-        ${isXep80Enabled && !isXep80Synced ? this.renderSyncPrompt() : null}
+          <xep80-prompts
+            .enabled=${isXep80Enabled}
+            .synced=${isXep80Synced}
+            @xep80-prompts-activate=${this.onEnableXep80}
+          ></xep80-prompts>
         <xep80-toolbox
           .visible=${this.isToolboxVisible}
           .mode=${this.renderMode}
@@ -578,6 +550,7 @@ export class Xep80View extends MobxLitElement {
           --xep80-surface-background: ${palette.surface};
           --xep80-border-color: ${palette.border};
           --xep80-glow-color: ${palette.glow};
+          --xep80-surface-top-spacing: ${Xep80View.surfaceTopSpacingPx}px;
           --xep80-surface-bottom-spacing: ${Xep80View.surfaceBottomSpacingPx}px;
           overflow: hidden;
         }
@@ -648,29 +621,6 @@ export class Xep80View extends MobxLitElement {
           z-index: 1;
           display: block;
           image-rendering: pixelated;
-        }
-
-        .xep80-activation-prompt {
-          position: absolute;
-          inset: ${Xep80View.surfaceTopSpacingPx}px 0 ${Xep80View.surfaceBottomSpacingPx}px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1rem;
-          z-index: 2;
-          pointer-events: none;
-        }
-
-        .xep80-activation-card {
-          max-width: 28rem;
-          padding: 1.25rem 1.5rem;
-          text-align: center;
-          color: var(--bs-body-color);
-          background: rgba(var(--bs-body-bg-rgb), 0.94);
-          border: 1px solid var(--bs-border-color-translucent);
-          border-radius: 0.9rem;
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
-          pointer-events: auto;
         }
 
       </style>
