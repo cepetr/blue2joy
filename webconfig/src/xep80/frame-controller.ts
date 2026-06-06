@@ -20,6 +20,8 @@ import { createBlankXep80TextScreen } from "./render-text.js";
 import type { WorkerMessage } from "./worker-protocol.js";
 import { renderXep80Text, type Xep80TextRow } from "./worker.js";
 
+export type Xep80FrameRenderMode = "bitmap" | "text";
+
 export class Xep80FrameController {
   private worker: Worker | null = null;
 
@@ -67,14 +69,22 @@ export class Xep80FrameController {
     this.worker.postMessage(msg);
   }
 
-  renderFrame(state: Uint8Array, synced: boolean, tint: string): Xep80TextRow[] {
+  renderFrame(
+    state: Uint8Array,
+    synced: boolean,
+    tint: string,
+    mode: Xep80FrameRenderMode,
+  ): Xep80TextRow[] {
     if (!synced || state.length === 0) {
       this.lastFrameState = new Uint8Array(0);
       return createBlankXep80TextScreen();
     }
 
     this.lastFrameState = state.slice();
-    const textScreen = renderXep80Text(state);
+
+    if (mode === "text") {
+      return renderXep80Text(state);
+    }
 
     if (this.worker) {
       const msg: WorkerMessage = {
@@ -85,7 +95,7 @@ export class Xep80FrameController {
       this.worker.postMessage(msg);
     }
 
-    return textScreen;
+    return createBlankXep80TextScreen();
   }
 
   dispose() {

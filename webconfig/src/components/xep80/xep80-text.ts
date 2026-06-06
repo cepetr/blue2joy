@@ -20,6 +20,15 @@ import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { Xep80TextRow } from "../../xep80/worker.js";
 
+type Xep80TextRun = {
+  text: string;
+  inverted: boolean;
+  underline: boolean;
+  doubleWidth: boolean;
+  cursor: boolean;
+  columns: number;
+};
+
 @customElement("xep80-text")
 export class Xep80Text extends LitElement {
   static readonly baseFontSizePx = 16;
@@ -34,6 +43,58 @@ export class Xep80Text extends LitElement {
 
   @property({ type: Boolean })
   suppressed = false;
+
+  private buildRuns(row: Xep80TextRow): Xep80TextRun[] {
+    const runs: Xep80TextRun[] = [];
+
+    for (const cell of row) {
+      const previousRun = runs.at(-1);
+      const cellColumns = cell.doubleWidth ? 2 : 1;
+
+      if (
+        previousRun
+        && previousRun.inverted === cell.inverted
+        && previousRun.underline === cell.underline
+        && previousRun.doubleWidth === cell.doubleWidth
+        && previousRun.cursor === cell.cursor
+      ) {
+        previousRun.text += cell.text;
+        previousRun.columns += cellColumns;
+        continue;
+      }
+
+      runs.push({
+        text: cell.text,
+        inverted: cell.inverted,
+        underline: cell.underline,
+        doubleWidth: cell.doubleWidth,
+        cursor: cell.cursor,
+        columns: cellColumns,
+      });
+    }
+
+    return runs;
+  }
+
+  private getRunClassName(run: Xep80TextRun): string {
+    return [
+      "x80c",
+      run.doubleWidth ? "x80c--dw" : "",
+      run.inverted ? "x80c--inv" : "",
+      run.underline ? "x80c--ul" : "",
+      run.cursor ? "x80c--cur" : "",
+    ].filter(Boolean).join(" ");
+  }
+
+  private getRunStyle(run: Xep80TextRun): string {
+    if (!run.doubleWidth) {
+      return `width:${run.columns}ch;min-width:${run.columns}ch;`;
+    }
+
+    const baseColumns = run.columns / 2;
+
+    return `width:${baseColumns}ch;min-width:${baseColumns}ch;margin-right:${baseColumns}ch;`;
+  }
 
   override render() {
     return html`
@@ -70,25 +131,14 @@ export class Xep80Text extends LitElement {
           display: inline-block;
           box-sizing: border-box;
           flex: 0 0 auto;
-          width: 1ch;
-          min-width: 1ch;
           text-align: left;
           overflow: hidden;
+          transform-origin: left center;
+          white-space: pre;
         }
 
         .x80c--dw {
-          width: 2ch;
-          min-width: 2ch;
-        }
-
-        .x80c__g {
-          position: relative;
-          display: inline-block;
-          width: 100%;
-          transform-origin: left center;
-        }
-
-        .x80c--dw .x80c__g {
+          overflow: visible;
           transform: scaleX(2);
         }
 
@@ -97,7 +147,7 @@ export class Xep80Text extends LitElement {
           background: var(--xep80-display-color);
         }
 
-        .x80c--inv .x80c__g {
+        .x80c--inv {
           text-shadow: none;
         }
 
@@ -121,15 +171,10 @@ export class Xep80Text extends LitElement {
       </style>
       <div class="xep80-surface xep80-surface--text ${this.suppressed ? "xep80-surface--inactive" : ""}">
         <div class="xep80-text-screen">${this.rows.map((row) =>
-      html`<div class="xep80-text-row">${row.map((cell) => html`<span
-                class=${[
-          "x80c",
-          cell.doubleWidth ? "x80c--dw" : "",
-          cell.inverted ? "x80c--inv" : "",
-          cell.underline ? "x80c--ul" : "",
-          cell.cursor ? "x80c--cur" : "",
-        ].filter(Boolean).join(" ")}
-              ><span class="x80c__g">${cell.text === " " ? "\u00a0" : cell.text}</span></span>`)}${""}</div>`)}${""}</div>
+      html`<div class="xep80-text-row">${this.buildRuns(row).map((run) => html`<span
+                class=${this.getRunClassName(run)}
+                style=${this.getRunStyle(run)}
+              >${run.text}</span>`)}${""}</div>`)}${""}</div>
       </div>
     `;
   }

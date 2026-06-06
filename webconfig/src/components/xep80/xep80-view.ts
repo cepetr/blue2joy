@@ -147,12 +147,16 @@ export class Xep80View extends MobxLitElement {
 
     if (modeChanged) {
       this.toolboxVisibilityController.onPointerMove();
+      this.refreshCurrentFrame();
       this.updateComplete.then(() => this.resizeActiveView());
     }
 
     if (colorChanged) {
       this.toolboxVisibilityController.onPointerMove();
-      this.frameController.updateTint(this.getCurrentColorOption().tint);
+
+      if (this.renderMode === "bitmap") {
+        this.frameController.updateTint(this.getCurrentColorOption().tint);
+      }
     }
   };
 
@@ -263,11 +267,21 @@ export class Xep80View extends MobxLitElement {
     });
   }
 
+  private refreshCurrentFrame() {
+    if (btj.xep80State.length === 0) {
+      this.textScreen = createBlankXep80TextScreen();
+      return;
+    }
+
+    this.renderFrame(btj.xep80State, btj.xep80Synced);
+  }
+
   public renderFrame(state: Uint8Array, synced = btj.xep80Synced) {
     this.textScreen = this.frameController.renderFrame(
       state,
       synced,
       this.getCurrentColorOption().tint,
+      this.renderMode,
     );
   }
 
