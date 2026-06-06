@@ -21,14 +21,13 @@ import { html } from "lit";
 import { customElement, query, state } from "lit/decorators.js";
 import { btj } from "../models/btj-model.js";
 import { Btj } from "../services/btj-messages.js";
+import { Xep80FrameController } from "../xep80/frame-controller.js";
 import {
   deriveXep80Palette,
   type Xep80Palette,
 } from "../xep80/palette.js";
 import { createBlankXep80TextScreen } from "../xep80/render-text.js";
-import type { WorkerMessage } from "../xep80/worker-protocol.js";
 import {
-  renderXep80Text,
   XEP80_DISPLAY_COLS,
   XEP80_DISPLAY_ROWS,
   type Xep80TextRow,
@@ -123,9 +122,6 @@ export class Xep80View extends MobxLitElement {
   private viewElement?: HTMLDivElement;
 
   @state()
-  private worker: Worker | null = null;
-
-  @state()
   private renderMode: Xep80RenderMode = this.loadRenderMode();
 
   @state()
@@ -141,14 +137,7 @@ export class Xep80View extends MobxLitElement {
 
   private toolboxHideTimer?: number;
 
-  private lastFramebufferState = new Uint8Array(0);
-
-  private workerCanvasInitialized = false;
-
-  private clearFramebuffer() {
-    this.lastFramebufferState = new Uint8Array(0);
-    this.textScreen = createBlankXep80TextScreen();
-  }
+  private frameController = new Xep80FrameController();
 
   private isXep80Active(): boolean {
     return btj.joyPort?.mode === Btj.JoyPortMode.UART;
@@ -187,15 +176,7 @@ export class Xep80View extends MobxLitElement {
     this.colorId = Xep80View.colorOptions[nextIndex].id;
     localStorage.setItem(Xep80View.colorIdStorageKey, this.colorId);
     this.showToolbox();
-
-    if (this.worker && this.lastFramebufferState.length > 0) {
-      const msg: WorkerMessage = {
-        type: "render",
-        state: this.lastFramebufferState.slice(),
-        tint: this.getCurrentColorOption().tint,
-      };
-      this.worker.postMessage(msg);
-    }
+    this.frameController.updateTint(this.getCurrentColorOption().tint);
   };
 
   private loadColorId(): Xep80ColorId {
@@ -314,7 +295,7 @@ export class Xep80View extends MobxLitElement {
 
   override connectedCallback() {
     super.connectedCallback();
-    this.initWorker();
+    this.frameController.startWorker();
     window.addEventListener("resize", this.handleResize);
     document.addEventListener("fullscreenchange", this.onFullscreenChange);
   }
@@ -326,38 +307,7 @@ export class Xep80View extends MobxLitElement {
     this.clearToolboxHideTimer();
     this.resizeObserver?.disconnect();
     this.resizeObserver = undefined;
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
-    }
-    this.workerCanvasInitialized = false;
-  }
-
-  private initWorker() {
-    try {
-      this.worker = new Worker(
-        new URL("../xep80/worker.ts", import.meta.url),
-        { type: "module" },
-      );
-    } catch (err) {
-      console.error("Failed to start XEP80 worker:", err);
-    }
-  }
-
-  private tryInitWorkerCanvas() {
-    if (!this.canvasElement || !this.worker || this.workerCanvasInitialized) {
-      return false;
-    }
-
-    const offscreenCanvas = this.canvasElement.transferControlToOffscreen();
-    const msg: WorkerMessage = {
-      type: "init",
-      canvas: offscreenCanvas,
-      tint: this.getCurrentColorOption().tint,
-    };
-    this.worker.postMessage(msg, [offscreenCanvas]);
-    this.workerCanvasInitialized = true;
-    return true;
+    this.frameController.dispose();
   }
 
   private async initWorkerCanvasWhenReady() {
@@ -369,9 +319,15 @@ export class Xep80View extends MobxLitElement {
       await bitmapElement.updateComplete;
     }
 
-    if (!this.tryInitWorkerCanvas()) {
+    if (!this.frameController.initCanvas(
+      this.canvasElement,
+      this.getCurrentColorOption().tint,
+    )) {
       requestAnimationFrame(() => {
-        this.tryInitWorkerCanvas();
+        this.frameController.initCanvas(
+          this.canvasElement,
+          this.getCurrentColorOption().tint,
+        );
       });
     }
   }
@@ -587,22 +543,11 @@ export class Xep80View extends MobxLitElement {
   }
 
   public renderFramebuffer(state: Uint8Array, synced = btj.xep80Synced) {
-    if (!synced || state.length === 0) {
-      this.clearFramebuffer();
-      return;
-    }
-
-    this.lastFramebufferState = state.slice();
-    this.textScreen = renderXep80Text(state);
-
-    if (this.worker) {
-      const msg: WorkerMessage = {
-        type: "render",
-        state: this.lastFramebufferState.slice(),
-        tint: this.getCurrentColorOption().tint,
-      };
-      this.worker.postMessage(msg);
-    }
+    this.textScreen = this.frameController.renderFrame(
+      state,
+      synced,
+      this.getCurrentColorOption().tint,
+    );
   }
 
   private renderActivationPrompt() {
