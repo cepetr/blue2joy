@@ -16,45 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import fontInternalUrl from "../assets/font_internal.png?url";
-import fontInternationalUrl from "../assets/font_international.png?url";
-import fontNormalUrl from "../assets/font_normal.png?url";
+import {
+  ensureXep80FontsLoaded,
+  getXep80Charset,
+  mapXep80Char,
+} from "./xep80-charset.js";
 import { deriveXep80Palette } from "./xep80-palette.js";
-
-const normalMap =
-  "♥┣▐┛┫┓╱╲◢▗◣▝▝▀▂▖" +
-  "♣┏━╋●▄▎┳┻▌┗ᴱ↑↓←→" +
-  " !\"#$%&'()*+,-./" +
-  "0123456789:;<=>?" +
-  "@ABCDEFGHIJKLMNO" +
-  "PQRSTUVWXYZ[\\]^_" +
-  "♦abcdefghijklmno" +
-  "pqrstuvwxyz♠┃↖◀▶";
-
-const internationalMap =
-  "áùÑÉçôòì£ïüäÖúóö" +
-  "ÜâûîéèñêåàÅᴱ↑↓←→" +
-  " !\"#$%&'()*+,-./" +
-  "0123456789:;<=>?" +
-  "@ABCDEFGHIJKLMNO" +
-  "PQRSTUVWXYZ[\\]^_" +
-  "¡abcdefghijklmno" +
-  "pqrstuvwxyzÄ|↖◀▶";
-
-const internalMap =
-  "Ĳ↑Ø£¤°•§ÇÑÆÄÖÅÜŒ" +
-  "ĳßàèìïùéçñæäöåüœ" +
-  " !\"#$%&'()*+,-./" +
-  "0123456789:;<=>?" +
-  "@ABCDEFGHIJKLMNO" +
-  "PQRSTUVWXYZ[\\]^_" +
-  "`abcdefghijklmno" +
-  "pqrstuvwxyz{|}~░";
-
-const fontMap = [normalMap, internationalMap, internalMap] as const;
-
-const FONT_NORMAL = 0;
-const FONT_INTERNATIONAL = 1;
 
 enum Nsp405Reg {
   TCP0 = 0,
@@ -184,10 +151,8 @@ export type Xep80TextCell = {
 
 export type Xep80TextRow = Xep80TextCell[];
 
-let fonts: Array<ImageBitmap | null> = [];
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let renderColor = "#8ef0a7";
-let fontLoadPromise: Promise<void> | null = null;
 
 // Font bitmap: 128 characters in 16x8 matrix, each character 8x12 pixels
 const FONT_CHAR_WIDTH = 8;
@@ -232,10 +197,6 @@ function getRenderOptions(regs: Uint8Array): Xep80RenderOptions {
   };
 }
 
-function mapXep80Char(fontIndex: number, charCode: number): string {
-  return fontMap[fontIndex]?.charAt(charCode) ?? " ";
-}
-
 function createTextCell(
   text: string,
   attr: Xep80CellAttr,
@@ -260,9 +221,10 @@ export function renderXep80Text(state: Uint8Array): Xep80TextRow[] {
     const opt = getRenderOptions(regs);
     const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
     const fontIndex = (opt.rows[row] >> 5) & 0x03;
+    const charset = getXep80Charset(fontIndex);
     const line: Xep80TextRow = [];
 
-    if (fontIndex === FONT_NORMAL || fontIndex === FONT_INTERNATIONAL) {
+    if (charset?.externalFont) {
       // Normal and international fonts have the inverted attribute bit flipped 
       // compared to the internal font, so invert it back here for text rendering.
       opt.attr[1].inverted = !opt.attr[1].inverted;
@@ -296,29 +258,6 @@ export function renderXep80Text(state: Uint8Array): Xep80TextRow[] {
   }
 
   return lines;
-}
-
-async function loadFont(url: string): Promise<ImageBitmap | null> {
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return await createImageBitmap(blob);
-  } catch (err) {
-    console.error(`Failed to load font from ${url}: `, err);
-    return null;
-  }
-}
-
-async function ensureFontsLoaded(): Promise<void> {
-  if (!fontLoadPromise) {
-    fontLoadPromise = (async () => {
-      fonts[0] = await loadFont(fontNormalUrl);
-      fonts[1] = await loadFont(fontInternationalUrl);
-      fonts[2] = await loadFont(fontInternalUrl);
-    })();
-  }
-
-  await fontLoadPromise;
 }
 
 type CharAttr = {
@@ -400,11 +339,11 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   if (type === "init" && canvas) {
     // Store canvas and context for reuse
     ctx = canvas.getContext("2d");
-    await ensureFontsLoaded();
+    await ensureXep80FontsLoaded();
   }
 
   if (ctx && state) {
-    await ensureFontsLoaded();
+    await ensureXep80FontsLoaded();
     renderFramebuffer(state, ctx);
   }
 };
@@ -434,14 +373,15 @@ function renderFramebuffer(
   for (let row = 0; row < DISP_ROWS; row++) {
     const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
     const fontIndex = (opt.rows[row] >> 5) & 0x03;
-    const font = fonts[fontIndex];
+    const charset = getXep80Charset(fontIndex);
+    const font = charset?.font ?? null;
 
     if (!font) {
       continue;
     }
 
     let rowAttr: [Xep80CellAttr, Xep80CellAttr] = opt.attr;
-    if (fontIndex === FONT_NORMAL || fontIndex === FONT_INTERNATIONAL) {
+    if (charset.externalFont) {
       // Normal and international fonts have the inverted attribute bit flipped 
       // compared to the internal font, so invert it back here for rendering.
       rowAttr = [opt.attr[0], { ...opt.attr[1], inverted: !opt.attr[1].inverted }];
