@@ -21,16 +21,7 @@ import {
   getXep80Charset,
   mapXep80Char,
 } from "./xep80-charset.js";
-import {
-  getRenderOptions,
-  type Xep80CellAttr,
-} from "./xep80-regs.js";
-
-import {
-  XEP80_RAM_SIZE,
-  XEP80_STATE_SIZE
-} from "./xep80-decode.js";
-
+import { decodeXep80Frame } from "./xep80-frame.js";
 import {
   deriveXep80Palette,
   isNeutralTint,
@@ -38,6 +29,9 @@ import {
   XEP80_CURSOR_COLOR,
   XEP80_DEFAULT_TINT,
 } from "./xep80-palette.js";
+import {
+  type Xep80CellAttr,
+} from "./xep80-regs.js";
 
 export interface WorkerMessage {
   type: string;
@@ -89,45 +83,18 @@ function createTextCell(
 }
 
 export function renderXep80Text(state: Uint8Array): Xep80TextRow[] {
-  const ram = state.subarray(0, XEP80_RAM_SIZE);
-  const regs = state.subarray(XEP80_RAM_SIZE, XEP80_STATE_SIZE);
+  const frame = decodeXep80Frame(state, DISP_ROWS, DISP_COLS);
   const lines: Xep80TextRow[] = [];
 
-  for (let row = 0; row < DISP_ROWS; row++) {
-    const opt = getRenderOptions(regs);
-    const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
-    const fontIndex = (opt.rows[row] >> 5) & 0x03;
-    const charset = getXep80Charset(fontIndex);
+  for (const frameRow of frame.rows) {
     const line: Xep80TextRow = [];
-
-    if (charset?.externalFont) {
-      // Normal and international fonts have the inverted attribute bit flipped 
-      // compared to the internal font, so invert it back here for text rendering.
-      opt.attr[1].inverted = !opt.attr[1].inverted;
-    }
-
-    for (let col = 0; col < DISP_COLS; col++) {
-      const ofs = rowOfs + col;
-      const cursor = ofs === opt.curs;
-
-      let attr = opt.attr[0];
-      let text = " ";
-
-      if (ram[ofs] !== 0x9b) {
-        attr = opt.attr[ram[ofs] & 0x80 ? 1 : 0];
-        text = attr.blank ? " " : mapXep80Char(fontIndex, ram[ofs] & 0x7f);
-      }
-
-      const doubleWidth = attr.doubleWidth && col + 1 < DISP_COLS;
+    for (const cell of frameRow.cells) {
+      const text = cell.attr.blank ? " " : mapXep80Char(frameRow.fontIndex, cell.charCode);
 
       line.push({
-        ...createTextCell(text, attr, opt.invertedScreen, cursor),
-        doubleWidth,
+        ...createTextCell(text, cell.attr, frame.invertedScreen, cell.cursor),
+        doubleWidth: cell.doubleWidth,
       });
-
-      if (doubleWidth) {
-        col += 1;
-      }
     }
 
     lines.push(line);
@@ -228,9 +195,7 @@ function renderFramebuffer(
   state: Uint8Array,
   ctx: OffscreenCanvasRenderingContext2D,
 ) {
-  const ram = state.subarray(0, XEP80_RAM_SIZE);
-  const regs = state.subarray(XEP80_RAM_SIZE, XEP80_STATE_SIZE);
-  const opt = getRenderOptions(regs);
+  const frame = decodeXep80Frame(state, DISP_ROWS, DISP_COLS);
 
   // Each character in framebuffer is represented by one byte
   // Framebuffer size should be 80 * 24 = 1920 bytes
@@ -238,7 +203,7 @@ function renderFramebuffer(
 
   // Let the shared CSS surface provide the normal dark phosphor background.
   // Keep the inverted-screen case opaque so reverse-video still reads correctly.
-  if (opt.invertedScreen) {
+  if (frame.invertedScreen) {
     ctx.fillStyle = renderColor;
     ctx.fillRect(0, 0, 560, 250);
   } else {
@@ -246,61 +211,35 @@ function renderFramebuffer(
   }
 
   // Draw characters from framebuffer
-  for (let row = 0; row < DISP_ROWS; row++) {
-    const rowOfs = (opt.rows[row] & 0x1f) * 256 + opt.colOfs;
-    const fontIndex = (opt.rows[row] >> 5) & 0x03;
-    const charset = getXep80Charset(fontIndex);
+  for (const frameRow of frame.rows) {
+    const charset = getXep80Charset(frameRow.fontIndex);
     const font = charset?.font ?? null;
 
     if (!font) {
       continue;
     }
 
-    let rowAttr: [Xep80CellAttr, Xep80CellAttr] = opt.attr;
-    if (charset.externalFont) {
-      // Normal and international fonts have the inverted attribute bit flipped 
-      // compared to the internal font, so invert it back here for rendering.
-      rowAttr = [opt.attr[0], { ...opt.attr[1], inverted: !opt.attr[1].inverted }];
-    }
-
-    for (let col = 0; col < DISP_COLS; col++) {
-      const ofs = rowOfs + col;
-
-      let attr;
-      let char;
-
-      if (ram[ofs] != 0x9b) {
-        attr = rowAttr[ram[ofs] & 0x80 ? 1 : 0];
-        char = ram[ofs] & 0x7f;
-      } else {
-        attr = rowAttr[0];
-        char = 0x20;
-      }
-
-      const x = col * DISP_CHAR_WIDTH;
-      const y = row * DISP_CHAR_HEIGHT;
+    for (const cell of frameRow.cells) {
+      const x = cell.col * DISP_CHAR_WIDTH;
+      const y = frameRow.row * DISP_CHAR_HEIGHT;
 
       const charAttr: CharAttr = {
-        font: font,
-        inverted: attr.inverted != opt.invertedScreen,
-        doubleWidth: attr.doubleWidth,
-        doubleHeight: attr.doubleHeight,
-        bottomHalf: attr.doubleHeight && attr.blank,
+        font,
+        inverted: cell.attr.inverted != frame.invertedScreen,
+        doubleWidth: cell.attr.doubleWidth,
+        doubleHeight: cell.attr.doubleHeight,
+        bottomHalf: cell.attr.doubleHeight && cell.attr.blank,
       };
 
-      drawCharacter(ctx, char, x, y, charAttr);
+      drawCharacter(ctx, cell.charCode, x, y, charAttr);
 
-      if (ofs === opt.curs) {
+      if (cell.cursor) {
         drawCursor(ctx, x, y);
-      }
-
-      if (attr.doubleWidth) {
-        col += 1;
       }
     }
   }
 
-  if (opt.invertedScreen) {
+  if (frame.invertedScreen) {
     applyColorTint(ctx, renderColor);
   } else {
     applyPhosphorMask(ctx, renderColor);
