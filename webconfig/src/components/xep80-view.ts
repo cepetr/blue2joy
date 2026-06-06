@@ -42,42 +42,16 @@ import {
 import "./xep80-bitmap.js";
 import "./xep80-prompts.js";
 import "./xep80-text.js";
-import "./xep80-toolbox.js";
-
-type Xep80RenderMode = "bitmap" | "text";
-
-type Xep80ColorId = "green" | "amber" | "white";
-
-type Xep80ColorOption = {
-  id: Xep80ColorId;
-  label: string;
-  tint: string;
-};
+import {
+  xep80ColorOptions,
+  xep80ToolboxConfig,
+  xep80ToolboxConfigChangeEvent,
+  type Xep80ColorId,
+  type Xep80RenderMode,
+} from "./xep80-toolbox.js";
 
 @customElement("xep80-view")
 export class Xep80View extends MobxLitElement {
-  private static readonly renderModeStorageKey = "xep80-render-mode";
-
-  private static readonly colorIdStorageKey = "xep80-color-id";
-
-  private static readonly colorOptions: Xep80ColorOption[] = [
-    {
-      id: "green",
-      label: "Green",
-      tint: "#8ef0a7",
-    },
-    {
-      id: "amber",
-      label: "Amber",
-      tint: "#ffbf47",
-    },
-    {
-      id: "white",
-      label: "White",
-      tint: "#ffffff",
-    },
-  ];
-
   private static readonly textBaseFontSizePx = 16;
 
   private static readonly textLineHeight = 1.25;
@@ -118,7 +92,7 @@ export class Xep80View extends MobxLitElement {
   private viewElement?: HTMLDivElement;
 
   @state()
-  private renderMode: Xep80RenderMode = this.loadRenderMode();
+  private renderMode: Xep80RenderMode = xep80ToolboxConfig.mode;
 
   @state()
   private textScreen: Xep80TextRow[] = createBlankXep80TextScreen();
@@ -127,7 +101,7 @@ export class Xep80View extends MobxLitElement {
   private isToolboxVisible = false;
 
   @state()
-  private colorId: Xep80ColorId = this.loadColorId();
+  private colorId: Xep80ColorId = xep80ToolboxConfig.colorId;
 
   private resizeObserver?: ResizeObserver;
 
@@ -143,43 +117,13 @@ export class Xep80View extends MobxLitElement {
     await btj.setJoyPortMode(Btj.JoyPortMode.UART);
   };
 
-  private onRenderModeChange = (mode: Xep80RenderMode) => {
-    this.renderMode = mode;
-    localStorage.setItem(Xep80View.renderModeStorageKey, mode);
-    this.showToolbox();
-    this.updateComplete.then(() => this.resizeActiveView());
-  };
-
-  private loadRenderMode(): Xep80RenderMode {
-    const stored = localStorage.getItem(Xep80View.renderModeStorageKey);
-    return stored === "text" ? "text" : "bitmap";
-  }
-
   private getCurrentColorOption() {
-    return Xep80View.colorOptions.find(({ id }) => id === this.colorId)
-      ?? Xep80View.colorOptions[0];
+    return xep80ColorOptions.find(({ id }) => id === this.colorId)
+      ?? xep80ColorOptions[0];
   }
 
   private getCurrentPalette(): Xep80Palette {
     return deriveXep80Palette(this.getCurrentColorOption().tint);
-  }
-
-  private onCycleColor = () => {
-    const currentIndex = Xep80View.colorOptions.findIndex(
-      ({ id }) => id === this.colorId,
-    );
-    const nextIndex = (currentIndex + 1) % Xep80View.colorOptions.length;
-    this.colorId = Xep80View.colorOptions[nextIndex].id;
-    localStorage.setItem(Xep80View.colorIdStorageKey, this.colorId);
-    this.showToolbox();
-    this.frameController.updateTint(this.getCurrentColorOption().tint);
-  };
-
-  private loadColorId(): Xep80ColorId {
-    const stored = localStorage.getItem(Xep80View.colorIdStorageKey);
-    return Xep80View.colorOptions.some(({ id }) => id === stored)
-      ? (stored as Xep80ColorId)
-      : "green";
   }
 
   private isViewFullscreen() {
@@ -262,16 +206,24 @@ export class Xep80View extends MobxLitElement {
     this.scheduleToolboxHide();
   };
 
-  private onToolboxModeChange = (event: Event) => {
-    const detail = (event as CustomEvent<{ mode?: string }>).detail;
+  private onToolboxConfigChange = () => {
+    const nextMode = xep80ToolboxConfig.mode;
+    const nextColorId = xep80ToolboxConfig.colorId;
+    const modeChanged = this.renderMode !== nextMode;
+    const colorChanged = this.colorId !== nextColorId;
 
-    if (detail.mode === "bitmap" || detail.mode === "text") {
-      this.onRenderModeChange(detail.mode);
+    this.renderMode = nextMode;
+    this.colorId = nextColorId;
+
+    if (modeChanged) {
+      this.showToolbox();
+      this.updateComplete.then(() => this.resizeActiveView());
     }
-  };
 
-  private onToolboxCycleColor = () => {
-    this.onCycleColor();
+    if (colorChanged) {
+      this.showToolbox();
+      this.frameController.updateTint(this.getCurrentColorOption().tint);
+    }
   };
 
   private onToolboxToggleFullscreen = () => {
@@ -294,12 +246,20 @@ export class Xep80View extends MobxLitElement {
     this.frameController.startWorker();
     window.addEventListener("resize", this.handleResize);
     document.addEventListener("fullscreenchange", this.onFullscreenChange);
+    xep80ToolboxConfig.addEventListener(
+      xep80ToolboxConfigChangeEvent,
+      this.onToolboxConfigChange,
+    );
   }
 
   override disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("resize", this.handleResize);
     document.removeEventListener("fullscreenchange", this.onFullscreenChange);
+    xep80ToolboxConfig.removeEventListener(
+      xep80ToolboxConfigChangeEvent,
+      this.onToolboxConfigChange,
+    );
     this.clearToolboxHideTimer();
     this.resizeObserver?.disconnect();
     this.resizeObserver = undefined;
@@ -492,14 +452,6 @@ export class Xep80View extends MobxLitElement {
     const isXep80Enabled = this.isXep80Active();
     const isXep80Synced = btj.xep80Synced;
     const isDisplaySuppressed = !isXep80Enabled || !isXep80Synced;
-    const currentColor = this.getCurrentColorOption();
-    const currentColorIndex = Xep80View.colorOptions.findIndex(
-      ({ id }) => id === currentColor.id,
-    );
-    const nextColor =
-      Xep80View.colorOptions[
-      (currentColorIndex + 1) % Xep80View.colorOptions.length
-      ];
 
     return html`
       <div
@@ -527,13 +479,9 @@ export class Xep80View extends MobxLitElement {
           ></xep80-prompts>
         <xep80-toolbox
           .visible=${this.isToolboxVisible}
-          .mode=${this.renderMode}
-          .nextColorLabel=${nextColor.label}
           .fullscreen=${this.isViewFullscreen()}
           @focusin=${this.onToolboxFocusIn}
           @focusout=${this.onToolboxFocusOut}
-          @xep80-toolbox-mode-change=${this.onToolboxModeChange}
-          @xep80-toolbox-cycle-color=${this.onToolboxCycleColor}
           @xep80-toolbox-toggle-fullscreen=${this.onToolboxToggleFullscreen}
         ></xep80-toolbox>
       </div>

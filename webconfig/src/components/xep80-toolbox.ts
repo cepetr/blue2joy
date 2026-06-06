@@ -17,13 +17,122 @@
  */
 
 import { html, LitElement } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 
-export type Xep80ToolboxMode = "bitmap" | "text";
+export type Xep80RenderMode = "bitmap" | "text";
 
-type ModeChangeDetail = {
-  mode: Xep80ToolboxMode;
+export type Xep80ToolboxMode = Xep80RenderMode;
+
+export type Xep80ColorId = "green" | "amber" | "white";
+
+export type Xep80ColorOption = {
+  id: Xep80ColorId;
+  label: string;
+  tint: string;
 };
+
+type ToolboxConfigChangeDetail = {
+  mode: Xep80RenderMode;
+  colorId: Xep80ColorId;
+};
+
+const toolboxConfigChangeEventName = "xep80-toolbox-config-change";
+
+const renderModeStorageKey = "xep80-render-mode";
+
+const colorIdStorageKey = "xep80-color-id";
+
+export const xep80ColorOptions: Xep80ColorOption[] = [
+  {
+    id: "green",
+    label: "Green",
+    tint: "#8ef0a7",
+  },
+  {
+    id: "amber",
+    label: "Amber",
+    tint: "#ffbf47",
+  },
+  {
+    id: "white",
+    label: "White",
+    tint: "#ffffff",
+  },
+];
+
+export class Xep80ToolboxConfig extends EventTarget {
+  private currentMode: Xep80RenderMode = this.loadRenderMode();
+
+  private currentColorId: Xep80ColorId = this.loadColorId();
+
+  get mode(): Xep80RenderMode {
+    return this.currentMode;
+  }
+
+  get colorId(): Xep80ColorId {
+    return this.currentColorId;
+  }
+
+  getCurrentColorOption(): Xep80ColorOption {
+    return xep80ColorOptions.find(({ id }) => id === this.currentColorId)
+      ?? xep80ColorOptions[0];
+  }
+
+  getNextColorOption(): Xep80ColorOption {
+    const currentIndex = xep80ColorOptions.findIndex(
+      ({ id }) => id === this.currentColorId,
+    );
+    const nextIndex = (currentIndex + 1) % xep80ColorOptions.length;
+
+    return xep80ColorOptions[nextIndex];
+  }
+
+  setMode(mode: Xep80RenderMode): boolean {
+    if (this.currentMode === mode) {
+      return false;
+    }
+
+    this.currentMode = mode;
+    localStorage.setItem(renderModeStorageKey, mode);
+    this.dispatchChange();
+
+    return true;
+  }
+
+  cycleColor(): Xep80ColorId {
+    this.currentColorId = this.getNextColorOption().id;
+    localStorage.setItem(colorIdStorageKey, this.currentColorId);
+    this.dispatchChange();
+
+    return this.currentColorId;
+  }
+
+  private dispatchChange() {
+    this.dispatchEvent(new CustomEvent<ToolboxConfigChangeDetail>(toolboxConfigChangeEventName, {
+      detail: {
+        mode: this.currentMode,
+        colorId: this.currentColorId,
+      },
+    }));
+  }
+
+  private loadRenderMode(): Xep80RenderMode {
+    const stored = localStorage.getItem(renderModeStorageKey);
+    return stored === "text" ? "text" : "bitmap";
+  }
+
+  private loadColorId(): Xep80ColorId {
+    const stored = localStorage.getItem(colorIdStorageKey);
+    return xep80ColorOptions.some(({ id }) => id === stored)
+      ? (stored as Xep80ColorId)
+      : "green";
+  }
+}
+
+export const xep80ToolboxConfig = new Xep80ToolboxConfig();
+
+export const xep80ToolboxConfigChangeEvent = toolboxConfigChangeEventName;
+
 
 @customElement("xep80-toolbox")
 export class Xep80Toolbox extends LitElement {
@@ -34,28 +143,43 @@ export class Xep80Toolbox extends LitElement {
   @property({ type: Boolean })
   visible = false;
 
-  @property({ type: String })
-  mode: Xep80ToolboxMode = "bitmap";
-
-  @property({ type: String })
-  nextColorLabel = "Green";
-
   @property({ type: Boolean })
   fullscreen = false;
 
-  private onModeClick = (mode: Xep80ToolboxMode) => {
-    this.dispatchEvent(new CustomEvent<ModeChangeDetail>("xep80-toolbox-mode-change", {
-      detail: { mode },
-      bubbles: true,
-      composed: true,
-    }));
+  @state()
+  private mode: Xep80RenderMode = xep80ToolboxConfig.mode;
+
+  @state()
+  private colorId: Xep80ColorId = xep80ToolboxConfig.colorId;
+
+  private onConfigChange = (event: Event) => {
+    const detail = (event as CustomEvent<ToolboxConfigChangeDetail>).detail;
+    this.mode = detail.mode;
+    this.colorId = detail.colorId;
+  };
+
+  override connectedCallback() {
+    super.connectedCallback();
+    xep80ToolboxConfig.addEventListener(
+      xep80ToolboxConfigChangeEvent,
+      this.onConfigChange,
+    );
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    xep80ToolboxConfig.removeEventListener(
+      xep80ToolboxConfigChangeEvent,
+      this.onConfigChange,
+    );
+  }
+
+  private onModeClick = (mode: Xep80RenderMode) => {
+    xep80ToolboxConfig.setMode(mode);
   };
 
   private onCycleColor = () => {
-    this.dispatchEvent(new CustomEvent("xep80-toolbox-cycle-color", {
-      bubbles: true,
-      composed: true,
-    }));
+    xep80ToolboxConfig.cycleColor();
   };
 
   private onToggleFullscreen = () => {
@@ -66,10 +190,15 @@ export class Xep80Toolbox extends LitElement {
   };
 
   override render() {
-    const items: Array<{ mode: Xep80ToolboxMode; label: string }> = [
+    const items: Array<{ mode: Xep80RenderMode; label: string }> = [
       { mode: "bitmap", label: "Original" },
       { mode: "text", label: "Modern" },
     ];
+    const currentIndex = xep80ColorOptions.findIndex(
+      ({ id }) => id === this.colorId,
+    );
+    const nextColor =
+      xep80ColorOptions[(currentIndex + 1) % xep80ColorOptions.length];
 
     return html`
       <style>
@@ -146,7 +275,7 @@ export class Xep80Toolbox extends LitElement {
             class="btn btn-outline-secondary"
             @click=${this.onCycleColor}
           >
-            ${this.nextColorLabel}
+            ${nextColor.label}
           </button>
           <button
             type="button"
