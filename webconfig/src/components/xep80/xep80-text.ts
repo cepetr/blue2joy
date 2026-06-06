@@ -22,6 +22,9 @@ import type { Xep80TextRow } from "../../xep80/worker.js";
 
 @customElement("xep80-text")
 export class Xep80Text extends LitElement {
+  static readonly baseFontSizePx = 16;
+  static readonly lineHeight = 1.25;
+
   protected override createRenderRoot() {
     return this;
   }

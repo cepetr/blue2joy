@@ -21,6 +21,8 @@ import { customElement, property } from "lit/decorators.js";
 
 @customElement("xep80-bitmap")
 export class Xep80Bitmap extends LitElement {
+  static readonly pixelAspectHeight = 2;
+
   protected override createRenderRoot() {
     return this;
   }

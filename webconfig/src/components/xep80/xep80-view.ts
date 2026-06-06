@@ -28,15 +28,15 @@ import {
 } from "../../xep80/palette.js";
 import { createBlankXep80TextScreen } from "../../xep80/render-text.js";
 import {
-  resizeXep80BitmapSurface,
-  resizeXep80TextSurface,
-} from "../../xep80/view-resize.js";
-import {
   type Xep80TextRow,
 } from "../../xep80/worker.js";
-import "./render-text.js";
-import "./xep80-bitmap.js";
+import { Xep80Bitmap } from "./xep80-bitmap.js";
 import "./xep80-prompts.js";
+import {
+  resizeXep80BitmapSurface,
+  resizeXep80TextSurface,
+} from "./xep80-resize.js";
+import { Xep80Text } from "./xep80-text.js";
 import { Xep80ToolboxVisibilityController } from "./xep80-toolbox-visibility.js";
 import {
   xep80ColorOptions,
@@ -46,19 +46,11 @@ import {
   type Xep80RenderMode,
 } from "./xep80-toolbox.js";
 
+const surfaceTopSpacingPx = 2;
+const surfaceBottomSpacingPx = 2;
+
 @customElement("xep80-view")
 export class Xep80View extends MobxLitElement {
-  private static readonly textBaseFontSizePx = 16;
-
-  private static readonly textLineHeight = 1.25;
-
-  private static readonly bitmapPixelAspectHeight = 2;
-
-  private static readonly surfaceTopSpacingPx = 16;
-
-  private static readonly surfaceBottomSpacingPx = 8;
-
-  private static readonly contentFitSafetyPx = 4;
 
   protected override createRenderRoot() {
     return this;
@@ -237,7 +229,9 @@ export class Xep80View extends MobxLitElement {
       this.resizeObserver.observe(this.textWrap);
     }
 
-    this.resizeActiveView();
+    requestAnimationFrame(() => {
+      this.resizeActiveView();
+    });
 
     if (btj.xep80State.length > 0) {
       this.renderFramebuffer(btj.xep80State, btj.xep80Synced);
@@ -256,8 +250,7 @@ export class Xep80View extends MobxLitElement {
       canvasWrap: this.canvasWrap,
       bitmapSurface: this.bitmapSurface,
       isFullscreen,
-      contentFitSafetyPx: Xep80View.contentFitSafetyPx,
-      bitmapPixelAspectHeight: Xep80View.bitmapPixelAspectHeight,
+      bitmapPixelAspectHeight: Xep80Bitmap.pixelAspectHeight,
     });
 
     resizeXep80TextSurface({
@@ -265,9 +258,8 @@ export class Xep80View extends MobxLitElement {
       textSurface: this.textSurface,
       textScreenElement: this.textScreenElement,
       isFullscreen,
-      contentFitSafetyPx: Xep80View.contentFitSafetyPx,
-      textBaseFontSizePx: Xep80View.textBaseFontSizePx,
-      textLineHeight: Xep80View.textLineHeight,
+      textBaseFontSizePx: Xep80Text.baseFontSizePx,
+      textLineHeight: Xep80Text.lineHeight,
     });
   }
 
@@ -330,8 +322,8 @@ export class Xep80View extends MobxLitElement {
           --xep80-surface-background: ${palette.surface};
           --xep80-border-color: ${palette.border};
           --xep80-glow-color: ${palette.glow};
-          --xep80-surface-top-spacing: ${Xep80View.surfaceTopSpacingPx}px;
-          --xep80-surface-bottom-spacing: ${Xep80View.surfaceBottomSpacingPx}px;
+          --xep80-surface-top-spacing: ${surfaceTopSpacingPx}px;
+          --xep80-surface-bottom-spacing: ${surfaceBottomSpacingPx}px;
           overflow: hidden;
         }
 
@@ -348,15 +340,15 @@ export class Xep80View extends MobxLitElement {
         .xep80-view:fullscreen .xep80-surface-wrap {
           flex: 1 1 auto;
           margin-top: 0;
-          padding: 1.5rem 1.5rem ${Xep80View.surfaceBottomSpacingPx}px;
+          padding: ${surfaceTopSpacingPx}px 1.5rem ${surfaceBottomSpacingPx}px;
           align-items: center;
         }
 
         .xep80-surface-wrap {
           position: relative;
           width: 100%;
-          margin-top: ${Xep80View.surfaceTopSpacingPx}px;
-          padding-bottom: ${Xep80View.surfaceBottomSpacingPx}px;
+          margin-top: ${surfaceTopSpacingPx}px;
+          padding-bottom: ${surfaceBottomSpacingPx}px;
           overflow: hidden;
           display: flex;
           justify-content: center;

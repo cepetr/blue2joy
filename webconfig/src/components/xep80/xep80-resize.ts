@@ -20,12 +20,13 @@ import {
   computeContentSize,
   computeTextRenderMetrics,
   fitSizeWithinViewport,
-} from "./layout.js";
-import { XEP80_DISPLAY_COLS, XEP80_DISPLAY_ROWS } from "./worker.js";
+} from "../../xep80/layout.js";
+import { XEP80_DISPLAY_COLS, XEP80_DISPLAY_ROWS } from "../../xep80/worker.js";
+
+const contentFitSafetyPx = 4;
 
 type ResizeCommonOptions = {
   isFullscreen: boolean;
-  contentFitSafetyPx: number;
 };
 
 type ResizeBitmapOptions = ResizeCommonOptions & {
@@ -61,7 +62,6 @@ export function resizeXep80BitmapSurface(options: ResizeBitmapOptions) {
     canvasWrap,
     bitmapSurface,
     isFullscreen,
-    contentFitSafetyPx,
     bitmapPixelAspectHeight,
   } = options;
 
@@ -104,7 +104,6 @@ export function resizeXep80TextSurface(options: ResizeTextOptions) {
     textSurface,
     textScreenElement,
     isFullscreen,
-    contentFitSafetyPx,
     textBaseFontSizePx,
     textLineHeight,
   } = options;
