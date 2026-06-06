@@ -54,6 +54,9 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 
   if (ctx && state) {
     renderXep80Bitmap(state, ctx, renderColor);
-    self.postMessage({ type: "rendered" });
+
+    self.postMessage({
+      type: "rendered",
+    });
   }
 };

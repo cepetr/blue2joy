@@ -41,10 +41,6 @@ export function deriveXep80Palette(tint: string): Xep80Palette {
   };
 }
 
-export function isNeutralTint(color: string): boolean {
-  return color.toLowerCase() === XEP80_NEUTRAL_TINT;
-}
-
 function scaleColorToLuminance(hex: string, targetLuminance: number): string {
   const rgb = parseHexColor(hex);
 

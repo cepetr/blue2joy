@@ -29,15 +29,58 @@ export class Xep80FrameController {
 
   private lastFrameState = new Uint8Array(0);
 
+  private workerRenderInFlight = false;
+
+  private pendingBitmapRender: { state: Uint8Array; tint: string } | null = null;
+
   startWorker() {
     try {
       this.worker = new Worker(
         new URL("./worker.ts", import.meta.url),
         { type: "module" },
       );
+
+      this.worker.addEventListener("message", (event: MessageEvent<WorkerMessage>) => {
+        if (event.data.type !== "rendered") {
+          return;
+        }
+
+        this.workerRenderInFlight = false;
+
+        this.flushPendingBitmapRender();
+      });
     } catch (err) {
       console.error("Failed to start XEP80 worker:", err);
     }
+  }
+
+  private replacePendingBitmapRender(state: Uint8Array, tint: string) {
+    this.pendingBitmapRender = {
+      state: state.slice(),
+      tint,
+    };
+
+    this.flushPendingBitmapRender();
+  }
+
+  private flushPendingBitmapRender() {
+    if (
+      !this.worker
+      || this.workerRenderInFlight
+      || !this.pendingBitmapRender
+    ) {
+      return;
+    }
+
+    const msg: WorkerMessage = {
+      type: "render",
+      state: this.pendingBitmapRender.state,
+      tint: this.pendingBitmapRender.tint,
+    };
+
+    this.pendingBitmapRender = null;
+    this.workerRenderInFlight = true;
+    this.worker.postMessage(msg);
   }
 
   initCanvas(canvas: HTMLCanvasElement | undefined, tint: string) {
@@ -61,12 +104,7 @@ export class Xep80FrameController {
       return;
     }
 
-    const msg: WorkerMessage = {
-      type: "render",
-      state: this.lastFrameState.slice(),
-      tint,
-    };
-    this.worker.postMessage(msg);
+    this.replacePendingBitmapRender(this.lastFrameState, tint);
   }
 
   renderFrame(
@@ -87,12 +125,7 @@ export class Xep80FrameController {
     }
 
     if (this.worker) {
-      const msg: WorkerMessage = {
-        type: "render",
-        state: this.lastFrameState.slice(),
-        tint,
-      };
-      this.worker.postMessage(msg);
+      this.replacePendingBitmapRender(this.lastFrameState, tint);
     }
 
     return createBlankXep80TextScreen();
@@ -105,6 +138,8 @@ export class Xep80FrameController {
     }
 
     this.workerCanvasInitialized = false;
+    this.workerRenderInFlight = false;
+    this.pendingBitmapRender = null;
     this.lastFrameState = new Uint8Array(0);
   }
 }
