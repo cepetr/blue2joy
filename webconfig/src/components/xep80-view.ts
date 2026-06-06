@@ -24,14 +24,14 @@ import { Btj } from "../services/btj-messages.js";
 import {
   deriveXep80Palette,
   type Xep80Palette,
-} from "../workers/xep80-palette.js";
+} from "../xep80/palette.js";
 import {
   renderXep80Text,
   XEP80_DISPLAY_COLS,
   XEP80_DISPLAY_ROWS,
   type WorkerMessage,
   type Xep80TextRow,
-} from "../workers/xep80-worker.js";
+} from "../xep80/worker.js";
 
 type Xep80RenderMode = "bitmap" | "text";
 
@@ -325,7 +325,7 @@ export class Xep80View extends MobxLitElement {
   private initWorker() {
     try {
       this.worker = new Worker(
-        new URL("../workers/xep80-worker.ts", import.meta.url),
+        new URL("../xep80/worker.ts", import.meta.url),
         { type: "module" },
       );
     } catch (err) {

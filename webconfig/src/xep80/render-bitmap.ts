@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { getXep80Charset } from "./xep80-charset.js";
-import { decodeXep80Frame } from "./xep80-frame.js";
+import { getXep80Charset } from "./charset.js";
+import { decodeXep80Frame } from "./frame.js";
 import {
   XEP80_CANVAS_HEIGHT,
   XEP80_CANVAS_WIDTH,
@@ -28,12 +28,12 @@ import {
   XEP80_FONT_CHAR_HEIGHT,
   XEP80_FONT_CHAR_WIDTH,
   XEP80_FONT_COLS,
-} from "./xep80-geometry.js";
+} from "./geometry.js";
 import {
   isNeutralTint,
   parseHexColor,
   XEP80_CURSOR_COLOR,
-} from "./xep80-palette.js";
+} from "./palette.js";
 
 type CharAttr = {
   inverted: boolean;

@@ -18,21 +18,21 @@
 
 import {
   ensureXep80FontsLoaded,
-} from "./xep80-charset.js";
+} from "./charset.js";
 import {
   deriveXep80Palette,
   XEP80_DEFAULT_TINT,
-} from "./xep80-palette.js";
-import { renderXep80Bitmap } from "./xep80-render-bitmap.js";
+} from "./palette.js";
+import { renderXep80Bitmap } from "./render-bitmap.js";
+export type {
+  Xep80TextCell,
+  Xep80TextRow
+} from "./render-text";
 export {
   renderXep80Text,
   XEP80_DISPLAY_COLS,
   XEP80_DISPLAY_ROWS
-} from "./xep80-render-text.js";
-export type {
-  Xep80TextCell,
-  Xep80TextRow
-} from "./xep80-render-text.js";
+} from "./render-text.js";
 
 export interface WorkerMessage {
   type: string;

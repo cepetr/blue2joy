@@ -16,15 +16,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { getXep80Charset } from "./xep80-charset.js";
-import {
-  XEP80_RAM_SIZE,
-  XEP80_STATE_SIZE,
-} from "./xep80-decode.js";
 import {
   getRenderOptions,
   type Xep80CellAttr,
-} from "./xep80-regs.js";
+} from "./attributes.js";
+import { getXep80Charset } from "./charset.js";
+import {
+  XEP80_RAM_SIZE,
+  XEP80_STATE_SIZE,
+} from "./decoder.js";
 
 export type Xep80FrameCell = {
   col: number;

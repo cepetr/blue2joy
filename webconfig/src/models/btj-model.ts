@@ -29,7 +29,7 @@ import type { BtjTransport } from "../services/btj-transport";
 import { createDemoTransport } from "../services/virtual-transport";
 import { scanAndSelectBluetoothTransport } from "../services/web-bluetooth-transport";
 import { scanAndSelectWebUsbTransport } from "../services/webusb-transport";
-import { XEP80_STATE_SIZE, decodeXep80Update } from "../workers/xep80-decode";
+import { XEP80_STATE_SIZE, decodeXep80Update } from "../xep80/decoder";
 
 export interface DeviceEntry {
   addr: Btj.DevAddr;

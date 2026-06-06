@@ -16,13 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { mapXep80Char } from "./xep80-charset.js";
-import { decodeXep80Frame } from "./xep80-frame.js";
+import { type Xep80CellAttr } from "./attributes.js";
+import { mapXep80Char } from "./charset.js";
+import { decodeXep80Frame } from "./frame.js";
 import {
   XEP80_DISPLAY_COLS,
   XEP80_DISPLAY_ROWS,
-} from "./xep80-geometry.js";
-import { type Xep80CellAttr } from "./xep80-regs.js";
+} from "./geometry.js";
 
 export type Xep80TextCell = {
   text: string;
