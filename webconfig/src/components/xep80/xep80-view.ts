@@ -391,7 +391,7 @@ export class Xep80View extends MobxLitElement {
           position: relative;
           z-index: 1;
           display: block;
-          image-rendering: pixelated;
+          image-rendering: auto;
         }
 
       </style>
