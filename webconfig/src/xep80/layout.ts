@@ -86,7 +86,6 @@ export function computeTextRenderMetrics(
   charWidth: number,
   lineHeight: number,
   baseFontSize: number,
-  minFontSize: number,
 ): Xep80TextRenderMetrics | null {
   if (charWidth <= 0 || lineHeight <= 0) {
     return null;
@@ -100,14 +99,11 @@ export function computeTextRenderMetrics(
     },
   );
   const scale = fittedSize.width / (cols * charWidth);
-  const fontSize = Math.max(
-    minFontSize,
-    Math.floor(baseFontSize * scale * 100) / 100,
-  );
+  const fontSize = Math.floor(baseFontSize * scale * 100) / 100;
 
   return {
     fontSize,
     renderWidth: Math.floor(cols * charWidth * (fontSize / baseFontSize)),
-    renderHeight: Math.floor(rows * lineHeight * (fontSize / baseFontSize)),
+    renderHeight: Math.ceil(rows * lineHeight * (fontSize / baseFontSize)),
   };
 }

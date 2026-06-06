@@ -152,7 +152,6 @@ export function resizeXep80TextSurface(options: ResizeTextOptions) {
     charWidth,
     lineHeight,
     textBaseFontSizePx,
-    8,
   );
 
   if (!renderMetrics) {
