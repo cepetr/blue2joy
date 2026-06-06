@@ -23,12 +23,12 @@ import {
   observable,
   runInAction,
 } from "mobx";
+import { scanAndSelectBluetoothTransport } from "../services/ble-transport";
 import { BtjConnection } from "../services/btj-connection";
 import { Btj } from "../services/btj-messages";
 import type { BtjTransport } from "../services/btj-transport";
+import { scanAndSelectWebUsbTransport } from "../services/usb-transport";
 import { createDemoTransport } from "../services/virtual-transport";
-import { scanAndSelectBluetoothTransport } from "../services/web-bluetooth-transport";
-import { scanAndSelectWebUsbTransport } from "../services/webusb-transport";
 import { XEP80_STATE_SIZE, decodeXep80Update } from "../xep80/decoder";
 
 export interface DeviceEntry {

@@ -76,7 +76,7 @@ const XEP80_REG_XSCROLL = XEP80_REG_OFFSET + 55;
 const XEP80_DEMO_LINES = ["XEP-80 0.1h installed", "", "D1:"];
 const XEP80_DEMO_TEXT = `${XEP80_DEMO_LINES.join("\n")}`;
 
-export class VirtualBtjTransport implements BtjTransport {
+export class VirtualTransport implements BtjTransport {
   private isOpen = false;
   private frameHandler: BtjFrameHandler | null = null;
   private disconnectHandler: BtjDisconnectHandler | null = null;
@@ -130,7 +130,7 @@ export class VirtualBtjTransport implements BtjTransport {
 
 export function createDemoTransport(): BtjTransport {
   const emulator = new VirtualBlue2JoyDevice();
-  return new VirtualBtjTransport(
+  return new VirtualTransport(
     (frame, emit) => emulator.handleFrame(frame, emit),
     (emit) => emulator.handleOpen(emit),
     () => emulator.handleClose(),

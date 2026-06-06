@@ -33,7 +33,7 @@ type WebBluetoothNavigator = {
   }): Promise<BluetoothDevice>;
 };
 
-export class WebBluetoothTransport implements BtjTransport {
+export class BleTransport implements BtjTransport {
   private requestChar: BluetoothRemoteGATTCharacteristic | null = null;
   private notifyChar: BluetoothRemoteGATTCharacteristic | null = null;
   private readyPromise: Promise<void> | null = null;
@@ -42,7 +42,7 @@ export class WebBluetoothTransport implements BtjTransport {
   private notifyListener: ((e: Event) => void) | null = null;
   private disconnectListener: (() => void) | null = null;
 
-  constructor(private readonly device: BluetoothDevice) {}
+  constructor(private readonly device: BluetoothDevice) { }
 
   setFrameHandler(handler: BtjFrameHandler | null): void {
     this.frameHandler = handler;
@@ -173,7 +173,7 @@ export async function scanAndSelectBluetoothTransport(): Promise<BtjTransport> {
     optionalServices: [],
   });
 
-  return new WebBluetoothTransport(device);
+  return new BleTransport(device);
 }
 
 function getNavigatorBluetooth(): WebBluetoothNavigator | null {

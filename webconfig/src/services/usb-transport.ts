@@ -31,7 +31,7 @@ type WebUsbNavigator = Navigator & {
   usb?: USB;
 };
 
-export class WebUsbTransport implements BtjTransport {
+export class UsbTransport implements BtjTransport {
   private deviceOpened = false;
   private claimedInterfaceNumber: number | null = null;
   private inEndpointNumber: number | null = null;
@@ -45,7 +45,7 @@ export class WebUsbTransport implements BtjTransport {
   private closing = false;
   private rxBuffer = new Uint8Array(0);
 
-  constructor(private readonly device: USBDevice) {}
+  constructor(private readonly device: USBDevice) { }
 
   setFrameHandler(handler: BtjFrameHandler | null): void {
     this.frameHandler = handler;
@@ -110,7 +110,7 @@ export class WebUsbTransport implements BtjTransport {
       }
     } finally {
       this.resetState();
-      await readLoopPromise?.catch(() => {});
+      await readLoopPromise?.catch(() => { });
     }
   }
 
@@ -288,7 +288,7 @@ export async function scanAndSelectWebUsbTransport(): Promise<BtjTransport> {
     ],
   });
 
-  return new WebUsbTransport(device);
+  return new UsbTransport(device);
 }
 
 function getNavigatorUsb(): USB | null {
