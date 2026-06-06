@@ -52,7 +52,7 @@ export interface ErrorEntry {
 export type ConnectionTransport = "bluetooth" | "usb" | "demo";
 
 type Xep80ViewElement = HTMLElement & {
-  renderFramebuffer(state: Uint8Array, synced?: boolean): void;
+  renderFrame(state: Uint8Array, synced?: boolean): void;
 };
 
 export class BtjModel {
@@ -276,8 +276,8 @@ export class BtjModel {
 
     // Update the XEP80 view with the new state
     const view = document.querySelector<Xep80ViewElement>("xep80-view");
-    if (view?.renderFramebuffer) {
-      view.renderFramebuffer(this.xep80State, this.xep80Synced);
+    if (view?.renderFrame) {
+      view.renderFrame(this.xep80State, this.xep80Synced);
     }
   }
 
@@ -357,8 +357,8 @@ export class BtjModel {
     this.xep80Synced = false;
 
     const view = document.querySelector<Xep80ViewElement>("xep80-view");
-    if (view?.renderFramebuffer) {
-      view.renderFramebuffer(this.xep80State, this.xep80Synced);
+    if (view?.renderFrame) {
+      view.renderFrame(this.xep80State, this.xep80Synced);
     }
   }
 

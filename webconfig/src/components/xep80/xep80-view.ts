@@ -234,7 +234,7 @@ export class Xep80View extends MobxLitElement {
     });
 
     if (btj.xep80State.length > 0) {
-      this.renderFramebuffer(btj.xep80State, btj.xep80Synced);
+      this.renderFrame(btj.xep80State, btj.xep80Synced);
     }
   }
 
@@ -263,7 +263,7 @@ export class Xep80View extends MobxLitElement {
     });
   }
 
-  public renderFramebuffer(state: Uint8Array, synced = btj.xep80Synced) {
+  public renderFrame(state: Uint8Array, synced = btj.xep80Synced) {
     this.textScreen = this.frameController.renderFrame(
       state,
       synced,
