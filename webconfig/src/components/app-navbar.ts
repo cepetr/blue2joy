@@ -166,20 +166,24 @@ export class AppNavbar extends MobxLitElement {
       ${btj.connected && btj.joyPort?.mode === Btj.JoyPortMode.UART
         ? html`
             <button
-              class="btn btn-outline-danger ms-3"
+              class="btn btn-sm btn-link ms-2 p-1 text-danger"
               @click=${this.onDisableXep80}
+              title="Deactivate XEP80"
+              aria-label="Deactivate XEP80"
             >
-              Disable XEP80
+              <i class="bi bi-terminal-x fs-5"></i>
             </button>
           `
         : ""}
       ${btj.connected
         ? html`
             <button
-              class="btn btn-outline-secondary ms-3"
+              class="btn btn-sm btn-link ms-2 p-1"
               @click=${this.disconnect}
+              title="Disconnect"
+              aria-label="Disconnect"
             >
-              Disconnect
+              <i class="bi bi-box-arrow-right fs-5"></i>
             </button>
           `
         : html` <span class="navbar-text ms-3">NOT CONNECTED</span> `}
@@ -265,7 +269,7 @@ export class AppNavbar extends MobxLitElement {
                 data-bs-dismiss="offcanvas"
                 @click=${this.onDisableXep80}
               >
-                Disable XEP80
+                <i class="bi bi-terminal-x me-2"></i>Deactivate XEP80
               </button>
             `
           : ""}
@@ -276,7 +280,7 @@ export class AppNavbar extends MobxLitElement {
             data-bs-dismiss="offcanvas"
             @click=${this.disconnect}
           >
-            Disconnect
+            <i class="bi bi-box-arrow-right me-2"></i>Disconnect
           </button>
         </div>
       </nav>
