@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "name": "_blue2joy_",
+      "path": "."
+    },
+    {
+      "name": "firmware",
+      "path": "firmware"
+    },
+    {
+      "name": "webconfig",
+      "path": "webconfig"
+    },
+  ]
+}
