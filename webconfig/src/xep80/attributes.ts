@@ -46,6 +46,7 @@ export type Xep80CellAttr = {
 
 export type Xep80RenderOptions = {
   curs: number;
+  cursBlinking: boolean;
   attr: [Xep80CellAttr, Xep80CellAttr];
   invertedScreen: boolean;
   rows: Uint8Array;
@@ -59,6 +60,7 @@ export function getRenderOptions(
 ): Xep80RenderOptions {
   return {
     curs: regs[Nsp405Reg.CURS] + regs[Nsp405Reg.CURS + 1] * 256,
+    cursBlinking: (regs[Nsp405Reg.VCR] & 0x02) == 0,
     attr: [
       {
         inverted: (regs[Nsp405Reg.AL0] & 0x01) == 0,

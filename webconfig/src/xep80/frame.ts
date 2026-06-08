@@ -43,6 +43,7 @@ export type Xep80FrameRow = {
 
 export type Xep80Frame = {
   invertedScreen: boolean;
+  cursorBlinking: boolean;
   rows: Xep80FrameRow[];
 };
 
@@ -93,6 +94,7 @@ export function decodeXep80Frame(
 
   return {
     invertedScreen: opt.invertedScreen,
+    cursorBlinking: opt.cursBlinking,
     rows,
   };
 }

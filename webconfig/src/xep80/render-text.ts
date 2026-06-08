@@ -27,6 +27,8 @@ import {
 export type Xep80TextCell = {
   text: string;
   inverted: boolean;
+  blinking: boolean;
+  cursorBlinking: boolean;
   underline: boolean;
   doubleWidth: boolean;
   cursor: boolean;
@@ -40,6 +42,8 @@ export function createBlankXep80TextScreen(): Xep80TextRow[] {
     Array.from({ length: XEP80_DISPLAY_COLS }, () => ({
       text: " ",
       inverted: false,
+      blinking: false,
+      cursorBlinking: false,
       underline: false,
       doubleWidth: false,
       cursor: false,
@@ -52,10 +56,13 @@ function createTextCell(
   attr: Xep80CellAttr,
   invertedScreen: boolean,
   cursor = false,
+  cursorBlinking = false,
 ): Xep80TextCell {
   return {
     text,
     inverted: attr.inverted !== invertedScreen,
+    blinking: attr.blinking,
+    cursorBlinking,
     underline: attr.underline,
     doubleWidth: attr.doubleWidth,
     cursor,
@@ -72,7 +79,13 @@ export function renderXep80Text(state: Uint8Array): Xep80TextRow[] {
       const text = cell.attr.blank ? " " : mapXep80Char(frameRow.fontIndex, cell.charCode);
 
       line.push({
-        ...createTextCell(text, cell.attr, frame.invertedScreen, cell.cursor),
+        ...createTextCell(
+          text,
+          cell.attr,
+          frame.invertedScreen,
+          cell.cursor,
+          frame.cursorBlinking && cell.cursor,
+        ),
         doubleWidth: cell.doubleWidth,
       });
     }

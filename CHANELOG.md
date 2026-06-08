@@ -2,6 +2,7 @@
 
 ### Unreleased
 ### Fixed
+- Implemented XEP80 character and cursor blinking (currently text mode only)
 - Fixed XEP80 character deletion within logical lines, with correct cross-row shifting and cleanup of empty wrapped rows.
 
 ### v0.5.1

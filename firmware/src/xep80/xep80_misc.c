@@ -40,7 +40,7 @@ void xep80_reset(xep80_t *xep)
     xep->tcp_register = 0;
     xep->extra_byte = 0;
 
-    xep->state.vcr = 0x00;
+    xep->state.vcr = 0x82;
     xep->state.attr0 = 0xFF;
     xep->state.attr1 = 0xFF;
 

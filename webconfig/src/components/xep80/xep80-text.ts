@@ -23,6 +23,8 @@ import type { Xep80TextRow } from "../../xep80/worker.js";
 type Xep80TextRun = {
   text: string;
   inverted: boolean;
+  blinking: boolean;
+  cursorBlinking: boolean;
   underline: boolean;
   doubleWidth: boolean;
   cursor: boolean;
@@ -54,6 +56,8 @@ export class Xep80Text extends LitElement {
       if (
         previousRun
         && previousRun.inverted === cell.inverted
+        && previousRun.blinking === cell.blinking
+        && previousRun.cursorBlinking === cell.cursorBlinking
         && previousRun.underline === cell.underline
         && previousRun.doubleWidth === cell.doubleWidth
         && previousRun.cursor === cell.cursor
@@ -66,6 +70,8 @@ export class Xep80Text extends LitElement {
       runs.push({
         text: cell.text,
         inverted: cell.inverted,
+        blinking: cell.blinking,
+        cursorBlinking: cell.cursorBlinking,
         underline: cell.underline,
         doubleWidth: cell.doubleWidth,
         cursor: cell.cursor,
@@ -81,8 +87,10 @@ export class Xep80Text extends LitElement {
       "x80c",
       run.doubleWidth ? "x80c--dw" : "",
       run.inverted ? "x80c--inv" : "",
+      run.blinking ? "x80c--blink" : "",
       run.underline ? "x80c--ul" : "",
       run.cursor ? "x80c--cur" : "",
+      run.cursorBlinking ? "x80c--curblink" : "",
     ].filter(Boolean).join(" ");
   }
 
@@ -99,6 +107,16 @@ export class Xep80Text extends LitElement {
   override render() {
     return html`
       <style>
+        @keyframes x80-blink {
+          0%, 49.999% {
+            opacity: 1;
+          }
+
+          50%, 100% {
+            opacity: 0;
+          }
+        }
+
         .xep80-surface--inactive .xep80-text-screen {
           visibility: hidden;
         }
@@ -156,6 +174,10 @@ export class Xep80Text extends LitElement {
           text-decoration-thickness: 1px;
         }
 
+        .x80c--blink {
+          animation: x80-blink 1s step-end infinite;
+        }
+
         .x80c--cur::after {
           content: "";
           position: absolute;
@@ -167,6 +189,18 @@ export class Xep80Text extends LitElement {
           );
           pointer-events: none;
           z-index: 2;
+        }
+
+        .x80c--inv.x80c--cur::after {
+          background: color-mix(
+            in srgb,
+            var(--xep80-surface-background) 50%,
+            transparent
+          );
+        }
+
+        .x80c--curblink::after {
+          animation: x80-blink 0.5s step-end infinite;
         }
       </style>
       <div class="xep80-surface xep80-surface--text ${this.suppressed ? "xep80-surface--inactive" : ""}">
