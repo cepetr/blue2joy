@@ -174,15 +174,20 @@ size_t xep80_build_update_message(uint8_t *buf, size_t buf_size, xep80_update_cl
         .ofs = 0,
     };
 
-    size_t ofs = client->synced_ofs;
-    size_t size = sizeof(xep->state);
-
     const uint8_t *data = (const uint8_t *)&xep->state;
     uint8_t *synced_data = (uint8_t *)&client->synced_state;
 
-    ofs = rle_encode(&rle_buff, data, synced_data, ofs, size);
+    size_t next_ofs =
+        rle_encode(&rle_buff, data, synced_data, client->synced_ofs, sizeof(xep->state));
 
-    client->synced_ofs = (ofs < size) ? ofs : 0;
+    // If this pass produced no payload and we started mid-buffer,
+    // wrap once to catch updates before synced_ofs (e.g., register-only changes).
+    if (rle_buff.pos == rle_buff.start && client->synced_ofs != 0) {
+        rle_buff.ofs = 0;
+        next_ofs = rle_encode(&rle_buff, data, synced_data, 0, sizeof(xep->state));
+    }
+
+    client->synced_ofs = (next_ofs < sizeof(xep->state)) ? next_ofs : 0;
 
     k_mutex_unlock(&xep->mutex);
 
