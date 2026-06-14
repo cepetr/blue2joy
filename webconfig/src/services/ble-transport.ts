@@ -74,7 +74,12 @@ export class BleTransport implements BtjTransport {
         if (!value || !this.frameHandler) {
           return;
         }
-        this.frameHandler(new Uint8Array(value.buffer.slice(0)));
+        const frame = new Uint8Array(
+          value.buffer,
+          value.byteOffset,
+          value.byteLength,
+        );
+        this.frameHandler(new Uint8Array(frame));
       };
 
       this.disconnectListener = () => {
