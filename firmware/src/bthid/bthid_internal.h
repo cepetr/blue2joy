@@ -49,6 +49,9 @@ struct bthid_device {
     // Currently discovered report characteristic
     int report_index;
 
+    // Guards double-start; reset by 0x0f handler so pairing_complete can retry.
+    bool report_map_read_started;
+
     // Handles of the HID service characteristics
     struct {
         uint16_t control_point;

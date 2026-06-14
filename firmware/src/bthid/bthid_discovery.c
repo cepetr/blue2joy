@@ -24,6 +24,20 @@
 
 LOG_MODULE_DECLARE(btj_bthid, LOG_LEVEL_DBG);
 
+// Discovery flow (must remain serialized to avoid overlapping ATT procedures):
+// 1) Discover HID service and characteristics (collect report/report_map handles).
+// 2) Wait for secured link, then read Report Map and parse it.
+// 3) Discover descriptors for each Report characteristic (CCCD + ReportRef handle).
+// 4) Read each ReportRef descriptor to map report_handle -> {report_id, report_type}.
+// 5) Mark device as discovered and signal discovery_completed.
+//
+// We need both Report Map and ReportRef data: Report Map defines payload layout,
+// ReportRef binds each GATT Report characteristic to a specific report ID/type.
+
+
+static int start_next_report_ref_read(bthid_device_t *dev);
+static int start_report_descriptor_discovery(bthid_device_t *dev);
+
 static uint8_t report_map_read_cb(struct bt_conn *conn, uint8_t err,
                                   struct bt_gatt_read_params *params, const void *data,
                                   uint16_t length)
@@ -54,12 +68,20 @@ static uint8_t report_map_read_cb(struct bt_conn *conn, uint8_t err,
         LOG_INF("Report map read complete {size: %zu}", dev->report_map_raw_size);
         LOG_HEXDUMP_INF(dev->report_map_raw, dev->report_map_raw_size, "Report map");
 
-        // Parse the report map
         hrm_parse(&dev->report_map, dev->report_map_raw, dev->report_map_raw_size);
 
-        dev->discovered = true;
-
-        bthid.cb->discovery_completed(dev);
+        // Discover descriptors (CCCD, ReportRef) for each report characteristic.
+        // discovery_completed is called after all ReportRef reads finish.
+        if (dev->handles.report_count > 0) {
+            dev->report_index = 0;
+            int err = start_report_descriptor_discovery(dev);
+            if (err) {
+                bthid.cb->discovery_error(dev);
+            }
+        } else {
+            dev->discovered = true;
+            bthid.cb->discovery_completed(dev);
+        }
         return BT_GATT_ITER_STOP;
     }
 
@@ -88,6 +110,25 @@ static int start_report_map_read(bthid_device_t *dev)
     }
 
     return err;
+}
+
+static void try_start_report_map_read(bthid_device_t *dev)
+{
+    if (dev->handles.report_map == 0 || dev->report_map_read_started) {
+        return;
+    }
+
+    if (!bthid_device_is_secure(dev)) {
+        return;
+    }
+
+    dev->report_map_read_started = true;
+
+    int err = start_report_map_read(dev);
+    if (err) {
+        dev->report_map_read_started = false;
+        bthid.cb->discovery_error(dev);
+    }
 }
 
 static uint8_t report_ref_read_cb(struct bt_conn *conn, uint8_t err,
@@ -271,11 +312,8 @@ static uint8_t on_hid_characteristic(struct bt_conn *conn, const struct bt_gatt_
     if (attr == NULL) {
         if (dev->handles.report_count > 0) {
             LOG_INF("%d HID report characteristics found", dev->handles.report_count);
-            dev->report_index = 0;
-            int err = start_report_descriptor_discovery(dev);
-            if (err) {
-                bthid.cb->discovery_error(dev);
-            }
+            // Read report map immediately; descriptor/ReportRef discovery runs after.
+            try_start_report_map_read(dev);
         } else {
             LOG_ERR("No HID reports found");
             bthid.cb->discovery_error(dev);
@@ -384,6 +422,7 @@ static uint8_t on_primary_service(struct bt_conn *conn, const struct bt_gatt_att
 int bthid_device_discover(bthid_device_t *dev)
 {
     dev->discovered = false;
+    dev->report_map_read_started = false;
 
     static struct bt_gatt_discover_params discover_params;
     discover_params = (struct bt_gatt_discover_params){
@@ -408,6 +447,11 @@ int bthid_device_discover(bthid_device_t *dev)
     }
 
     return err;
+}
+
+void bthid_device_on_secured(bthid_device_t *dev)
+{
+    try_start_report_map_read(dev);
 }
 
 hrm_t *bthid_device_get_report_map(bthid_device_t *dev)

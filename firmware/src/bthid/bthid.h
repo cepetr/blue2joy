@@ -84,6 +84,10 @@ bool bthid_device_is_secure(bthid_device_t *dev);
 // This function discovers the HID service and its characteristics and finally reads the report map
 int bthid_device_discover(bthid_device_t *dev);
 
+// Called when the link reaches security level L2; attempts to start the report-map
+// read if characteristic discovery has already completed.
+void bthid_device_on_secured(bthid_device_t *dev);
+
 // Subscribes to HID report notifications for the device
 int bthid_device_subscribe(bthid_device_t *dev);
 

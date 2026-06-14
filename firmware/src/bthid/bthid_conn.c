@@ -149,6 +149,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_
     LOG_INF("Security level changed {level: %u}", level);
 
     if (level >= BT_SECURITY_L2) {
+        bthid_device_on_secured(dev);
         bthid.cb->conn_secured(dev);
     }
 }

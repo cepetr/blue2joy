@@ -4,6 +4,7 @@
 ### Added
 - Added XEP80 character and cursor blinking (text mode only for now).
 - Added browser-to-Atari keycode input over paddle pins (requires btjkbd.sys on the Atari side).
+- Added support for Bluetooth devices using resolvable private addresses
 ### Fixed
 - Fixed XEP80 character deletion within logical lines, with correct cross-row shifting and cleanup of empty wrapped rows.
 - Improved reliability of USB connection (fixed session/event handling bugs).
