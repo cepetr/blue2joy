@@ -239,6 +239,9 @@ class VirtualBlue2JoyDevice {
         case Btj.MsgId.SET_JOY_PORT_MODE:
           this.handleSetJoyPortMode(decoded.payload, emit);
           break;
+        case Btj.MsgId.PRESS_KEY:
+          this.handlePressKey(decoded.payload, emit);
+          break;
         default:
           responseType = BtjFrameType.ERROR;
           break;
@@ -773,6 +776,15 @@ class VirtualBlue2JoyDevice {
     } else {
       this.xep80Printer = null;
     }
+  }
+
+  private handlePressKey(
+    payload: DataView,
+    emit: (frame: Uint8Array) => void,
+  ): void {
+    const reader = new BinaryReader(payload);
+    const keyCode = reader.uint8();
+    reader.assertDone("PressKey request");
   }
 }
 

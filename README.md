@@ -35,6 +35,7 @@ While there are other adapters that let Bluetooth controllers act as digital joy
 - Configure Blue2Joy via SPI-like communication over the joystick port
 - Emulate the Y-axis of a light pen (conceptual idea, not sure if possible)
 - Emulate an XEP80 terminal (work in progress)
+- Send keycodes from the browser to Atari via paddle lines (used by the XEP80 terminal; requires [btjkbd.sys](/kbdrv/)).
 
 Although designed for Atari 8-bit systems, Blue2Joy can be used with any device that follows the same joystick port pinout - with paddle functionality available only on Atari computers (see [details](/doc/paddle-emulation.md)).
 

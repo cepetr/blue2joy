@@ -504,6 +504,17 @@ export class BtjModel {
       this.logError(err, "joyport");
     }
   }
+
+  @action
+  async pressKey(keycode: number) {
+    if (!this.conn) throw new Error("Not connected");
+    try {
+      await this.conn.invoke(new Btj.PressKey(keycode));
+    } catch (err: unknown) {
+      this.logError(err, "joyport");
+    }
+  }
+
 }
 
 // Singleton instance for global use

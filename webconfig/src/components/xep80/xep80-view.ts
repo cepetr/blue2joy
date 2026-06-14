@@ -31,6 +31,7 @@ import {
   type Xep80TextRow,
 } from "../../xep80/worker.js";
 import { Xep80Bitmap } from "./xep80-bitmap.js";
+import { Xep80Keyboard } from "./xep80-keyboard.js";
 import "./xep80-prompts.js";
 import {
   resizeXep80BitmapSurface,
@@ -96,6 +97,13 @@ export class Xep80View extends MobxLitElement {
   );
 
   private frameController = new Xep80FrameController();
+
+  private keyboard = new Xep80Keyboard({
+    isActive: () => this.isXep80Active(),
+    sendKeycode: (keycode) => {
+      void btj.pressKey(keycode);
+    },
+  });
 
   private isXep80Active(): boolean {
     return btj.joyPort?.mode === Btj.JoyPortMode.UART;
@@ -177,6 +185,7 @@ export class Xep80View extends MobxLitElement {
     super.connectedCallback();
     this.frameController.startWorker();
     window.addEventListener("resize", this.handleResize);
+    this.keyboard.attach();
     document.addEventListener("fullscreenchange", this.onFullscreenChange);
     xep80ToolboxConfig.addEventListener(
       xep80ToolboxConfigChangeEvent,
@@ -187,6 +196,7 @@ export class Xep80View extends MobxLitElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("resize", this.handleResize);
+    this.keyboard.detach();
     document.removeEventListener("fullscreenchange", this.onFullscreenChange);
     xep80ToolboxConfig.removeEventListener(
       xep80ToolboxConfigChangeEvent,
