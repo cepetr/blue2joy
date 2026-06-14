@@ -460,6 +460,7 @@ export class BtjModel {
       this.logError("Not connected", "connection");
       return;
     }
+    this.advDevices.splice(0, this.advDevices.length);
     try {
       await this.conn.invoke(new Btj.SetMode(Btj.SysMode.MANUAL, true));
       await this.conn.invoke(new Btj.StartScanning());
