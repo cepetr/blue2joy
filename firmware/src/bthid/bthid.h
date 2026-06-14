@@ -57,6 +57,9 @@ int bthid_init(const bthid_callbacks_t *callbacks);
 // Deletes all stored bonds from the persistent storage
 int bthid_bonds_delete(void);
 
+// Checks if a peer with the given address is bonded
+bool bthid_is_peer_bonded(const bt_addr_le_t *addr);
+
 // Starts scanning for devices that advertise as gamepads
 int bthid_scan_start(void);
 

@@ -253,9 +253,9 @@ static void restart(void)
 static void on_device_found(const bt_addr_le_t *addr, int8_t rssi, const char *name)
 {
     devmgr_t *devmgr = &g_devmgr;
+    bool bonded = bthid_is_peer_bonded(addr);
 
     k_mutex_lock(&devmgr->mutex, K_FOREVER);
-    bool known = devmgr_find_entry(addr) != NULL;
     devmgr_mode_t mode = devmgr->sync.mode;
     k_mutex_unlock(&devmgr->mutex);
 
@@ -263,7 +263,7 @@ static void on_device_found(const bt_addr_le_t *addr, int8_t rssi, const char *n
         // add device to the scan list
         devmgr_add_to_adv_list(addr, rssi, name);
 
-    } else if (known || mode == DEVMGR_MODE_PAIRING) {
+    } else if (mode == DEVMGR_MODE_PAIRING || (mode == DEVMGR_MODE_AUTO && bonded)) {
         int err = devmgr_connect(addr);
 
         if (!err) {
@@ -273,6 +273,8 @@ static void on_device_found(const bt_addr_le_t *addr, int8_t rssi, const char *n
         } else {
             LOG_ERR("Failed to connect to device: {err = %d}", err);
         }
+    } else if (mode == DEVMGR_MODE_AUTO) {
+        LOG_DBG("Skipping unbonded device in AUTO mode");
     }
 }
 

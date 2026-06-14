@@ -97,3 +97,29 @@ int bthid_bonds_delete(void)
 
     return err;
 }
+
+typedef struct {
+    const bt_addr_le_t *addr;
+    bool found;
+} bond_lookup_ctx_t;
+
+static void bond_lookup_cb(const struct bt_bond_info *info, void *user_data)
+{
+    bond_lookup_ctx_t *ctx = (bond_lookup_ctx_t *)user_data;
+
+    if (bt_addr_le_eq(&info->addr, ctx->addr)) {
+        ctx->found = true;
+    }
+}
+
+bool bthid_is_peer_bonded(const bt_addr_le_t *addr)
+{
+    bond_lookup_ctx_t ctx = {
+        .addr = addr,
+        .found = false,
+    };
+
+    bt_foreach_bond(BT_ID_DEFAULT, bond_lookup_cb, &ctx);
+
+    return ctx.found;
+}
