@@ -21,6 +21,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/gatt.h>
 
 #include "report_map.h"
 #include "bthid.h"
@@ -68,6 +69,8 @@ struct bthid_device {
     uint8_t report_map_raw[512];
     // Report map data size
     size_t report_map_raw_size;
+    // Parameters for reading HID report map. Must remain valid while request is in flight.
+    struct bt_gatt_read_params report_map_read_params;
 
     // Parsed report map
     hrm_t report_map;

@@ -68,8 +68,7 @@ static uint8_t report_map_read_cb(struct bt_conn *conn, uint8_t err,
 
 static int start_report_map_read(bthid_device_t *dev)
 {
-    static struct bt_gatt_read_params read_report_map_params;
-    read_report_map_params = (struct bt_gatt_read_params){
+    dev->report_map_read_params = (struct bt_gatt_read_params){
         .func = report_map_read_cb,
         .handle_count = 1,
         .single.handle = dev->handles.report_map,
@@ -80,7 +79,7 @@ static int start_report_map_read(bthid_device_t *dev)
         return -ENOTCONN;
     }
 
-    int err = bt_gatt_read(conn, &read_report_map_params);
+    int err = bt_gatt_read(conn, &dev->report_map_read_params);
     bt_conn_unref(conn);
     if (err) {
         LOG_ERR("Failed to read HID report map {err: %d}", err);
