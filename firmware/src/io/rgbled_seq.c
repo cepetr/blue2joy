@@ -46,7 +46,8 @@ const rgbled_seq_t led_seq_advertising[] = {
 };
 
 const rgbled_seq_t led_seq_manual[] = {
-    {0, COLOR_PURPLE},
+    {100, COLOR_PURPLE},
+    {0},
 };
 
 const rgbled_seq_t led_seq_scanning[] = {
@@ -73,6 +74,7 @@ const rgbled_seq_t led_seq_ready[] = {
 };
 
 const rgbled_seq_t led_seq_idle[] = {
-    {0, COLOR_WHITE},
+    {100, COLOR_WHITE},
+    {0},
 };
 // clang-format on

@@ -62,8 +62,6 @@ static void event_callback(void *context, const event_t *ev)
 
         if (btsvc_is_advertising()) {
             rgbled_set_state(led_seq_advertising);
-        } else if (state.mode == DEVMGR_MODE_MANUAL) {
-            rgbled_set_state(led_seq_manual);
         } else if (state.scanning) {
             if (state.mode == DEVMGR_MODE_PAIRING) {
                 rgbled_set_state(led_seq_pairing);
@@ -74,6 +72,8 @@ static void event_callback(void *context, const event_t *ev)
             rgbled_set_state(led_seq_connecting);
         } else if (devmgr_is_ready()) {
             rgbled_set_state(led_seq_ready);
+        } else if (state.mode == DEVMGR_MODE_MANUAL) {
+            rgbled_set_state(led_seq_manual);
         } else {
             rgbled_set_state(led_seq_idle);
         }

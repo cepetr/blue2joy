@@ -8,6 +8,7 @@
 ### Fixed
 - Fixed XEP80 character deletion within logical lines, with correct cross-row shifting and cleanup of empty wrapped rows.
 - Improved reliability of USB connection (fixed session/event handling bugs).
+- Fixed LED signalling in manual mode.
 
 ### v0.5.1
 ### Fixed
