@@ -105,20 +105,7 @@ static uint8_t report_ref_read_cb(struct bt_conn *conn, uint8_t err,
         return BT_GATT_ITER_STOP;
     }
 
-    report_char_t *report_char = NULL;
-
-    for (uint8_t i = 0; i < dev->handles.report_count; i++) {
-        if (dev->handles.report[i].ref_handle == params->single.handle) {
-            report_char = &dev->handles.report[i];
-            break;
-        }
-    }
-
-    if (report_char == NULL) {
-        LOG_ERR("  ReportRef read - for unknown report handle {handle: %u}", params->single.handle);
-        bthid.cb->discovery_error(dev);
-        return BT_GATT_ITER_STOP;
-    }
+    report_char_t *report_char = &dev->handles.report[dev->report_ref_read_index];
 
     report_char->report_id = ((const uint8_t *)data)[0];
     report_char->report_type = ((const uint8_t *)data)[1];
@@ -126,33 +113,53 @@ static uint8_t report_ref_read_cb(struct bt_conn *conn, uint8_t err,
     LOG_INF("  ReportRef read {report_handle: %u, id: %u, type: %u}", report_char->value_handle,
             report_char->report_id, report_char->report_type);
 
-    return BT_GATT_ITER_STOP;
-}
+    dev->report_ref_read_index++;
 
-static int start_read_report_ref(struct bt_conn *conn, const struct bt_gatt_attr *attr)
-{
-    bthid_device_t *dev = bthid_device_find(conn);
-    if (dev == NULL) {
-        return BT_GATT_ITER_STOP;
-    }
-
-    static struct bt_gatt_read_params rp;
-    rp = (struct bt_gatt_read_params){
-        .func = report_ref_read_cb,
-        .handle_count = 1,
-        .single.handle = attr->handle,
-    };
-
-    int err = bt_gatt_read(conn, &rp);
-    if (err) {
-        LOG_ERR("  Failed to queue ReportRef read {err: %d}", err);
+    int next = start_next_report_ref_read(dev);
+    if (next < 0) {
         bthid.cb->discovery_error(dev);
+    } else if (next == 0) {
+        dev->discovered = true;
+        bthid.cb->discovery_completed(dev);
     }
 
     return BT_GATT_ITER_STOP;
 }
 
-static int start_report_descriptor_discovery(bthid_device_t *dev);
+// Returns 1 if a read was started, 0 if all done, negative on error.
+static int start_next_report_ref_read(bthid_device_t *dev)
+{
+    while (dev->report_ref_read_index < dev->handles.report_count) {
+        report_char_t *rc = &dev->handles.report[dev->report_ref_read_index];
+
+        if (rc->ref_handle == 0) {
+            dev->report_ref_read_index++;
+            continue;
+        }
+
+        dev->ref_read_params = (struct bt_gatt_read_params){
+            .func = report_ref_read_cb,
+            .handle_count = 1,
+            .single.handle = rc->ref_handle,
+        };
+
+        struct bt_conn *conn = bthid_device_conn_ref(dev);
+        if (conn == NULL) {
+            return -ENOTCONN;
+        }
+
+        int err = bt_gatt_read(conn, &dev->ref_read_params);
+        bt_conn_unref(conn);
+        if (err) {
+            LOG_ERR("  Failed to read ReportRef {report_handle: %u, ref_handle: %u, err: %d}",
+                    rc->value_handle, rc->ref_handle, err);
+            return err;
+        }
+        return 1;
+    }
+
+    return 0;
+}
 
 static uint8_t on_report_desc(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                               struct bt_gatt_discover_params *params)
@@ -167,9 +174,16 @@ static uint8_t on_report_desc(struct bt_conn *conn, const struct bt_gatt_attr *a
         dev->report_index++;
         if (dev->report_index >= dev->handles.report_count) {
             LOG_INF("Report descriptor discovery complete");
-            int err = start_report_map_read(dev);
-            if (err) {
+
+            dev->report_ref_read_index = 0;
+            int err = start_next_report_ref_read(dev);
+            if (err < 0) {
                 bthid.cb->discovery_error(dev);
+                return BT_GATT_ITER_STOP;
+            }
+            if (err == 0) {
+                dev->discovered = true;
+                bthid.cb->discovery_completed(dev);
             }
             return BT_GATT_ITER_STOP;
         }
@@ -193,12 +207,6 @@ static uint8_t on_report_desc(struct bt_conn *conn, const struct bt_gatt_attr *a
         dev->handles.report[i].ref_handle = attr->handle;
         LOG_INF("  ReportRef found {report_handle: %u, handle: %u}",
                 dev->handles.report[i].value_handle, attr->handle);
-
-        int err = start_read_report_ref(conn, attr);
-        if (err) {
-            bthid.cb->discovery_error(dev);
-            return BT_GATT_ITER_STOP;
-        }
     }
 
     return BT_GATT_ITER_CONTINUE;
