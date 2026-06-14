@@ -78,12 +78,18 @@ The application is available at https://cepetr.github.io/blue2joy/main.
 
 For more details, see the [webconfig](/webconfig/) folder.
 
-### Atari Application
+### Atari Blue2Joy Keyboard driver
+A driver for SpartaDOS that lets you use Blue2Joy as a keyboard. It can be used together with
+XEP80 or on its own.
+
+For more details, see the [atari](/atari/btjkbd) folder.
+
+### Atari Blue2Joy Configuration Application
 - Not implemented yet. This component currently exists only as a design intention.
 - Intended to be an application that allows configuring the Blue2Joy device directly from Atari
 - Planned to use the bidirectional (SPI-like) communication over the joystick port
 
-For more details, see the [atari](/atari/) folder.
+For more details, see the [atari](/atari/btjmenu) folder.
 
 ## Feedback & Contributions
 
