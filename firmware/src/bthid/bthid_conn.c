@@ -51,13 +51,16 @@ static struct bt_conn *take_device_conn(bthid_device_t *dev)
 static void disconnect_conn(struct bt_conn *conn)
 {
     int err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
-    if (err) {
+    if (err == -ENOTCONN) {
+        // Link is already down; disconnected() callback will carry the real reason.
+        LOG_DBG("Disconnect skipped, link already closed");
+    } else if (err) {
         LOG_ERR("Failed to disconnect {err: %d}", err);
+    } else {
+        LOG_DBG("Disconnect requested");
     }
 
     bt_conn_unref(conn);
-
-    LOG_INF("Disconnected");
 }
 
 static void connected(struct bt_conn *conn, uint8_t err)
@@ -105,6 +108,13 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
+    char addr[BT_ADDR_LE_STR_LEN];
+    const bt_addr_le_t *dst = bt_conn_get_dst(conn);
+
+    bt_addr_le_to_str(dst, addr, sizeof(addr));
+
+    LOG_INF("Disconnected {peer: %s, reason: 0x%02x %s}", addr, reason, bt_hci_err_to_str(reason));
+
     k_mutex_lock(&bthid.mutex, K_FOREVER);
     bthid_device_t *dev = bthid_device_find_locked(conn);
     if (dev != NULL) {
@@ -113,13 +123,10 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
     k_mutex_unlock(&bthid.mutex);
 
     if (dev == NULL) {
+        // Connection was already detached by local error handling; disconnect_conn()
+        // already released the create-ref, so do NOT unref again here.
         return;
     }
-
-    char addr[BT_ADDR_LE_STR_LEN];
-    bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
-    LOG_INF("Disconnected {peer: %s, reason: 0x%02x %s", addr, reason, bt_hci_err_to_str(reason));
 
     bthid.cb->conn_closed(dev);
     bt_conn_unref(conn);
