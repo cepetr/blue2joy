@@ -52,3 +52,5 @@ void joy_port_set_pot(uint8_t pot_idx, int value);
 void joy_port_update_pot_encoder(uint8_t pot_idx, int32_t delta, int32_t max);
 
 void joy_port_get_state(event_joy_port_t *state);
+
+void joy_port_send_keypress(uint8_t keycode);

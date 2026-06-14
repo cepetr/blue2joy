@@ -148,3 +148,8 @@ void joy_port_update_pot_encoder(uint8_t pot_idx, int32_t delta, int32_t max)
 {
     io_pot_update_encoder(pot_idx, delta, max);
 }
+
+void joy_port_send_keypress(uint8_t keycode)
+{
+    io_pot_send_keypress(keycode);
+}

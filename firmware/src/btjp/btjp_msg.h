@@ -64,6 +64,7 @@ typedef enum {
     BTJP_MSG_DELETE_DEVICE = 11,
     BTJP_MSG_FACTORY_RESET = 12,
     BTJP_MSG_SET_JOY_PORT_MODE = 13,
+    BTJP_MSG_PRESS_KEY = 14,
 
     // Events
     BTJP_MSG_EVT_SYS_STATE_UPDATE = 64,
@@ -228,6 +229,12 @@ typedef struct {
 // --------------------------------------------------------------------------
 
 typedef struct {
+    uint8_t keycode;
+} btjp_req_press_key_t;
+
+// --------------------------------------------------------------------------
+
+typedef struct {
     uint8_t scanning;
     uint8_t mode;
 } btjp_evt_sys_state_update_t;
@@ -291,6 +298,7 @@ typedef struct {
         btjp_req_connect_device_t connect_device;
         btjp_req_delete_device_t delete_device;
         btjp_req_set_joy_port_mode_t set_joy_port_mode;
+        btjp_req_press_key_t press_key;
     };
 } btjp_req_t;
 

@@ -301,6 +301,14 @@ static btjp_status_t btjp_handle_request(const btjp_req_t *req, btjp_rsp_t *rsp)
         }
     } break;
 
+    case BTJP_MSG_PRESS_KEY: {
+        CHECK_REQ_SIZE(req, sizeof(req->press_key));
+
+        uint8_t keycode = req->press_key.keycode;
+
+        mapper_press_key(keycode);
+    } break;
+
     default:
         return BTJP_ERR_UNKNOWN_MSG;
     }

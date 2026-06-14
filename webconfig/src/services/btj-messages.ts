@@ -69,6 +69,7 @@ export namespace Btj {
     DELETE_DEVICE = 11,
     FACTORY_RESET = 12,
     SET_JOY_PORT_MODE = 13,
+    PRESS_KEY = 14,
 
     EVT_SYS_STATE_UPDATE = 64,
     EVT_JOY_PORT_UPDATE = 65,
@@ -93,7 +94,7 @@ export namespace Btj {
     readonly msgId = MsgId.GET_API_VERSION;
     private _data?: ApiVersion;
 
-    constructor() {}
+    constructor() { }
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -120,7 +121,7 @@ export namespace Btj {
     readonly msgId = MsgId.GET_SYS_INFO;
     private _data?: SysInfo;
 
-    constructor() {}
+    constructor() { }
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -239,7 +240,7 @@ export namespace Btj {
     constructor(
       private _addr: DevAddr,
       private _data: DevConfig,
-    ) {}
+    ) { }
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -299,7 +300,7 @@ export namespace Btj {
       private _profile: number,
       private _id: number,
       private _data: PinConfig,
-    ) {}
+    ) { }
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -357,7 +358,7 @@ export namespace Btj {
       private _profile: number,
       private _id: number,
       private _data: PotConfig,
-    ) {}
+    ) { }
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -428,7 +429,7 @@ export namespace Btj {
       private _profile: number,
       private _id: number,
       private _data: IntgConfig,
-    ) {}
+    ) { }
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -460,7 +461,7 @@ export namespace Btj {
     constructor(
       private _mode: SysMode,
       private _restart: boolean,
-    ) {}
+    ) { }
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -484,7 +485,7 @@ export namespace Btj {
   export class StartScanning implements Command {
     readonly msgId = MsgId.START_SCANNING;
 
-    constructor() {}
+    constructor() { }
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -498,7 +499,7 @@ export namespace Btj {
   export class StopScanning implements Command {
     readonly msgId = MsgId.STOP_SCANNING;
 
-    constructor() {}
+    constructor() { }
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -512,7 +513,7 @@ export namespace Btj {
   export class ConnectDevice implements Command {
     readonly msgId = MsgId.CONNECT_DEVICE;
 
-    constructor(private _addr: DevAddr) {}
+    constructor(private _addr: DevAddr) { }
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -532,7 +533,7 @@ export namespace Btj {
   export class DeleteDevice implements Command {
     readonly msgId = MsgId.DELETE_DEVICE;
 
-    constructor(private _addr: DevAddr) {}
+    constructor(private _addr: DevAddr) { }
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -552,7 +553,7 @@ export namespace Btj {
   export class FactoryReset implements Command {
     readonly msgId = MsgId.FACTORY_RESET;
 
-    constructor() {}
+    constructor() { }
 
     serializeRequest(): Uint8Array {
       return new Uint8Array(0);
@@ -566,7 +567,7 @@ export namespace Btj {
   export class SetJoyPortMode implements Command {
     readonly msgId = MsgId.SET_JOY_PORT_MODE;
 
-    constructor(private _mode: JoyPortMode) {}
+    constructor(private _mode: JoyPortMode) { }
 
     serializeRequest(): Uint8Array {
       const w = new BinaryWriter();
@@ -580,6 +581,26 @@ export namespace Btj {
 
     get mode(): JoyPortMode {
       return this._mode;
+    }
+  }
+
+  export class PressKey implements Command {
+    readonly msgId = MsgId.PRESS_KEY;
+
+    constructor(private _keycode: number) { }
+
+    serializeRequest(): Uint8Array {
+      const w = new BinaryWriter();
+      w.uint8(this._keycode);
+      return w.result;
+    }
+
+    parseResponse(view: DataView) {
+      new BinaryReader(view).assertDone("PressKey response");
+    }
+
+    get keycode(): number {
+      return this._keycode;
     }
   }
 

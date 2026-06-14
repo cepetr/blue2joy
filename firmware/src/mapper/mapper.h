@@ -104,3 +104,7 @@ int mapper_set_profile(int idx, const mapper_profile_t *profile, bool save);
 
 // Processes a report received from a HID device
 void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_report_t *report);
+
+// Simulate a key press (for keyboard emulation via pot inputs).
+// Keycode must be a valid Atari keycode (https://www.atariarchives.org/c3ba/page004.php)
+void mapper_press_key(uint8_t keycode);

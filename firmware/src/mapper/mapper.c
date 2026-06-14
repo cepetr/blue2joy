@@ -460,3 +460,8 @@ void mapper_process_report(int profile_idx, const uint8_t *data, const hrm_repor
 
     k_mutex_unlock(&mapper->mutex);
 }
+
+void mapper_press_key(uint8_t keycode)
+{
+    joy_port_send_keypress(keycode);
+}

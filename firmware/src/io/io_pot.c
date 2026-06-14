@@ -36,6 +36,12 @@ static const nrfx_gpiote_t gpiote = NRFX_GPIOTE_INSTANCE(0);
 static const struct gpio_dt_spec joy_p0_chg = GPIO_DT_SPEC_GET(DT_ALIAS(joy_p0_chg), gpios);
 
 typedef struct {
+    uint8_t keycodes[8];
+    uint8_t count;
+    bool pressed;
+} io_pot_kbd_t;
+
+typedef struct {
     uint8_t gpiote_p0_chg; // GPIOTE channel for POT0 charging
     uint8_t gpiote_p1_chg; // GPIOTE channel for POT1 charging
 
@@ -60,9 +66,15 @@ typedef struct {
     // Encoder simulator position
     int32_t enc_pos[IO_POT_COUNT];
 
+    // Keyboard simulation
+    io_pot_kbd_t kbd;
+
 } io_pot_drv_t;
 
 io_pot_drv_t g_io_pot_drv;
+
+// Forward declarations
+static void io_pot_process_keypresses(void);
 
 static void comparator_handler(nrf_comp_event_t event)
 {
@@ -83,6 +95,9 @@ static void comparator_handler(nrf_comp_event_t event)
     atomic_set(&drv->period, (drv->filter.sum / ARRAY_SIZE(drv->filter.buf)));
 
     drv->filter.time = now;
+
+    // Process pending key presses for keyboard emulation
+    io_pot_process_keypresses();
 }
 
 static void timer_handler(nrf_timer_event_t event_type, void *p_context)
@@ -398,6 +413,8 @@ void io_pot_set(uint8_t pot_idx, int value)
         return;
     }
 
+    LOG_INF("io_pot_set: pot_idx=%d, value=%d", pot_idx, value);
+
     value = CLAMP(value, IO_POT_MIN_VAL, IO_POT_MAX_VAL);
 
     if (value == IO_POT_MAX_VAL) {
@@ -440,4 +457,52 @@ void io_pot_update_encoder(uint8_t pot_idx, int32_t delta, int32_t max)
     unsigned int key = irq_lock();
     drv->enc_pos[pot_idx] = CLAMP(drv->enc_pos[pot_idx] + delta, -max << 14, max << 14);
     irq_unlock(key);
+}
+
+void io_pot_send_keypress(uint8_t keycode)
+{
+    io_pot_drv_t *drv = &g_io_pot_drv;
+
+    io_pot_kbd_t *kbd = &drv->kbd;
+
+    if (kbd->count >= ARRAY_SIZE(kbd->keycodes)) {
+        return;
+    }
+
+    unsigned int key = irq_lock();
+    kbd->keycodes[kbd->count] = keycode;
+    ++kbd->count;
+    irq_unlock(key);
+}
+
+// This function must be called with disabled interrupts
+static void io_pot_process_keypresses(void)
+{
+    io_pot_drv_t *drv = &g_io_pot_drv;
+
+    io_pot_kbd_t *kbd = &drv->kbd;
+
+    if (kbd->count == 0 && !kbd->pressed) {
+        return;
+    }
+
+    if (!kbd->pressed) {
+        // Send keycode
+        uint8_t lo = 4 + ((kbd->keycodes[0] & 0x0F) << 3);
+        uint8_t hi = 4 + ((kbd->keycodes[0] >> 4) << 3);
+        io_pot_set(0, lo);
+        io_pot_set(1, hi);
+        kbd->pressed = true;
+    } else {
+        // Send release
+        io_pot_set(0, IO_POT_MAX_VAL);
+        io_pot_set(1, IO_POT_MAX_VAL);
+
+        // Shift keycodes
+        for (uint8_t i = 1; i < kbd->count; i++) {
+            kbd->keycodes[i - 1] = kbd->keycodes[i];
+        }
+        kbd->count--;
+        kbd->pressed = false;
+    }
 }

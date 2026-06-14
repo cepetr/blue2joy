@@ -45,3 +45,7 @@ int io_pot_get(uint8_t pot_idx);
 // delta - change in steps in Q17.14 format
 // max - maximum absolute value
 void io_pot_update_encoder(uint8_t pot_idx, int32_t delta, int32_t max);
+
+// Simulate a key press (for keyboard emulation via pot inputs).
+// Keycode must be a valid Atari keycode (https://www.atariarchives.org/c3ba/page004.php)
+void io_pot_send_keypress(uint8_t keycode);
