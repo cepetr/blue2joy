@@ -170,6 +170,10 @@ size_t btjp_build_evt_message(void *outbuff, size_t outsize, event_queue_t *evq)
             return btjp_build_evt_profile_update(evt, ev.idx);
         case EV_SUBJECT_JOY_PORT_STATE:
             return btjp_build_evt_joy_port_update(evt, &ev.joy_port);
+        case EV_SUBJECT_BTSVC_STATE:
+        case EV_SUBJECT_CONN_ERROR:
+            // No dedicated BTJP message for connection errors yet.
+            return 0;
         default:
             LOG_ERR("Unhandled event subject %d", ev.subject);
         }
