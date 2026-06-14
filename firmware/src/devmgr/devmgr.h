@@ -48,7 +48,7 @@ typedef struct {
 typedef enum {
     DEVMGR_CONN_CLOSED = 0,
     DEVMGR_CONN_ERROR = 1,
-    DEVMGR_CONN_CONNECTING = 2,
+    DEVMGR_CONN_CONNECTING = 2, // Not used
     DEVMGR_CONN_CONNECTED = 3,
     DEVMGR_CONN_READY = 4,
 } devmgr_conn_state_t;

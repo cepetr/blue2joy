@@ -162,27 +162,10 @@ int devmgr_connect(const bt_addr_le_t *addr)
         devmgr_notify(EV_SUBJECT_SYS_STATE, NULL, EV_ACTION_UPDATE);
     }
 
+    // NOTE: Device entry will be created in on_conn_opened() after we have
+    // the real peer address (not the transient scan address which may be RPA)
     int err = bthid_connect(BTHID_DEFAULT_SLOT, addr);
-    if (!err) {
-        // Create device entry if it doesn't exist
-        bt_addr_le_t deleted_addr = {0};
-        bool deleted = false;
-        bool created = false;
-        bt_addr_le_t entry_addr = {0};
-        k_mutex_lock(&devmgr->mutex, K_FOREVER);
-        devmgr_entry_t *entry = devmgr_ensure_entry(addr, true, &deleted_addr, &deleted, &created);
-        entry->state.conn_state = DEVMGR_CONN_CONNECTING;
-        bt_addr_le_copy(&entry_addr, &entry->addr);
-        k_mutex_unlock(&devmgr->mutex);
-
-        if (deleted) {
-            devmgr_notify(EV_SUBJECT_DEV_LIST, &deleted_addr, EV_ACTION_DELETE);
-        }
-        if (created) {
-            devmgr_notify(EV_SUBJECT_DEV_LIST, &entry_addr, EV_ACTION_CREATE);
-        }
-        devmgr_notify(EV_SUBJECT_DEV_LIST, &entry_addr, EV_ACTION_UPDATE);
-    } else {
+    if (err) {
         if (scanning) {
             // restart scanning
             devmgr_start_scanning();
@@ -206,7 +189,7 @@ static void devmgr_update_device_state(bthid_device_t *dev, devmgr_conn_state_t 
 
     k_mutex_lock(&devmgr->mutex, K_FOREVER);
 
-    bool new = (state == DEVMGR_CONN_CONNECTING) || (state == DEVMGR_CONN_CONNECTED);
+    bool new = (state == DEVMGR_CONN_CONNECTED);
 
     devmgr_entry_t *entry =
         new ? devmgr_ensure_entry(&addr, false, &deleted_addr, &deleted, &created)
@@ -281,15 +264,42 @@ static void on_device_found(const bt_addr_le_t *addr, int8_t rssi, const char *n
 // Connection with the gamepad opened
 static void on_conn_opened(bthid_device_t *dev)
 {
+    devmgr_t *devmgr = &g_devmgr;
+
+    // Get the actual peer address after connection (may be resolved identity)
+    bt_addr_le_t addr;
+    bthid_device_get_addr(dev, &addr);
+
+    // Create device entry with the real peer address (not scan-time address)
+    bt_addr_le_t deleted_addr = {0};
+    bool deleted = false;
+    bool created = false;
+    bt_addr_le_t entry_addr = {0};
+
+    k_mutex_lock(&devmgr->mutex, K_FOREVER);
+    devmgr_entry_t *entry = devmgr_ensure_entry(&addr, true, &deleted_addr, &deleted, &created);
+    entry->state.conn_state = DEVMGR_CONN_CONNECTED;
+    bt_addr_le_copy(&entry_addr, &entry->addr);
+    k_mutex_unlock(&devmgr->mutex);
+
+    if (deleted) {
+        devmgr_notify(EV_SUBJECT_DEV_LIST, &deleted_addr, EV_ACTION_DELETE);
+    }
+    if (created) {
+        devmgr_notify(EV_SUBJECT_DEV_LIST, &entry_addr, EV_ACTION_CREATE);
+    }
+    devmgr_notify(EV_SUBJECT_DEV_LIST, &entry_addr, EV_ACTION_UPDATE);
+
+    // Now discover HID service with the established connection
     int err = bthid_device_discover(dev);
 
-    if (!err) {
-        devmgr_update_device_state(dev, DEVMGR_CONN_CONNECTED);
-    } else {
+    if (err) {
+        // Discovery initiation failed; mark as error
         devmgr_update_device_state(dev, DEVMGR_CONN_ERROR);
         bthid_device_disconnect(dev);
         restart();
     }
+    // If err == 0, discovery is in progress; completion callbacks will update state
 }
 
 // Subscribe to HID report notifications.

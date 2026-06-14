@@ -47,7 +47,8 @@ bool devmgr_is_connecting(void)
     for (size_t i = 0; i < devmgr->sync.dev.count; i++) {
         devmgr_conn_state_t conn_state = devmgr->sync.dev.entry[i].state.conn_state;
 
-        if (conn_state == DEVMGR_CONN_CONNECTING || conn_state == DEVMGR_CONN_CONNECTED) {
+        // Check if BLE is connected and HID discovery is in progress (not yet READY)
+        if (conn_state == DEVMGR_CONN_CONNECTED) {
             connecting = true;
             break;
         }
