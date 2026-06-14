@@ -6,7 +6,7 @@
 - Added browser-to-Atari keycode input over paddle pins (requires btjkbd.sys on the Atari side).
 ### Fixed
 - Fixed XEP80 character deletion within logical lines, with correct cross-row shifting and cleanup of empty wrapped rows.
-- 
+- Improved reliability of USB connection (fixed session/event handling bugs).
 
 ### v0.5.1
 ### Fixed

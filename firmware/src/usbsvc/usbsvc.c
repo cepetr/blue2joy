@@ -106,7 +106,7 @@ static void usbsvc_handle_request(usbsvc_t *svc, const uint8_t *payload, size_t 
         LOG_ERR("Failed to send BTJP response (err %d)", err);
     }
 
-    if (!atomic_cas(&svc->session_started, false, true) ||
+    if (atomic_cas(&svc->session_started, false, true) ||
         btjp_is_sync_request(payload, payload_len)) {
         usbsvc_start_session(svc);
     }
