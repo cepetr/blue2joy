@@ -46,6 +46,35 @@ export class BtjConnection {
   private reqPending: PendingRequest | null = null;
   private timeoutMs = 3000;
 
+  private msgName(msgId: number): string {
+    const name = Btj.MsgId[msgId as Btj.MsgId];
+    return typeof name === "string" ? name : `UNKNOWN_MSG_${msgId}`;
+  }
+
+  private logTxCommand(msgId: number, seq: number, payloadSize: number): void {
+    console.log(
+      `[BTJP TX COMMAND] ${this.msgName(msgId)} (id=${msgId}, seq=${seq}, payload=${payloadSize})`,
+    );
+  }
+
+  private logRxEvent(msgId: number, payloadSize: number): void {
+    console.log(
+      `[BTJP RX EVENT] ${this.msgName(msgId)} (id=${msgId}, payload=${payloadSize})`,
+    );
+  }
+
+  private logRxResponse(
+    type: BtjFrameType.RESPONSE | BtjFrameType.ERROR,
+    msgId: number,
+    seq: number,
+    payloadSize: number,
+  ): void {
+    const kind = type === BtjFrameType.RESPONSE ? "RESPONSE" : "ERROR";
+    console.log(
+      `[BTJP RX ${kind}] ${this.msgName(msgId)} (id=${msgId}, seq=${seq}, payload=${payloadSize})`,
+    );
+  }
+
   constructor(
     private transport: BtjTransport,
     eventHandler?: (msgId: number, payload: DataView) => void,
@@ -116,6 +145,7 @@ export class BtjConnection {
       { msgId: cmd.msgId, data: { serialize: () => cmd.serializeRequest() } },
       seq,
     );
+    this.logTxCommand(cmd.msgId, seq, reqBuf[3] ?? 0);
     this.reqPending = {
       seq,
       msgId: cmd.msgId,
@@ -135,7 +165,10 @@ export class BtjConnection {
   private handleTimeout() {
     if (this.reqPending) {
       const err = new Error("Command timeout");
-      console.error("BTJ command timed out", err);
+      console.error(
+        `BTJP command timed out: ${this.msgName(this.reqPending.msgId)} (id=${this.reqPending.msgId}, seq=${this.reqPending.seq})`,
+        err,
+      );
       this.reqPending.reject(err);
       this.reqPending = null;
       this.nextCommand();
@@ -143,7 +176,14 @@ export class BtjConnection {
   }
 
   private handleError(err: unknown) {
-    console.error("BTJ request failed", err);
+    if (this.reqPending) {
+      console.error(
+        `BTJP request failed: ${this.msgName(this.reqPending.msgId)} (id=${this.reqPending.msgId}, seq=${this.reqPending.seq})`,
+        err,
+      );
+    } else {
+      console.error("BTJP request failed without pending command", err);
+    }
     if (this.reqPending) {
       this.reqPending.reject(err);
       clearTimeout(this.reqPending.timeout);
@@ -160,7 +200,7 @@ export class BtjConnection {
   }
 
   private handleEvent(msgId: number, payload: DataView) {
-    globalThis.console.log("Received event from device", msgId);
+    this.logRxEvent(msgId, payload.byteLength);
     try {
       if (this.eventHandler) {
         this.eventHandler(msgId, payload);
@@ -185,6 +225,7 @@ export class BtjConnection {
 
       case BtjFrameType.RESPONSE:
       case BtjFrameType.ERROR:
+        this.logRxResponse(frame.type, frame.msgId, frame.seq, frame.payload.byteLength);
         if (
           this.reqPending &&
           frame.seq === this.reqPending.seq &&
@@ -209,10 +250,7 @@ export class BtjConnection {
         } else {
           // Unmatched response
           console.warn(
-            "Unmatched response seq",
-            frame.seq,
-            "msgId",
-            frame.msgId,
+            `Unmatched response: ${this.msgName(frame.msgId)} (id=${frame.msgId}, seq=${frame.seq})`,
           );
         }
         break;
