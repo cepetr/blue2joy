@@ -22,14 +22,14 @@ jobs:
          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Build Atari software
-        working-directory: atari
+        working-directory: atari/btjmenu
         run: nix-shell --pure --command "./build.sh"
 
       - name: Upload blue2joy.xex
         uses: actions/upload-artifact@v4
         with:
           name: blue2joy.xex
-          path: atari/build/blue2joy.xex
+          path: atari/btjmenu/build/blue2joy.xex
           if-no-files-found: error
 
 ############################
