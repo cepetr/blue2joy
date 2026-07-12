@@ -27,13 +27,15 @@ enum ModifierMask {
 type KeyMapEntry = {
   keycode: number;
   allowedModifiers: ModifierMask;
+  consumedModifiers: ModifierMask;
 };
 
 function key(
   keycode: number,
   allowedModifiers: ModifierMask = ModifierMask.All,
+  consumedModifiers: ModifierMask = ModifierMask.None,
 ): KeyMapEntry {
-  return { keycode, allowedModifiers };
+  return { keycode, allowedModifiers, consumedModifiers };
 }
 
 const namedKeyMapping: Record<string, KeyMapEntry> = {
@@ -42,7 +44,7 @@ const namedKeyMapping: Record<string, KeyMapEntry> = {
   Tab: key(44),
   Enter: key(12),
   CapsLock: key(60),
-  F6: key(23 | 0xC0, ModifierMask.None), // Break key on Atari keyboard
+  F6: key(23 | 0xC0, ModifierMask.None, ModifierMask.All), // Break key on Atari keyboard
   ArrowLeft: key(6 | 0x80, ModifierMask.None),
   ArrowRight: key(7 | 0x80, ModifierMask.None),
   ArrowUp: key(14 | 0x80, ModifierMask.None),
@@ -54,35 +56,35 @@ const namedKeyMapping: Record<string, KeyMapEntry> = {
 
 const characterKeyMapping: Record<string, KeyMapEntry> = {
   " ": key(33),
-  _: key(14 | 0x40, ModifierMask.None),
+  _: key(14 | 0x40, ModifierMask.None, ModifierMask.Shift),
   "-": key(14),
   ",": key(32),
   ";": key(2, ModifierMask.None),
-  ":": key(2 | 0x40, ModifierMask.None),
-  "!": key(31 | 0x40, ModifierMask.None),
-  "?": key(38 | 0x40, ModifierMask.None),
+  ":": key(2 | 0x40, ModifierMask.None, ModifierMask.Shift),
+  "!": key(31 | 0x40, ModifierMask.None, ModifierMask.Shift),
+  "?": key(38 | 0x40, ModifierMask.None, ModifierMask.Shift),
   ".": key(34),
-  '"': key(30 | 0x40, ModifierMask.None),
-  "(": key(48 | 0x40, ModifierMask.None),
-  ")": key(50 | 0x40, ModifierMask.None),
+  '"': key(30 | 0x40, ModifierMask.None, ModifierMask.Shift),
+  "(": key(48 | 0x40, ModifierMask.None, ModifierMask.Shift),
+  ")": key(50 | 0x40, ModifierMask.None, ModifierMask.Shift),
   "[": key(32 | 0x40, ModifierMask.None),
   "]": key(34 | 0x40, ModifierMask.None),
-  "@": key(53 | 0x40, ModifierMask.None),
-  "*": key(7, ModifierMask.None),
+  "@": key(53 | 0x40, ModifierMask.None, ModifierMask.Shift),
+  "*": key(7, ModifierMask.None, ModifierMask.Shift),
   "/": key(38),
   "'": key(51 | 0x40, ModifierMask.None),
   "\\": key(6 | 0x40, ModifierMask.None),
-  "&": key(27 | 0x40, ModifierMask.None),
-  "#": key(26 | 0x40, ModifierMask.None),
-  "%": key(29 | 0x40, ModifierMask.None),
+  "&": key(27 | 0x40, ModifierMask.None, ModifierMask.Shift),
+  "#": key(26 | 0x40, ModifierMask.None, ModifierMask.Shift),
+  "%": key(29 | 0x40, ModifierMask.None, ModifierMask.Shift),
   "`": key(39),
-  "^": key(7 | 0x40, ModifierMask.None),
-  "+": key(6, ModifierMask.None),
-  "<": key(54, ModifierMask.None),
+  "^": key(7 | 0x40, ModifierMask.None, ModifierMask.Shift),
+  "+": key(6, ModifierMask.None, ModifierMask.Shift),
+  "<": key(54, ModifierMask.None, ModifierMask.Shift),
   "=": key(15),
-  ">": key(55, ModifierMask.None),
-  "|": key(15 | 0x40, ModifierMask.None),
-  "$": key(24 | 0x40, ModifierMask.None),
+  ">": key(55, ModifierMask.None, ModifierMask.Shift),
+  "|": key(15 | 0x40, ModifierMask.None, ModifierMask.Shift),
+  "$": key(24 | 0x40, ModifierMask.None, ModifierMask.Shift),
   "0": key(50, ModifierMask.Ctrl),
   "1": key(31, ModifierMask.Ctrl),
   "2": key(30, ModifierMask.Ctrl),
@@ -155,7 +157,7 @@ function mapEventToAtariKeycode(event: KeyboardEvent): number | undefined {
     return undefined;
   }
 
-  const modifiers = requestedModifiers(event);
+  const modifiers = requestedModifiers(event) & ~entry.consumedModifiers;
 
   if ((entry.allowedModifiers & modifiers) !== modifiers) {
     return undefined;
